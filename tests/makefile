@@ -1,22 +1,22 @@
-TEST_TO_RUN := BITS_TEST_MAIN
+BITS_FILE := -DBITS_TEST_MAIN
 CXX := g++
-CXXFLAGS := -W -D$(TEST_TO_RUN)
+CXXFLAGS := -W
 
-SRC := ../src/bits.cpp
-TEST := bits_test_main.cpp
-OBJS := objs/bits.o objs/bits_test_main.o
-TARGET := bin/test_bits
+BITS_SRC := ../src/bits.cpp
+BITS_TEST := bits_test_main.cpp
+BITS_OBJS := objs/bits.o objs/bits_test_main.o
+BITS_TARGET := bin/test_bits
 
-bits: $(TARGET)
+bits: $(BITS_TARGET)
 
-$(TARGET): $(OBJS) | bin
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJS)
+$(BITS_TARGET): $(BITS_OBJS) | bin
+	$(CXX) $(CXXFLAGS) $(BITS_FILE) -o $@ $(BITS_OBJS)
 
 objs/%.o: %.cpp | objs
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(BITS_FILE) -c $< -o $@
 
 objs/%.o: ../src/%.cpp | objs
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(BITS_FILE) -c $< -o $@
 
 bin:
 	mkdir -p bin

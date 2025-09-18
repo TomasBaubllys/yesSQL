@@ -5,16 +5,16 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 if make clean; then
-	echo "${GREEN} make clean successful ${NC}"
+	echo -e "${GREEN} make clean successful ${NC}"
 else
-	echo "${RED} make clean failed ${NC}"
+	echo -e "${RED} make clean failed ${NC}"
 	exit 1
 fi
 
 if make bits; then
-	echo "${GREEN} make successful ${NC}"
+	echo -e "${GREEN} make successful ${NC}"
 else
-	echo "${RED} make failed ${NC}"
+	echo -e "${RED} make failed ${NC}"
 	exit 1
 fi
 
