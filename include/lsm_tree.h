@@ -1,11 +1,6 @@
-#include "../include/lsm_tree.h"
+#ifndef YSQL_LSMTREE_H_INCLUDED
+#define YSQL_LSMTREE_H_INCLUDED
 
-
-LsmTree::LsmTree(){
-}
-
-LsmTree::~LsmTree(){
-}
 // Hello everybody
 // LsmTree
 // To do:
@@ -13,7 +8,7 @@ LsmTree::~LsmTree(){
 // Wal iraso struktura [[recordLength][key][valueLength][value][checksum]]
 // WAL failo rasymas
 // WAL failo isvalymas
-// Storage iraso struktura [[recordLength][tombstoneFlag][key][valueLength][value][checksum]]
+// Storage iraso struktura 
 // MemTable rasymas
 // MemTable sortinimas
 // MemTable skaitymas
@@ -29,3 +24,12 @@ LsmTree::~LsmTree(){
 // GETFF ir GETFB turi leisti puslapiuoti, t.y. gauti po n porų ir fektyviai tęsti toliau
 // REMOVE <key>
 
+class LsmTree{
+private:
+    std::vector<NULL> memTable;
+public:
+    LsmTree();
+    ~LsmTree();
+};
+
+#endif

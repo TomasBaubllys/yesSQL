@@ -1,0 +1,56 @@
+#ifndef YSQL_ENTRY_H_INCLUDED
+#define YSQL_ENTRY_H_INCLUDED
+
+#include "bits.h"
+#include "crc32.h"
+
+class Entry {
+  private:
+    uint64_t entry_length;
+    uint8_t tombstone_flag;
+    Bits key;
+    Bits value;
+    uint32_t checksum;
+
+    // uses cr32 hashing to calculate the ckecsum by concatenating the string conversions of key and value 
+    void calculate_checksum();
+
+    // calculates the length of the entry in Bytes
+    void calculate_entry_length();
+
+  public:
+
+    // constructor, no default constructor exists
+    Entry (Bits _key, Bits _value);
+
+    // desctructor
+    ~Entry();
+
+    // returns the size of the entry length in Bytes
+    uint64_t get_entry_length();
+
+    // returns true if the entry is marked for deletion
+    bool is_deleted();
+
+    // returns key as Bits class
+    Bits get_key();
+    
+    // returns value as Bits class
+    Bits get_value();
+
+    // returns checksum as Bytes
+    uint32_t get_checksum();
+
+    // function inverts current tombstone_flag value
+    void set_tombstone();
+
+    // function sets tombstone_flag to is_deleted value
+    void set_tombstone(bool _tombstone_flag);
+
+    // sets new value and calculates new checksum
+    void update_value(Bits _value);
+    
+};
+
+
+#endif
