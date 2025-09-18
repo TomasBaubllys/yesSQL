@@ -97,30 +97,6 @@ std::vector<uint32_t> Bits::get_int_array() {
 	
 }   
 
-inline bool Bits::operator==(const Bits& other) {
-	return this -> arr == other.arr;
-}
-
-inline bool Bits::operator>(const Bits& other) {
-	return this -> arr > other.arr;
-}
-
-inline bool Bits::operator<(const Bits& other) {
-	return this -> arr < other.arr;
-}
-
-inline bool Bits::operator!=(const Bits& other) {
-	return this -> arr != other.arr;
-}
-
-inline bool Bits::operator<=(const Bits& other) {
-	return this -> arr <= other.arr;
-}
-
-inline bool Bits::operator>=(const Bits& other) {
-	return this -> arr >= other.arr;
-}
-
 void Bits::update_bits(std::vector<uint8_t>& new_bits) {
 	if(new_bits.size() != this -> arr.size()) {
 		throw std::length_error(BIT_LEN_UPDATE_ERR);
