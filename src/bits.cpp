@@ -1,3 +1,8 @@
+/*
+
+Last updated 9/18/2025
+*/
+
 #include "../include/bits.h"
 
 Bits::Bits(std::vector<uint8_t>& bitstream) : arr(bitstream) {
@@ -96,9 +101,30 @@ inline bool Bits::operator==(const Bits& other) {
 	return this -> arr == other.arr;
 }
 
+inline bool Bits::operator>(const Bits& other) {
+	return this -> arr > other.arr;
+}
+
+inline bool Bits::operator<(const Bits& other) {
+	return this -> arr < other.arr;
+}
+
+inline bool Bits::operator!=(const Bits& other) {
+	return this -> arr != other.arr;
+}
+
+inline bool Bits::operator<=(const Bits& other) {
+	return this -> arr <= other.arr;
+}
+
+inline bool Bits::operator>=(const Bits& other) {
+	return this -> arr >= other.arr;
+}
+
 void Bits::update_bits(std::vector<uint8_t>& new_bits) {
 	if(new_bits.size() != this -> arr.size()) {
 		throw std::length_error(BIT_LEN_UPDATE_ERR);
+
 	}
 
 	this -> arr = new_bits;

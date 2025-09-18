@@ -1,3 +1,8 @@
+/*
+
+Last updated 9/18/2025
+*/
+
 #ifndef YSQL_BITS_H_INCLUDED
 #define YSQL_BITS_H_INCLUDED
 
@@ -47,6 +52,16 @@ class Bits {
 		
 		// compares to bit objects bit by bit
 		inline bool operator==(const Bits& other);
+
+		inline bool operator>(const Bits& other);
+		
+		inline bool operator<(const Bits& other);
+
+		inline bool operator!=(const Bits& other);
+
+		inline bool operator>=(const Bits& other);
+
+		inline bool operator<=(const Bits& other);
 
 		// update the bitstream !throws!
 		void update_bits(std::vector<uint8_t>& new_bits);
