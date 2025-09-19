@@ -1,6 +1,7 @@
-#include "avl.h"
+#include "../include/avl.h"
 
-void AVL::makeEmpty(node* t)
+template<typename T>
+void AVL<T>::makeEmpty(node* t)
 {
     if(t == NULL)
         return;
@@ -9,7 +10,8 @@ void AVL::makeEmpty(node* t)
     delete t;
 }
 
-AVL::node* AVL::insert(int x, node* t)
+template<typename T>
+AVL<T>::node* AVL<T>::insert(T x, node* t)
 {
     if(t == NULL)
     {
@@ -45,7 +47,8 @@ AVL::node* AVL::insert(int x, node* t)
     return t;
 }
 
-AVL::node* AVL::singleRightRotate(node* &t)
+template<typename T>
+AVL<T>::node* AVL<T>::singleRightRotate(node* &t)
 {
     node* u = t->left;
     t->left = u->right;
@@ -55,7 +58,8 @@ AVL::node* AVL::singleRightRotate(node* &t)
     return u;
 }
 
-AVL::node* AVL::singleLeftRotate(node* &t)
+template<typename T>
+AVL<T>::node* AVL<T>::singleLeftRotate(node* &t)
 {
     node* u = t->right;
     t->right = u->left;
@@ -65,19 +69,22 @@ AVL::node* AVL::singleLeftRotate(node* &t)
     return u;
 }
 
-AVL::node* AVL::doubleLeftRotate(node* &t)
+template<typename T>
+AVL<T>::node* AVL<T>::doubleLeftRotate(node* &t)
 {
     t->right = singleRightRotate(t->right);
     return singleLeftRotate(t);
 }
 
-AVL::node* AVL::doubleRightRotate(node* &t)
+template<typename T>
+AVL<T>::node* AVL<T>::doubleRightRotate(node* &t)
 {
     t->left = singleLeftRotate(t->left);
     return singleRightRotate(t);
 }
 
-AVL::node* AVL::findMin(node* t)
+template<typename T>
+AVL<T>::node* AVL::findMin(node* t)
 {
     if(t == NULL)
         return NULL;
@@ -87,7 +94,8 @@ AVL::node* AVL::findMin(node* t)
         return findMin(t->left);
 }
 
-AVL::node* AVL::findMax(node* t)
+template<typename T>
+AVL<T>::node* AVL::findMax(node* t)
 {
     if(t == NULL)
         return NULL;
@@ -97,7 +105,8 @@ AVL::node* AVL::findMax(node* t)
         return findMax(t->right);
 }
 
-AVL::node* AVL::remove(int x, node* t)
+template<typename T>
+AVL<T>::node* AVL::remove(T x, node* t)
 {
     node* temp;
 
@@ -159,12 +168,14 @@ AVL::node* AVL::remove(int x, node* t)
     return t;
 }
 
-int AVL::height(node* t)
+template<typename T>
+int AVL<T>::height(node* t)
 {
     return (t == NULL ? -1 : t->height);
 }
 
-int AVL::getBalance(node* t)
+template<typename T>
+int AVL<T>::getBalance(node* t)
 {
     if(t == NULL)
         return 0;
@@ -172,7 +183,8 @@ int AVL::getBalance(node* t)
         return height(t->left) - height(t->right);
 }
 
-void AVL::inorder(node* t)
+template<typename T>
+void AVL<T>::inorder(node* t)
 {
     if(t == NULL)
         return;
@@ -181,28 +193,33 @@ void AVL::inorder(node* t)
     inorder(t->right);
 }
 
-AVL::AVL()
+template<typename T>
+AVL<T>::AVL()
 {
     root = NULL;
 }
 
-void AVL::insert(int x)
+template<typename T>
+void AVL<T>::insert(T x)
 {
     root = insert(x, root);
 }
 
-void AVL::remove(int x)
+template<typename T>
+void AVL<T>::remove(T x)
 {
     root = remove(x, root);
 }
 
-void AVL::display()
+template<typename T>
+void AVL<T>::display()
 {
     inorder(root);
     cout << endl;
 }
 
-bool AVL::find(int x, node *t)
+template<typename T>
+bool AVL<T>::find(T x, node *t)
 {
     if(!t)
     {
@@ -226,7 +243,8 @@ bool AVL::find(int x, node *t)
     return false;
 }
 
-bool AVL::find(int x)
+template<typename T>
+bool AVL<T>::find(T x)
 {
     return find(x, root);
 }
