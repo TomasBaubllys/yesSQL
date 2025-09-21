@@ -90,16 +90,20 @@ Entry Entry::operator=(const Entry& other){
     return *this;
 };
 
-std::ostringstream Entry::get_ostream_bits(){
+std::ostringstream Entry::get_ostream_bytes(){
     std::ostringstream ostream_bytes;
 
-    ostream_bytes<<entry_length
-                 <<tombstone_flag
-                 <<key.size()
-                 <<key.get_string_char()
-                 <<value.size()
-                 <<value.get_string_char()
-                 <<checksum;
+    bit_arr_size_type key_size = key.size();
+    bit_arr_size_type value_size = value.size();
+
+    ostream_bytes.write(reinterpret_cast<const char*>(&entry_length), sizeof(entry_length));
+    ostream_bytes.write(reinterpret_cast<const char*>(&tombstone_flag), sizeof(tombstone_flag));
+    ostream_bytes.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
+    ostream_bytes.write(key.get_string_char().data(), key_size);
+    ostream_bytes.write(reinterpret_cast<const char*>(&value_size), sizeof(value_size));
+    ostream_bytes.write(value.get_string_char().data(), value_size);
+    ostream_bytes.write(reinterpret_cast<const char*>(&checksum), sizeof(checksum));
+    
 
     return ostream_bytes;
 };

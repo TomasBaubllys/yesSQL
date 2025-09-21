@@ -82,8 +82,8 @@ class Entry {
     // copy operator
     Entry operator=(const Entry& other);
 
-    //function to dump bits
-    std::ostringstream get_ostream_bits();
+    //function to dump bytes
+    std::ostringstream get_ostream_bytes();
 };
 
 
