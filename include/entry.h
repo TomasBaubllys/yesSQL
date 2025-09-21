@@ -3,6 +3,7 @@
 
 #include "bits.h"
 #include "crc32.h"
+#include <sstream>
 
 class Entry {
   private:
@@ -22,6 +23,9 @@ class Entry {
 
     // constructor, no default constructor exists
     Entry (Bits _key, Bits _value);
+
+    // stringstream constructor
+    Entry (std::stringstream fileEntry);
 
     // desctructor
     ~Entry();
@@ -49,7 +53,37 @@ class Entry {
 
     // sets new value and calculates new checksum
     void update_value(Bits _value);
-    
+
+    // comparison operators 
+    inline bool operator==(const Entry& other) {
+			return this -> key == other.key;
+		};
+
+		inline bool operator>(const Entry& other) {
+			return this -> key > other.key;
+		};
+
+		inline bool operator<(const Entry& other) {
+			return this -> key < other.key;
+		};	
+
+		inline bool operator!=(const Entry& other) {
+			return this -> key != other.key;
+		};	
+
+		inline bool operator<=(const Entry& other) {
+			return this -> key <= other.key;
+		};
+
+		inline bool operator>=(const Entry& other) {
+			return this -> key >= other.key;
+    };
+
+    // copy operator
+    Entry operator=(const Entry& other);
+
+    //function to dump bits
+    std::ostringstream get_ostream_bits();
 };
 
 

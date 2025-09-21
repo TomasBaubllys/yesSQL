@@ -6,14 +6,10 @@ LsmTree::LsmTree(){
 
 LsmTree::~LsmTree(){
 }
-// Hello everybody
 // LsmTree
 // To do:
-// <key><value> pair
-// Wal iraso struktura [[recordLength][key][valueLength][value][checksum]]
 // WAL failo rasymas
 // WAL failo isvalymas
-// Storage iraso struktura [[recordLength][tombstoneFlag][key][valueLength][value][checksum]]
 // MemTable rasymas
 // MemTable sortinimas
 // MemTable skaitymas

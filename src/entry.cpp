@@ -15,13 +15,16 @@ void Entry::calculate_checksum(){
 void Entry::calculate_entry_length(){
     entry_length =  sizeof(uint64_t)
                     + sizeof(tombstone_flag)
-                    + sizeof(uint8_t)
+                    + sizeof(key.size())
                     + key.size()
-                    + sizeof(uint16_t)
+                    + sizeof(value.size())
                     + value.size()
                     + sizeof(checksum);
 };
 
+// FIX FIX FIX
+// ADD LIMITS TO KEY SIZE TO 16 UINT
+// ADD LIMITS TO VALUE SIZE TO 32 UINT
 Entry::Entry(Bits _key, Bits _value){
     entry_length = 0;
     tombstone_flag = 0;
@@ -32,6 +35,10 @@ Entry::Entry(Bits _key, Bits _value){
     calculate_checksum();
     calculate_entry_length();
 };
+
+// Entry::Entry(std::stringstream fileEntry){
+
+// };
 
 Entry::~Entry(){
 };
@@ -64,11 +71,35 @@ void Entry::set_tombstone(){
 void Entry::set_tombstone(bool _tombstone_flag){
     tombstone_flag = _tombstone_flag;
     return;
-}
+};
 
 void Entry::update_value(Bits _value){
     value = _value;
     calculate_checksum();
     calculate_entry_length();
     return;
-}
+};
+
+Entry Entry::operator=(const Entry& other){
+    entry_length = other.entry_length;
+    tombstone_flag = other.tombstone_flag;
+    key = other.key;
+    value = other.value;
+    checksum = other.checksum;
+
+    return *this;
+};
+
+std::ostringstream Entry::get_ostream_bits(){
+    std::ostringstream ostream_bytes;
+
+    ostream_bytes<<entry_length
+                 <<tombstone_flag
+                 <<key.size()
+                 <<key.get_string_char()
+                 <<value.size()
+                 <<value.get_string_char()
+                 <<checksum;
+
+    return ostream_bytes;
+};
