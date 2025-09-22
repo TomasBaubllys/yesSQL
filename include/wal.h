@@ -38,7 +38,7 @@ class Wal{
         bool get_is_read_only();
 
         // appends an entry to the wal file
-        void append_entry(std::ostream entry);
+        void append_entry(std::ostringstream entry);
 
         // removes all entries from the wal file
         void clear_entries();

@@ -34,7 +34,7 @@ bool Wal::get_is_read_only(){
     return is_read_only;
 };
 
-void Wal::append_entry(std::ostream entry){
+void Wal::append_entry(std::ostringstream entry){
     std::ofstream wal_file(wal_file_location, std::ios::binary | std::ios::app);
 
     wal_file<<entry.rdbuf();
