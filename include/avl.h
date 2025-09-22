@@ -1,4 +1,5 @@
-#include<iostream>
+#include <iostream>
+#include "entry.h"
 
 using namespace std;
 
@@ -7,44 +8,42 @@ class AVL
 {
     struct node
     {
-        T data;
+        Entry data;
         node* left;
         node* right;
-        int height;
+        uint32_t height;
     };
 
     node* root;
 
-    void makeEmpty(node* t);
+    uint32_t height(node* t);
+    uint32_t get_balance(node* t);
+    
+    node* right_rotate(node* t);
+    node* left_rotate(node* t);
 
-    node* insert(T x, node* t);
+    node* insert(node* t, Entry key);
+    node* delete_note(node* root, Entry key);
 
-    node* singleRightRotate(node* &t);
+    node* min_value_node(node* t);
 
-    node* singleLeftRotate(node* &t);
+    void inorder(node* root);
 
-    node* doubleLeftRotate(node* &t);
+    bool search(node* root, Entry key);
 
-    node* doubleRightRotate(node* &t);
 
-    node* findMin(node* t);
+    public:
+        AVL(Entry &root);
+        AVL();
 
-    node* findMax(node* t);
+        void insert(Entry key);
+        void remove(Entry key);
+        bool search(Entry key);
 
-    node* remove(T x, node* t);
+        void print_inorder();
 
-    int height(node* t);
+        Entry get_last();
+        void make_empty(node* t);
+        Entry pop_last();
 
-    int getBalance(node* t);
-
-    void inorder(node* t);
-
-    bool find(T x, node *t);
-
-public:
-    AVL();
-    void insert(T x);
-    void remove(T x);
-    void display();
-    bool find(T x);
 };
