@@ -8,11 +8,6 @@ LsmTree::~LsmTree(){
 }
 // LsmTree
 // To do:
-// WAL failo rasymas
-// WAL failo isvalymas
-// MemTable rasymas
-// MemTable sortinimas
-// MemTable skaitymas
 // SSTable rasymas is MemTable
 // SSTable skaitymas
 // GET <key>

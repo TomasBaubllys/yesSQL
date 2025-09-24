@@ -1,17 +1,14 @@
 #ifndef YSQL_LSMTREE_H_INCLUDED
 #define YSQL_LSMTREE_H_INCLUDED
 
+#include "bits.h"
+#include "entry.h"
+#include "wal.h"
+#include "mem_table.h"
+
 // Hello everybody
 // LsmTree
 // To do:
-// <key><value> pair
-// Wal iraso struktura [[recordLength][key][valueLength][value][checksum]]
-// WAL failo rasymas
-// WAL failo isvalymas
-// Storage iraso struktura 
-// MemTable rasymas
-// MemTable sortinimas
-// MemTable skaitymas
 // SSTable rasymas is MemTable
 // SSTable skaitymas
 // GET <key>
@@ -25,11 +22,37 @@
 // REMOVE <key>
 
 class LsmTree{
-private:
-    std::vector<NULL> memTable;
-public:
-    LsmTree();
-    ~LsmTree();
+    private:
+        Wal write_ahead_log;
+        MemTable mem_table;
+        //SSTableController ss_table_controller;
+    public:
+        // default constructor initializes mem_table 
+        LsmTree();
+
+        // destructor deallocates mem_table
+        ~LsmTree();
+
+        // returns an Entry object with provided key
+        Entry get(std::string key);
+
+        // returns true if inserting a value was successful
+        bool set(std::string key, std::string value);
+
+        // returns a vector of all keys in current database
+        vector<std::string> get_keys();
+
+        // returns a vector of all keys with provided prefix
+        vector<std::string> get_keys(std::string prefix);
+
+        // returns all keys forward from the provided key
+        vector<Entry> get_ff(std::string key);
+
+        // returns all keys backwards from the provided key
+        vector<Entry> get_fb(std::string key);
+
+        // returns true if removing an entry with provided key was successful
+        bool remove(std::string key);
 };
 
 #endif

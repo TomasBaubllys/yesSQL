@@ -31,11 +31,10 @@ bool MemTable::insert_entry(Entry entry){
     
 };
 
-// sita fun reikia keist, nepatinka Bits sprendimas
 bool MemTable::remove_entry(Bits key){
     try{
-        std::string key_string = key.get_string_char();
-        avl_tree.remove(key_string);
+        entry_array_length--;
+        total_mem_table_size -= avl_tree.remove(key).get_entry_length();
         return true;
     }
     catch(const std::exception& e){
@@ -45,5 +44,7 @@ bool MemTable::remove_entry(Bits key){
 };
 
 Entry MemTable::find(Bits key){
-    // rasti dalyka pagal rakto bits klase, nenaudoti string lyginimui
+    Entry found_entry = avl_tree.search(key);
+
+    return found_entry;
 };
