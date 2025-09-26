@@ -42,6 +42,8 @@ class Wal{
 
         // removes all entries from the wal file
         void clear_entries();
+
+        // method to retu top entry
 };
 
 #endif
