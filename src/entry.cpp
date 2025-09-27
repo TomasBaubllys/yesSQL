@@ -43,6 +43,14 @@ Entry::Entry(Bits _key, Bits _value){
 Entry::~Entry(){
 };
 
+Entry::Entry(const Entry& other) {
+    entry_length = other.entry_length;
+    tombstone_flag = other.tombstone_flag;
+    key = other.key;
+    value = other.value;
+    checksum = other.checksum;
+}
+
 uint64_t Entry::get_entry_length(){
     return entry_length;
 };

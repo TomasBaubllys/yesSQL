@@ -24,6 +24,9 @@ class Entry {
     // constructor, no default constructor exists
     Entry (Bits _key, Bits _value);
 
+    // copy constructor
+    Entry(const Entry& other);
+
     // stringstream constructor
     Entry (std::stringstream fileEntry);
 
