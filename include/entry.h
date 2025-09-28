@@ -94,7 +94,9 @@ class Entry {
 
     // returns true if checksum is still valid, false if data corruption appeared
     bool check_checksum();
-};
 
+    // returns the length of the saved key
+    bit_arr_size_type get_key_length();
+};
 
 #endif
