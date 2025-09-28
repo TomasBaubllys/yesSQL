@@ -1,13 +1,5 @@
 #include "../include/avl_tree.h"
 
-/*
-TODO:
-- when inserting check entry checksum
--
--
--
-*/
-
 AVL_tree::Node::Node(Entry& entry) : data(entry), left(nullptr), right(nullptr), height(1) {
 
 }
@@ -127,6 +119,68 @@ AVL_tree::Node* AVL_tree::min_value_node(AVL_tree::Node* node) {
 	return current;
 }
 
+AVL_tree::Node* AVL_tree::delete_node(AVL_tree::Node* node, Bits& key) {
+	if(!node) {
+		return node;
+	}
+
+	if(key < node -> data.get_key()) {
+		node -> left = this -> delete_node(node -> left, key);
+	}
+	else if(key > node -> data.get_key()) {
+		node -> right = this -> delete_node(node -> right, key);
+	}
+	else {
+		if(!(node -> left) || !(node -> right)) {
+			AVL_tree::Node* temp = node -> left? node -> left : node -> right;
+			if(!temp) {
+				// temp = node;
+				delete node;
+				node = nullptr;
+			}
+			else {
+				AVL_tree::Node* old = node;
+				node = temp;
+				delete old;
+			}
+		}
+		else {
+			AVL_tree::Node* temp = min_value_node(node -> right);
+			node -> data = temp -> data;
+			Bits temp_key = temp -> data.get_key();
+			node -> right = this -> delete_node(node -> right, temp_key);
+		}
+	}
+
+	if(!node) {
+		return node;
+	}
+
+	node -> height = 1 + std::max(this -> height(node -> left), this -> height(node -> right));
+
+	int32_t balance = this -> get_balance(node);
+
+	if(balance > 1 && this -> get_balance(node -> left) >= 0) {
+		return this -> right_rotate(node);
+	}
+
+	if(balance > 1 && this -> get_balance(node -> left) < 0) {
+		node -> left = this -> left_rotate(node -> left);
+		return this -> right_rotate(node);
+	}
+
+	if(balance < -1 && this -> get_balance(node -> right) <= 0) {
+		return this -> left_rotate(node);
+	}
+
+	if(balance < -1 && this -> get_balance(node -> right) > 0) {
+		node -> right = this -> right_rotate(node -> right);
+		return this -> left_rotate(node);
+	}
+
+	return node;
+}
+
 // instead of entry use Bits
 AVL_tree::Node* AVL_tree::delete_node(AVL_tree::Node* node, Entry& entry) {
 	if(!node) {
@@ -143,13 +197,15 @@ AVL_tree::Node* AVL_tree::delete_node(AVL_tree::Node* node, Entry& entry) {
 		if(!(node -> left) || !(node -> right)) {
 			AVL_tree::Node* temp = node -> left? node -> left : node -> right;
 			if(!temp) {
-				temp = node;
+				// temp = node;
+				delete node;
 				node = nullptr;
 			}
 			else {
-				*root = *temp;
+				AVL_tree::Node* old = node;
+				node = temp;
+				delete old;
 			}
-			delete temp;
 		}
 		else {
 			AVL_tree::Node* temp = min_value_node(node -> right);
@@ -180,7 +236,7 @@ AVL_tree::Node* AVL_tree::delete_node(AVL_tree::Node* node, Entry& entry) {
 	}
 
 	if(balance < -1 && this -> get_balance(node -> right) > 0) {
-		node -> right = this -> right_rotate(root -> right);
+		node -> right = this -> right_rotate(node -> right);
 		return this -> left_rotate(node);
 	}
 
@@ -245,6 +301,16 @@ void AVL_tree::remove(Entry& entry) {
 
 	}
 	
+	this -> root = new_root;
+}
+
+void AVL_tree::remove(Bits& key) {
+	AVL_tree::Node* new_root = this -> delete_node(this -> root, key);
+	if(!new_root) {
+		std::cerr << AVL_TREE_DELETION_FAILED_ERR;
+		return;
+	}
+
 	this -> root = new_root;
 }
 

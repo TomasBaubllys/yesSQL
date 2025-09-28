@@ -29,6 +29,7 @@ class AVL_tree
 
     Node* insert(Node* node, Entry& entry);
     Node* delete_node(Node* root, Entry& entry);
+    Node* delete_node(Node* root, Bits& key);
 
     Node* min_value_node(Node* node);
 
@@ -43,6 +44,7 @@ class AVL_tree
 
         void insert(Entry& entry);
         void remove(Entry& entry);
+        void remove(Bits& key);
 
         // found is set to true if the given entry was found, and false otherwise
         Entry search(Bits& key, bool& found);
