@@ -6,8 +6,8 @@
 #include <sstream>
 
 #define ENTRY_CHECKSUM_MISMATCH "Entry was corrupted - checksum missmatch encountered\n"
-#define ENTRY_PLACEHOLDER_VALUE "value"
-#define ENTRY_PLACEHOLDER_KEY "key" 
+#define ENTRY_PLACEHOLDER_VALUE "_placeholder_value"
+#define ENTRY_PLACEHOLDER_KEY "_placeholder_key" 
 
 class Entry {
   private:
