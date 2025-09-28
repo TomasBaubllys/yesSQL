@@ -24,7 +24,7 @@ LsmTree::~LsmTree(){
 // REMOVE <key>
 
 // data compression??
- void LsmTree::flush_mem_table(){
+void LsmTree::flush_mem_table(){
     std::vector<Entry> entries = mem_table.dump_entries();
 
     std::filesystem::path level0_dir = "data/val/Level_0";
@@ -65,13 +65,14 @@ LsmTree::~LsmTree(){
 
         ofsi.write(reinterpret_cast<char*>(&key_size), sizeof(key_size));
         Bits key = entry.get_key();
-        ofsi.write(key.get_string_char().c_str(), sizeof(key_size));
+        ofsi.write(key.get_string_char().c_str(), key_size);
         ofsi.write(reinterpret_cast<char*>(&offset), sizeof(offset));
-
     }
 
     ofsd.close();
     ofsi.close();
+
+    // SStablecontroller
 
     return;
  }
