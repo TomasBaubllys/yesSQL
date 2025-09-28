@@ -37,10 +37,15 @@ class AVL_tree
 
     Entry search(Node* root, Bits& key, bool& found);
 
+    // destroys the entire tree
+    void make_empty(Node* node);
+
+    Entry pop_last(Node*& node);
 
     public:
         AVL_tree(Entry& entry);
         AVL_tree();
+        ~AVL_tree();
 
         void insert(Entry& entry);
         void remove(Entry& entry);
@@ -51,8 +56,7 @@ class AVL_tree
 
         void print_inorder();
 
-        Entry get_last();
-        void make_empty(Node* t);
+        void make_empty();
         Entry pop_last();
 
     	std::vector<Entry> inorder();
