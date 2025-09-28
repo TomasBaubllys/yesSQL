@@ -48,3 +48,11 @@ Entry MemTable::find(Bits key){
 
     return found_entry;
 };
+
+std::vector<Entry> MemTable::dump_entries(){
+    std::vector<Entry> results;
+    //results = avl_tree.inorder();
+
+    return results;
+}
+

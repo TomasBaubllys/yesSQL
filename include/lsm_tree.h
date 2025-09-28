@@ -53,6 +53,9 @@ class LsmTree{
 
         // returns true if removing an entry with provided key was successful
         bool remove(std::string key);
+
+        // flushes MemTable to SStable
+        void flush_mem_table();
 };
 
 #endif
