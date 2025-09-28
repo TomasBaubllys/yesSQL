@@ -5,6 +5,7 @@
 #include "entry.h"
 #include "wal.h"
 #include "mem_table.h"
+#include "ss_table_controller.h"
 #include <thread>
 
 // Hello everybody
@@ -26,7 +27,7 @@ class LsmTree{
     private:
         Wal write_ahead_log;
         MemTable mem_table;
-        //SSTableController ss_table_controller;
+        SS_Table_Controller ss_table_controller;
     public:
         // default constructor initializes mem_table 
         LsmTree();
