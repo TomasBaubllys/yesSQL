@@ -5,6 +5,10 @@
 #include "crc32.h"
 #include <sstream>
 
+#define ENTRY_CHECKSUM_MISMATCH "Entry was corrupted - checksum missmatch encountered\n"
+#define ENTRY_PLACEHOLDER_VALUE "value"
+#define ENTRY_PLACEHOLDER_KEY "key" 
+
 class Entry {
   private:
     uint64_t entry_length;
@@ -23,6 +27,9 @@ class Entry {
 
     // constructor, no default constructor exists
     Entry (Bits _key, Bits _value);
+
+    // copy constructor
+    Entry(const Entry& other);
 
     // stringstream constructor
     Entry (std::stringstream fileEntry);
@@ -84,6 +91,9 @@ class Entry {
 
     //function to dump bytes
     std::ostringstream get_ostream_bytes();
+
+    // returns true if checksum is still valid, false if data corruption appeared
+    bool check_checksum();
 };
 
 

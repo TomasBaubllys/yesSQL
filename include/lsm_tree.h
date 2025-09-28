@@ -5,6 +5,7 @@
 #include "entry.h"
 #include "wal.h"
 #include "mem_table.h"
+#include <thread>
 
 // Hello everybody
 // LsmTree

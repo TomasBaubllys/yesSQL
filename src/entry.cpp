@@ -43,6 +43,14 @@ Entry::Entry(Bits _key, Bits _value){
 Entry::~Entry(){
 };
 
+Entry::Entry(const Entry& other) {
+    entry_length = other.entry_length;
+    tombstone_flag = other.tombstone_flag;
+    key = other.key;
+    value = other.value;
+    checksum = other.checksum;
+}
+
 uint64_t Entry::get_entry_length(){
     return entry_length;
 };
@@ -107,3 +115,14 @@ std::ostringstream Entry::get_ostream_bytes(){
 
     return ostream_bytes;
 };
+
+bool Entry::check_checksum() {
+    std::string string_to_hash = this -> key.get_string_char(); + this -> value.get_string_char();
+    uint32_t new_checksum = crc32(string_to_hash);
+
+    return this -> checksum == new_checksum;
+};
+
+bit_arr_size_type Entry::get_key_length() {
+    return this -> key.size();
+}
