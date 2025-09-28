@@ -5,6 +5,10 @@
 #include "crc32.h"
 #include <sstream>
 
+#define ENTRY_CHECKSUM_MISMATCH "Entry was corrupted - checksum missmatch encountered\n"
+#define ENTRY_PLACEHOLDER_VALUE "value"
+#define ENTRY_PLACEHOLDER_KEY "key" 
+
 class Entry {
   private:
     uint64_t entry_length;
@@ -87,6 +91,9 @@ class Entry {
 
     //function to dump bytes
     std::ostringstream get_ostream_bytes();
+
+    // returns true if checksum is still valid, false if data corruption appeared
+    bool check_checksum();
 };
 
 

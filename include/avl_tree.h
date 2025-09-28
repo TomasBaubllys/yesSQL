@@ -5,6 +5,9 @@
 
 using namespace std;
 
+#define AVL_TREE_INSERTION_FAILED_ERR "Failed to insert given entry to the tree\n"
+#define AVL_TREE_DELETION_FAILED_ERR "Failed to delete given entry from the tree\n"
+
 class AVL_tree
 {
     struct Node
@@ -31,7 +34,7 @@ class AVL_tree
 
     void inorder(Node* root, std::vector<Entry>& result);
 
-    bool search(Node* root, Bits& key);
+    Entry search(Node* root, Bits& key, bool& found);
 
 
     public:
@@ -40,7 +43,9 @@ class AVL_tree
 
         void insert(Entry& entry);
         void remove(Entry& entry);
-        bool search(Bits& key);
+
+        // found is set to true if the given entry was found, and false otherwise
+        Entry search(Bits& key, bool& found);
 
         void print_inorder();
 

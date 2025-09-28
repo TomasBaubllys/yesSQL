@@ -65,9 +65,10 @@ AVL_tree::Node* AVL_tree::left_rotate(AVL_tree::Node* node) {
 }
 
 AVL_tree::Node* AVL_tree::insert(AVL_tree::Node* node, Entry& entry) {
-	// check entry`s checksum
-	
-	
+	if(!entry.check_checksum()) {
+		std::cerr << ENTRY_CHECKSUM_MISMATCH;
+		return nullptr;
+	}
 
 	if(!node) {
 		AVL_tree::Node *new_node = new AVL_tree::Node(entry);
@@ -194,19 +195,23 @@ void AVL_tree::inorder(AVL_tree::Node* node, std::vector<Entry>& result) {
 	}	
 }
 
-bool AVL_tree::search(AVL_tree::Node* node, Bits& key) {
+Entry AVL_tree::search(AVL_tree::Node* node, Bits& key, bool& found) {
 	if(!node) {
-		return false;
+		found = false;
+		std::string key(ENTRY_PLACEHOLDER_KEY);
+		std::string value(ENTRY_PLACEHOLDER_VALUE);
+		return Entry(Bits(key), Bits(value));
 	}
 	if(node -> data.get_key() == key) {
-		return true;
+		found = true;
+		return node -> data;
 	}
 
 	if(key < node -> data.get_key()) {
-		return this -> search(node -> left, key);
+		return this -> search(node -> left, key, found);
 	}
 
-	return this -> search(node -> right, key);
+	return this -> search(node -> right, key, found);
 }
 
 AVL_tree::AVL_tree() : root(nullptr) {
@@ -222,15 +227,29 @@ AVL_tree::AVL_tree(Entry& entry) {
 }
 
 void AVL_tree::insert(Entry& entry) {
-	this -> root = this -> insert(this -> root, entry);
+	AVL_tree::Node* new_root = this -> insert(this -> root, entry);
+	
+	if(!new_root) {
+		std::cerr << AVL_TREE_INSERTION_FAILED_ERR;
+		return;
+	}
+
+	this -> root = new_root;
 }
 
 void AVL_tree::remove(Entry& entry) {
-	this -> root = this -> delete_node(this -> root, entry);
+	AVL_tree::Node* new_root = this -> delete_node(this -> root, entry);
+	if(!new_root) {
+		std::cerr << AVL_TREE_DELETION_FAILED_ERR;
+		return;
+
+	}
+	
+	this -> root = new_root;
 }
 
-bool AVL_tree::search(Bits& key) {
-	return this -> search(this -> root, key);
+Entry AVL_tree::search(Bits& key, bool& found) {
+	return this -> search(this -> root, key, found);
 }
 
 std::vector<Entry> AVL_tree::inorder() {
@@ -238,3 +257,5 @@ std::vector<Entry> AVL_tree::inorder() {
 	this -> inorder(this -> root, entry_vector);
 	return entry_vector;
 }
+
+
