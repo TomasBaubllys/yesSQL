@@ -44,7 +44,16 @@ bool MemTable::remove_entry(Bits key){
 };
 
 Entry MemTable::find(Bits key){
-    Entry found_entry = avl_tree.search(key);
+    bool found;
+    Entry found_entry = avl_tree.search(key, found);
 
     return found_entry;
 };
+
+std::vector<Entry> MemTable::dump_entries(){
+    std::vector<Entry> results;
+    results = avl_tree.inorder();
+
+    return results;
+}
+

@@ -30,6 +30,11 @@ class MemTable{
 
         // returns an Entry with parameter key
         Entry find(Bits key);
+
+        // get al entries from AVL tree
+        std::vector<Entry> dump_entries();
+
+    
 };
 
 

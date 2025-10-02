@@ -6,6 +6,8 @@
 #include "wal.h"
 #include "mem_table.h"
 #include <thread>
+#include "ss_table_controller.h"
+#include <thread>
 
 // Hello everybody
 // LsmTree
@@ -26,7 +28,7 @@ class LsmTree{
     private:
         Wal write_ahead_log;
         MemTable mem_table;
-        //SSTableController ss_table_controller;
+        SS_Table_Controller ss_table_controller;
     public:
         // default constructor initializes mem_table 
         LsmTree();
@@ -54,6 +56,9 @@ class LsmTree{
 
         // returns true if removing an entry with provided key was successful
         bool remove(std::string key);
+
+        // flushes MemTable to SStable
+        void flush_mem_table();
 };
 
 #endif
