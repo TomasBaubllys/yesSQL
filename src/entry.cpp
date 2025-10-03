@@ -26,7 +26,18 @@ void Entry::calculate_entry_length(){
 // FIX FIX FIX
 // ADD LIMITS TO KEY SIZE TO 16 UINT
 // ADD LIMITS TO VALUE SIZE TO 32 UINT
-Entry::Entry(Bits _key, Bits _value) : key(_key), value(_value){
+Entry::Entry(Bits _key, Bits _value) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_PLACEHOLDER_VALUE){
+    if(_key.size() > ENTRY_MAX_KEY_LEN) {
+      throw std::length_error(ENTRY_MAX_KEY_LEN_EXCEEDED_ERR_MSG);  
+    }
+
+    if(_value.size() > ENTRY_MAX_VALUE_LEN) {
+      throw std::length_error(ENTRY_MAX_VALUE_LEN_EXCEEDED_ERR_MSG);
+    }
+
+    this -> key = _key;
+    this -> value = _value;
+
     entry_length = 0;
     tombstone_flag = 0;
     checksum = 0;
