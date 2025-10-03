@@ -1,3 +1,6 @@
+#ifndef YSQL_AVL_TREE_INCLUDED
+#define YSQL_AVL_TREE_INCLUDED
+
 #include <iostream>
 #include "entry.h"
 #include <algorithm>
@@ -61,3 +64,5 @@ class AVL_tree
 
     	std::vector<Entry> inorder();
 };
+
+#endif // YSQL_AVL_TREE_INCLUDED
