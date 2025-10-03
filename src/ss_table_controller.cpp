@@ -1,6 +1,6 @@
 #include "../include/ss_table_controller.h"
 
-void SS_Table_Controller::add_sstable(std::shared_ptr<SS_Table> sstable){
+void SS_Table_Controller::add_sstable(SS_Table sstable){
     sstables.push_back(sstable);
     ++ss_table_count;
 }
@@ -13,7 +13,7 @@ Entry* SS_Table_Controller::get(Bits& key, bool& found){
 	std::string placeholder_value(ENTRY_PLACEHOLDER_VALUE);
 
     for(auto it = sstables.rbegin(); it != sstables.rend(); ++it){
-        Entry *e = (*it)->get(key, found);
+        Entry *e = it -> get(key, found);
         if(found){
             return e;
         }
@@ -23,10 +23,28 @@ Entry* SS_Table_Controller::get(Bits& key, bool& found){
 
 }
 
-SS_Table_Controller:: SS_Table_Controller(): 
+SS_Table_Controller:: SS_Table_Controller(uint16_t ratio, uint16_t current_level): 
     sstables(SS_TABLE_CONTROLLER_MAX_VECTOR_SIZE), ss_table_count(0){
+        max_size = ratio * current_level;
 };
 
 SS_Table_Controller:: ~SS_Table_Controller(){
 
 };
+
+uint64_t SS_Table_Controller:: calculate_size_bytes(){
+    uint64_t size = 0;
+
+    // for now only data files
+    for(auto& sst : sstables){
+        size += std::filesystem::file_size(sst.data_path());
+    }
+
+    return size;
+}
+
+bool SS_Table_Controller:: is_over_limit(){
+    return calculate_size_bytes() > max_size;
+}
+
+

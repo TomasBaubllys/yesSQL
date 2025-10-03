@@ -56,10 +56,23 @@ Entry* SS_Table::get(Bits& key, bool& found){
             return read_entry_at_offset(offset);
         }
 
-
     }
 
     return &Entry(Bits(placeholder_key), Bits(placeholder_value));
+}
 
+SS_Table:: SS_Table(const std::filesystem::path& data, const std::filesystem::path& index)
+    : data_file(data), index_file(index){
+        
 
+    };
+
+SS_Table:: ~SS_Table(){};
+
+std::filesystem::path& SS_Table::data_path(){
+    return this -> data_file;
+}
+
+std::filesystem::path& SS_Table::index_path(){
+    return this -> index_file;
 }

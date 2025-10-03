@@ -27,7 +27,9 @@ class LsmTree{
     private:
         Wal write_ahead_log;
         MemTable mem_table;
-        SS_Table_Controller ss_table_controller;
+        // one contrller per each level
+        std::vector<SS_Table_Controller> ss_table_controllers;
+        uint16_t ratio;
     public:
         // default constructor initializes mem_table 
         LsmTree();
@@ -58,6 +60,9 @@ class LsmTree{
 
         // flushes MemTable to SStable
         void flush_mem_table();
+
+        // compacts level[index] with level[index + 1]
+        void compact_level(uint16_t index);
 };
 
 #endif

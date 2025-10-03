@@ -69,10 +69,24 @@ void LsmTree::flush_mem_table(){
         ofsi.write(reinterpret_cast<char*>(&offset), sizeof(offset));
     }
 
+    
+
     ofsd.close();
     ofsi.close();
 
-    // SStablecontroller
+    SS_Table ss_table_l0(filename_data, filename_index);
+
+    if(ss_table_controllers.size() == 0){
+            SS_Table_Controller controller_l0 = SS_Table_Controller(ratio, ss_table_controllers.size() + 1);
+            ss_table_controllers.push_back(controller_l0);
+    }
+
+    // ss table controller level 0 add a table
+    ss_table_controllers.at(0).add_sstable(ss_table_l0);
+
+    if(ss_table_controllers.at(0).is_over_limit()){
+        compact_level(0);
+    }
 
     return;
  }
