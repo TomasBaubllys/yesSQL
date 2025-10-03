@@ -113,6 +113,22 @@ std::ostringstream Entry::get_ostream_bytes(){
     return ostream_bytes;
 };
 
+Entry::Entry(std::stringstream fileEntry) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_PLACEHOLDER_VALUE){
+    fileEntry.read(reinterpret_cast<char*>(&entry_length), sizeof(entry_length));
+    fileEntry.read(reinterpret_cast<char*>(&tombstone_flag), sizeof(tombstone_flag));
+    bit_arr_size_type key_size;
+    fileEntry.read(reinterpret_cast<char*>(&key_size), sizeof(key_size));
+    std::string key_str(key_size, '\0');
+    fileEntry.read(&key_str[0], key_size);
+    key = Bits(key_str);
+    bit_arr_size_type value_size;
+    fileEntry.read(reinterpret_cast<char*>(&value_size), sizeof(value_size));
+    std::string value_str(value_size, '\0');
+    fileEntry.read(&value_str[0], value_size);
+    value = Bits(value_str);
+    fileEntry.read(reinterpret_cast<char*>(&checksum), sizeof(checksum));
+}
+
 bool Entry::check_checksum() {
     std::string string_to_hash = this -> key.get_string_char();
     string_to_hash += this -> value.get_string_char();

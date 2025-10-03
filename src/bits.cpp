@@ -29,7 +29,7 @@ Bits::Bits(std::vector<uint32_t>& bitstream) {
 };
 
 
-Bits::Bits(std::string& bitstream) {
+Bits::Bits(std::string bitstream) {
 	this -> arr.reserve(bitstream.length());
 	for(bit_arr_size_type i = 0; i < bitstream.length(); ++i) {
 		this -> arr.push_back(static_cast<uint8_t>(bitstream[i]));
