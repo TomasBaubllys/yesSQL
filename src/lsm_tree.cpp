@@ -43,26 +43,110 @@ bool LsmTree::set(std::string key, std::string value){
         return false;
     }
     
-};
+    // add memtable check and flushing to sstable
 
-vector<std::string> LsmTree::get_keys(){
-
-};
-
-vector<std::string> LsmTree::get_keys(std::string prefix){
 
 };
 
-vector<Entry> LsmTree::get_ff(std::string key){
+std::vector<std::string> LsmTree::get_keys(){
+    std::vector<Entry> entries = mem_table.dump_entries();
+    std::vector<std::string> keys;
+    keys.reserve(entries.size());
+
+    for(auto entry : entries){
+        keys.emplace_back(entry.get_key().get_string_char());
+    }
+    // add adding keys from ss tables and checking if overlap
+
+    return keys;
+};
+
+std::vector<std::string> LsmTree::get_keys(std::string prefix){
+    int string_start_position = 0;
+
+    std::vector<Entry> entries = mem_table.dump_entries();
+    std::vector<std::string> keys;
+    
+
+    for(auto entry : entries){
+        std::string key = entry.get_key().get_string_char();
+        if(key.rfind("prefix", string_start_position)){
+            keys.push_back(key);
+        }
+    }
+    // add adding keys from ss tables and checking if overlap
+
+    return keys;
+};
+
+std::vector<Entry> LsmTree::get_ff(std::string _key){
+    int ff_marker = -1;
+
+    std::vector<std::string> keys = get_keys();
+
+    for(int i = 0; i<keys.size(); ++i){
+        if(keys.at(i) == _key){
+            ff_marker = i;
+            break;
+        }
+    }
+    if (ff_marker == -1){
+        std::cerr<<"No key was found";
+        return;
+    }
+
+    std::vector<Entry> all_entries = mem_table.dump_entries();
+
+    // add adding keys from ss tables and checking if overlap
+    
+    return std::vector<Entry>(all_entries.begin() + ff_marker, all_entries.end());
 
 };
 
-vector<Entry> LsmTree::get_fb(std::string key){
+std::vector<Entry> LsmTree::get_fb(std::string _key){
+    int fb_marker = -1;
 
+    std::vector<std::string> keys = get_keys();
+
+    for(int i = 0; i<keys.size(); ++i){
+        if(keys.at(i) == _key){
+            fb_marker = i;
+            break;
+        }
+    }
+    if (fb_marker == -1){
+        std::cerr<<"No key was found";
+        return;
+    }
+
+    std::vector<Entry> all_entries = mem_table.dump_entries();
+
+    // add adding keys from ss tables and checking if overlap
+    
+    return std::vector<Entry>(all_entries.begin(), all_entries.begin() + fb_marker);
 };
 
-bool remove(std::string key){
+bool LsmTree::remove(std::string key){
+    Bits key_bits(key);
 
+    try{
+        // std::thread thread_1(&Wal::append_entry,&write_ahead_log, &entry);
+        // std::thread thread_2(&MemTable::remove_entry, &mem_table, &key_bits);
+
+        // thread_1.join();
+        // thread_2.join();
+
+        // this needs wal functionality
+        mem_table.remove_entry(key_bits);
+        // also add ss table checking and removing if not detected in mem table
+
+        return true;
+    }
+    catch(const std::exception& e){
+        std::cerr << e.what() << '\n';
+        return false;
+    }
+    
 };
 
 
