@@ -114,7 +114,8 @@ std::ostringstream Entry::get_ostream_bytes(){
 };
 
 bool Entry::check_checksum() {
-    std::string string_to_hash = this -> key.get_string_char(); + this -> value.get_string_char();
+    std::string string_to_hash = this -> key.get_string_char();
+    string_to_hash += this -> value.get_string_char();
     uint32_t new_checksum = crc32(string_to_hash);
 
     return this -> checksum == new_checksum;

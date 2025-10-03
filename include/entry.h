@@ -1,7 +1,6 @@
 #ifndef YSQL_ENTRY_H_INCLUDED
 #define YSQL_ENTRY_H_INCLUDED
 
-#include "bits.h"
 #include "crc32.h"
 #include <sstream>
 
