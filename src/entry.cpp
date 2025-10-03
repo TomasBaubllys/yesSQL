@@ -69,12 +69,12 @@ uint32_t Entry::get_checksum(){
 };
 
 void Entry::set_tombstone(){
-    tombstone_flag = tombstone_flag == 0? 1 : 0;
+    tombstone_flag = tombstone_flag == ENTRY_TOMBSTONE_OFF? ENTRY_TOMBSTIONE_ON : ENTRY_TOMBSTONE_OFF;
     return;
 };
 
 void Entry::set_tombstone(bool _tombstone_flag){
-    tombstone_flag = _tombstone_flag? 1 : 0;
+    tombstone_flag = _tombstone_flag? ENTRY_TOMBSTONE_ON : ENTRY_TOMBSTONE_OFF;
     return;
 };
 

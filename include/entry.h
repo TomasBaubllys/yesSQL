@@ -8,6 +8,9 @@
 #define ENTRY_PLACEHOLDER_VALUE "_placeholder_value"
 #define ENTRY_PLACEHOLDER_KEY "_placeholder_key" 
 
+#define ENTRY_TOMBSTONE_OFF 0
+#define ENTRY_TOMBSTONE_ON 1
+
 class Entry {
   private:
     uint64_t entry_length;
