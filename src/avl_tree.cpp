@@ -78,6 +78,7 @@ AVL_tree::Node* AVL_tree::insert(AVL_tree::Node* node, Entry& entry) {
 		node -> right = insert(node -> right, entry);
 	}
 	else {
+		node -> data = entry;
 		return node; 
 	}
 	
