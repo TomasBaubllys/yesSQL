@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 
+//todo
 
 LsmTree::LsmTree(){
     write_ahead_log = Wal();
