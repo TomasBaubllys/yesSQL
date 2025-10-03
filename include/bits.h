@@ -30,7 +30,7 @@ class Bits {
 		
 		Bits(std::string& bitstream);
 	
-		Bits(Bits& org);
+		Bits(const Bits& org);
 			
 		// desctructor
 		~Bits(); 

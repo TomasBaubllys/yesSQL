@@ -36,7 +36,7 @@ Bits::Bits(std::string& bitstream) {
 	}
 };
 
-Bits::Bits(Bits& org) {
+Bits::Bits(const Bits& org) {
 	this -> arr = org.arr;
 }
 
