@@ -41,7 +41,7 @@ class AVL_tree
     Entry search(Node* root, Bits& key, bool& found);
 
     // destroys the entire tree
-    void make_empty(Node* node);
+    void make_empty(Node*& node);
 
     Entry pop_last(Node*& node);
 

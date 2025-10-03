@@ -333,7 +333,7 @@ std::vector<Entry> AVL_tree::inorder() {
 	return entry_vector;
 }
 
-void AVL_tree::make_empty(AVL_tree::Node* root) {
+void AVL_tree::make_empty(AVL_tree::Node*& root) {
 	if(!root) {
 		return;
 	}

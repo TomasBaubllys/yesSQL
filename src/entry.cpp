@@ -69,12 +69,12 @@ uint32_t Entry::get_checksum(){
 };
 
 void Entry::set_tombstone(){
-    tombstone_flag = -tombstone_flag;
+    tombstone_flag = tombstone_flag == 0? 1 : 0;
     return;
 };
 
 void Entry::set_tombstone(bool _tombstone_flag){
-    tombstone_flag = _tombstone_flag;
+    tombstone_flag = _tombstone_flag? 1 : 0;
     return;
 };
 
@@ -113,7 +113,7 @@ std::ostringstream Entry::get_ostream_bytes(){
     return ostream_bytes;
 };
 
-Entry::Entry(std::stringstream fileEntry) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_PLACEHOLDER_VALUE){
+Entry::Entry(std::stringstream& fileEntry) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_PLACEHOLDER_VALUE){
     fileEntry.read(reinterpret_cast<char*>(&entry_length), sizeof(entry_length));
     fileEntry.read(reinterpret_cast<char*>(&tombstone_flag), sizeof(tombstone_flag));
     bit_arr_size_type key_size;

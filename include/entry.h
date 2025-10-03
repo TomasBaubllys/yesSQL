@@ -31,7 +31,7 @@ class Entry {
     Entry(const Entry& other);
 
     // stringstream constructor
-    Entry (std::stringstream fileEntry);
+    Entry (std::stringstream& fileEntry);
 
     // desctructor
     ~Entry();
