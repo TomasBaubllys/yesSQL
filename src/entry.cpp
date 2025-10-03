@@ -4,7 +4,8 @@ void Entry::calculate_checksum(){
     std::string key_string = key.get_string_char();
     std::string value_string = value.get_string_char();
     
-    std::string string_to_hash = key_string + value_string;
+    std::string string_to_hash = key_string;
+    string_to_hash += value_string;
     uint32_t hashed_string = crc32(string_to_hash);
 
     checksum = hashed_string;
