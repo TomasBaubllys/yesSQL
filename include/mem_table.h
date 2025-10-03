@@ -1,12 +1,12 @@
 #ifndef YSQL_MEM_TABLE_H_INCLUDED
 #define YSQL_MEM_TABLE_H_INCLUDED
 
-#include "avl.h"
+#include "avl_tree.h"
 #include "entry.h"
 
 class MemTable{
     private:
-        AVL<Entry> avl_tree;
+        AVL_tree avl_tree;
         int entry_array_length;
         uint64_t total_mem_table_size;
     public:
@@ -36,7 +36,5 @@ class MemTable{
 
     
 };
-
-
 
 #endif
