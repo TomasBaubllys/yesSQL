@@ -43,11 +43,9 @@ Entry::Entry(Bits _key, Bits _value) : key(_key), value(_value){
 Entry::~Entry(){
 };
 
-Entry::Entry(const Entry& other) {
+Entry::Entry(const Entry& other) : key(other.key), value(other.value){
     entry_length = other.entry_length;
     tombstone_flag = other.tombstone_flag;
-    key = other.key;
-    value = other.value;
     checksum = other.checksum;
 }
 
