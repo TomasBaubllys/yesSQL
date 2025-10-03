@@ -78,6 +78,7 @@ AVL_tree::Node* AVL_tree::insert(AVL_tree::Node* node, Entry& entry) {
 		node -> right = insert(node -> right, entry);
 	}
 	else {
+		node -> data = entry;
 		return node; 
 	}
 	
@@ -249,6 +250,14 @@ void AVL_tree::inorder(AVL_tree::Node* node, std::vector<Entry>& result) {
 		result.push_back(node -> data);
 		this -> inorder(node -> right, result);
 	}	
+}
+
+void AVL_tree::print_inorder() {
+	std::vector<Entry> vec_inord = this -> inorder();
+
+	for(uint32_t i = 0; i < vec_inord.size(); ++i) {
+		std::cout << vec_inord[i].get_ostream_bytes().str() << " ";
+	}
 }
 
 Entry AVL_tree::search(AVL_tree::Node* node, Bits& key, bool& found) {
