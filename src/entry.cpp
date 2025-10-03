@@ -25,7 +25,7 @@ void Entry::calculate_entry_length(){
 // FIX FIX FIX
 // ADD LIMITS TO KEY SIZE TO 16 UINT
 // ADD LIMITS TO VALUE SIZE TO 32 UINT
-Entry::Entry(Bits _key, Bits _value){
+Entry::Entry(Bits _key, Bits _value) : key(_key), value(_value){
     entry_length = 0;
     tombstone_flag = 0;
     key = _key;
