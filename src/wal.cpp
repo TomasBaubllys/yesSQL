@@ -5,6 +5,9 @@ Wal::Wal(){
     wal_file_location = DEFAULT_WAL_FOLDER_LOCATION + wal_name;
     entry_count = 0;
     is_read_only = false;
+
+    std::ofstream wal_file(wal_file_location, std::ios::binary | std::ios::out);
+    wal_file.close();
 };
 
 Wal::Wal(std::string _wal_name, std::string _wal_file_location){
@@ -12,10 +15,12 @@ Wal::Wal(std::string _wal_name, std::string _wal_file_location){
     wal_file_location = _wal_file_location;
     entry_count = 0;
     is_read_only = false;
+
+    std::ofstream wal_file(wal_file_location, std::ios::binary | std::ios::out);
+    wal_file.close();
 };
 
 Wal::~Wal(){
-    clear_entries();
 };
 
 std::string Wal::get_wal_name(){
@@ -34,14 +39,18 @@ bool Wal::get_is_read_only(){
     return is_read_only;
 };
 
-void Wal::append_entry(std::ostringstream entry){
+void Wal::append_entry(std::ostringstream& entry){
     std::ofstream wal_file(wal_file_location, std::ios::binary | std::ios::app);
 
-    wal_file<<entry.rdbuf();
+    wal_file<<entry.str();
+
+    wal_file.close();
 
     return;
 };
 
 void Wal::clear_entries(){
     std::ofstream wal_file(wal_file_location, std::ios::binary | std::ios::trunc);
+
+    wal_file.close();
 };
