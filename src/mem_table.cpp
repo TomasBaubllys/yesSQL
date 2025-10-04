@@ -50,8 +50,9 @@ bool MemTable::remove_find_entry(Bits key){
         if(is_entry_found && !entry.is_deleted()){
             entry.set_tombstone(true);
             avl_tree.insert(entry);
+            return true;
         };
-        return true;
+        return false;
     }
     catch(const std::exception& e){
         return false;
