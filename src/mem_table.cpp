@@ -20,9 +20,20 @@ uint64_t MemTable::get_total_mem_table_size(){
 
 bool MemTable::insert_entry(Entry entry){
     try{
+        Bits key = entry.get_key();
+        bool is_duplicate;
+
+        Entry duplicate = avl_tree.search(key, is_duplicate);
+
         avl_tree.insert(entry);
-        entry_array_length++;
-        total_mem_table_size += entry.get_entry_length();
+
+        if(!is_duplicate){
+            entry_array_length++;
+            total_mem_table_size += entry.get_entry_length();
+        }else{
+            entry_array_length += (entry.get_entry_length() - duplicate.get_entry_length());
+        }
+        
         return true;
     }
     catch(const std::exception& e){
@@ -31,7 +42,7 @@ bool MemTable::insert_entry(Entry entry){
     
 };
 
-bool MemTable::remove_entry(Bits key){
+bool MemTable::remove_find_entry(Bits key){
     bool is_entry_found;
     try{
         // for now create a copy, we can play with memory in the future
