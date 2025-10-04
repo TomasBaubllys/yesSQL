@@ -23,9 +23,6 @@ void Entry::calculate_entry_length(){
                     + sizeof(checksum);
 };
 
-// FIX FIX FIX
-// ADD LIMITS TO KEY SIZE TO 16 UINT
-// ADD LIMITS TO VALUE SIZE TO 32 UINT
 Entry::Entry(Bits _key, Bits _value) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_PLACEHOLDER_VALUE){
     if(_key.size() > ENTRY_MAX_KEY_LEN) {
       throw std::length_error(ENTRY_MAX_KEY_LEN_EXCEEDED_ERR_MSG);  
@@ -45,10 +42,6 @@ Entry::Entry(Bits _key, Bits _value) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_P
     calculate_checksum();
     calculate_entry_length();
 };
-
-// Entry::Entry(std::stringstream fileEntry){
-
-// };
 
 Entry::~Entry(){
 };

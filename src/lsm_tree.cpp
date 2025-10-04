@@ -3,8 +3,6 @@
 #include <fstream>
 #include <iostream>
 
-//todo
-
 LsmTree::LsmTree(){
     write_ahead_log = Wal();
     mem_table = MemTable();
@@ -32,8 +30,8 @@ bool LsmTree::set(std::string key, std::string value){
     Entry entry(key_bits, value_bits);
 
     try{
-        std::thread thread_1(&Wal::append_entry,&write_ahead_log, &entry);
-        std::thread thread_2(&MemTable::insert_entry, &mem_table, &entry);
+        std::thread thread_1(&Wal::append_entry,&write_ahead_log, entry.get_ostream_bytes());
+        std::thread thread_2(&MemTable::insert_entry, &mem_table, entry);
 
         thread_1.join();
         thread_2.join();
@@ -128,26 +126,24 @@ std::vector<Entry> LsmTree::get_fb(std::string _key){
 };
 
 bool LsmTree::remove(std::string key){
-    Bits key_bits(key);
-
     try{
-        // std::thread thread_1(&Wal::append_entry,&write_ahead_log, &entry);
-        // std::thread thread_2(&MemTable::remove_entry, &mem_table, &key_bits);
+        Entry entry = get(key);
 
-        // thread_1.join();
-        // thread_2.join();
+        if(!entry.is_deleted()){
+            entry.set_tombstone(true);
+        }
+        
+        std::thread thread_1(&Wal::append_entry, &write_ahead_log, entry.get_ostream_bytes());
+        std::thread thread_2(&MemTable::insert_entry, &mem_table, entry);
 
-        // this needs wal functionality
-        mem_table.remove_entry(key_bits);
-        // also add ss table checking and removing if not detected in mem table
+        thread_1.join();
+        thread_2.join();
 
         return true;
     }
-    catch(const std::exception& e){
-        std::cerr << e.what() << '\n';
+    catch(std::exception e){
         return false;
     }
-    
 };
 
 

@@ -26,7 +26,10 @@ class MemTable{
         bool insert_entry(Entry entry);
 
         // returns true if entry was removed correctly
-        bool remove_entry(Bits key);
+        bool remove_find_entry(Bits key);
+
+        // returns true if entry was removed correctly
+        bool remove_entry(Entry& entry);
 
         // returns an Entry with parameter key
         Entry find(Bits key);
