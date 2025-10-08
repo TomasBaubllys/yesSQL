@@ -76,17 +76,29 @@ Entry SS_Table::get(Bits& key, bool& found) {
 
         // read the keys offset
         index_offset_in.read(reinterpret_cast<char*>(&key_offset), sizeof(key_offset));
+        if(index_offset_in.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
+        }
 
         // place the pointer in index_in
         index_in.seekg(key_offset, index_in.beg);
+        if(index_in.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+        }
 
         // read the size of the key itself
         index_in.read(reinterpret_cast<char*>(&key_length), sizeof(key_length));
+        if(index_in.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+        }
 
         // now read the key
         // not very efficient
         key_string.resize(key_length);
         index_in.read(&key_string[0], key_length);
+        if(index_in.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+        }
 
         // compare the key
         int8_t compare = key.compare_to_str(key_string);
@@ -109,8 +121,6 @@ Entry SS_Table::get(Bits& key, bool& found) {
         if(compare < 0) {
             binary_search_right = binary_search_index - 1;
         }
-
-
     }
 
     // if not found make a place holder found = false and return
