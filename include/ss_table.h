@@ -11,8 +11,8 @@ class SS_Table{
         std::filesystem::path index_file;
         
         // ??? for level compaction to check for overlapping rnges
-        uint16_t first_index;
-        uint16_t last_index;
+        Bits first_index;
+        Bits last_index;
 
     public:
         std::filesystem::path data_path();
@@ -25,6 +25,14 @@ class SS_Table{
         // returns entry with a given key. if entry is not there, returns placeolder entry and found = false
         Entry* get(Bits& key, bool& found);
 
+	// returns the first index in the ss_table
+	Bits get_last_index();
+
+	// returns the last index in the ss_table
+	Bits get_first_index();
+
+	// creates / fills the ss table with the given vector
+	uint16_t fill_ss_table(std::vector<Entry>& entry_vector);
 };
 
 

@@ -76,3 +76,21 @@ std::filesystem::path SS_Table::data_path(){
 std::filesystem::path SS_Table::index_path(){
     return this -> index_file;
 }
+
+
+Bits get_last_index() {
+	return this -> first_index;
+}
+
+Bits get_first_index() {
+	return this -> last_index;
+}
+
+uint16_t fill_ss_table(std::vector<Entry>& entry_vector) {
+	if(entry_vector.size() == 0) {
+		return 0;
+	}	
+
+	this -> first_index = entry_vector.first().get_key();
+	this -> last_index = entry_vector.back().get_key();
+}
