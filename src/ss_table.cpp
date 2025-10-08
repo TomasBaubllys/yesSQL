@@ -49,7 +49,7 @@ Entry SS_Table::get(Bits& key, bool& found) {
         throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
     }
 
-    std::ifstream index_offset_in(this ->index_offset_file, std::ios::binary);
+    std::ifstream index_offset_in(this -> index_offset_file, std::ios::binary);
     if(!index_offset_in) {
         throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
     }
@@ -94,6 +94,7 @@ Entry SS_Table::get(Bits& key, bool& found) {
 
         // now read the key
         // not very efficient
+        // fails here
         key_string.resize(key_length);
         index_in.read(&key_string[0], key_length);
         if(index_in.fail()) {
@@ -102,6 +103,8 @@ Entry SS_Table::get(Bits& key, bool& found) {
 
         // compare the key
         int8_t compare = key.compare_to_str(key_string);
+
+        //std::cout << "Comparing: " << key_string << " and " << key.get_string_char() << " Compare value: " << int(compare) << std::endl;
 
         // match found
         if(compare == 0) {
@@ -114,11 +117,21 @@ Entry SS_Table::get(Bits& key, bool& found) {
 
         // Key is bigger
         if(compare > 0) {
+            if(binary_search_index > this -> record_count) {
+                found = false;
+                break;
+            }
+
             binary_search_left = binary_search_index + 1;
         }
 
         // Key is smaller
         if(compare < 0) {
+            if(binary_search_index == 0) {
+                found = false;
+                break;
+            }
+
             binary_search_right = binary_search_index - 1;
         }
     }
@@ -155,11 +168,11 @@ std::filesystem::path SS_Table::index_path() {
 
 
 Bits SS_Table::get_last_index() {
-	return this -> first_index;
+	return this -> last_index;
 }
 
 Bits SS_Table::get_first_index() {
-	return this -> last_index;
+	return this -> first_index;
 }
 
 uint16_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
@@ -193,8 +206,24 @@ uint16_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
         std::ostringstream key_bytes = entry_vector.at(i).get_ostream_key_bytes();
         std::ostringstream value_bytes = entry_vector.at(i).get_ostream_data_bytes();
 
-        std::string key_str = key_bytes.str();
-        std::string value_str = value_bytes.str();
+        // FIXED BUT THIS PROBABLY SLOW
+        std::string key_buffer = key_bytes.str();
+        std::string value_buffer = value_bytes.str();
+
+        std::stringstream key_in(key_buffer);
+        std::stringstream value_in(value_buffer);
+
+        key_len_type key_len;
+        value_len_type value_len;
+
+        key_in.read(reinterpret_cast<char*>(&key_len), sizeof(key_len));
+        value_in.read(reinterpret_cast<char*>(&value_len), sizeof(key_len));
+
+        std::string key_str(key_len, '\0');
+        std::string value_str(value_len, '\0');
+
+        key_in.read(&key_str[0], key_len);
+        value_in.read(&value_str[0], value_len);
 
         // sizes guaranteed by ENTRY constructor
         if(key_str.size() > ENTRY_MAX_KEY_LEN) {
@@ -204,14 +233,14 @@ uint16_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
         if(value_str.size() > ENTRY_MAX_VALUE_LEN) {
             throw std::length_error(ENTRY_MAX_VALUE_LEN_EXCEEDED_ERR_MSG);
         }
-        key_len_type key_len = key_str.size();
-        value_len_type value_len = value_str.size();
 
         // write to the index offset mapping file
         index_offset_out.write(reinterpret_cast<char*>(&key_offset), sizeof(key_offset));
 
         // write the index length
         index_out.write(reinterpret_cast<char*>(&key_len), sizeof(key_len));
+
+        // cout << key_len << std::endl;
         // write the key itself
         index_out.write(&key_str[0], key_len);
         // write the offset
@@ -223,7 +252,7 @@ uint16_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
         data_out.write(&value_str[0], value_len);
 
         data_offset += value_len + sizeof(value_len);
-        key_offset += key_len + sizeof(key_len);
+        key_offset += key_len + sizeof(key_len) + sizeof(data_offset);
     }
 
     this -> record_count = entry_vector.size();
