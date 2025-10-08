@@ -15,8 +15,8 @@ class SS_Table{
         uint16_t last_index;
 
     public:
-        std::filesystem::path& data_path();
-        std::filesystem::path& index_path();
+        std::filesystem::path data_path();
+        std::filesystem::path index_path();
         SS_Table(const std::filesystem::path& data, const std::filesystem::path& index);
         ~SS_Table();
 

@@ -69,10 +69,10 @@ SS_Table:: SS_Table(const std::filesystem::path& data, const std::filesystem::pa
 
 SS_Table:: ~SS_Table(){};
 
-std::filesystem::path& SS_Table::data_path(){
+std::filesystem::path SS_Table::data_path(){
     return this -> data_file;
 }
 
-std::filesystem::path& SS_Table::index_path(){
+std::filesystem::path SS_Table::index_path(){
     return this -> index_file;
 }
