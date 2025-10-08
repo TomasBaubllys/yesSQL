@@ -26,12 +26,15 @@ class MemTable{
         bool insert_entry(Entry entry);
 
         // returns true if entry was removed correctly
-        bool remove_entry(Bits key);
+        bool remove_find_entry(Bits key);
+
+        // returns true if entry was removed correctly
+        bool remove_entry(Entry& entry);
 
         // returns an Entry with parameter key
         Entry find(Bits key);
 
-        // get al entries from AVL tree
+        // get all entries from AVL tree
         std::vector<Entry> dump_entries();
 
     

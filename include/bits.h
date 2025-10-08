@@ -28,9 +28,9 @@ class Bits {
 	
 		Bits(std::vector<uint32_t>& bitstream);
 		
-		Bits(std::string& bitstream);
+		Bits(std::string bitstream);
 	
-		Bits(Bits& org);
+		Bits(const Bits& org);
 			
 		// desctructor
 		~Bits(); 

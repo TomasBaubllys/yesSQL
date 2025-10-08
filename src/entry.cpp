@@ -4,7 +4,8 @@ void Entry::calculate_checksum(){
     std::string key_string = key.get_string_char();
     std::string value_string = value.get_string_char();
     
-    std::string string_to_hash = key_string + value_string;
+    std::string string_to_hash = key_string;
+    string_to_hash += value_string;
     uint32_t hashed_string = crc32(string_to_hash);
 
     checksum = hashed_string;
@@ -22,32 +23,32 @@ void Entry::calculate_entry_length(){
                     + sizeof(checksum);
 };
 
-// FIX FIX FIX
-// ADD LIMITS TO KEY SIZE TO 16 UINT
-// ADD LIMITS TO VALUE SIZE TO 32 UINT
-Entry::Entry(Bits _key, Bits _value){
+Entry::Entry(Bits _key, Bits _value) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_PLACEHOLDER_VALUE){
+    if(_key.size() > ENTRY_MAX_KEY_LEN) {
+      throw std::length_error(ENTRY_MAX_KEY_LEN_EXCEEDED_ERR_MSG);  
+    }
+
+    if(_value.size() > ENTRY_MAX_VALUE_LEN) {
+      throw std::length_error(ENTRY_MAX_VALUE_LEN_EXCEEDED_ERR_MSG);
+    }
+
+    this -> key = _key;
+    this -> value = _value;
+
     entry_length = 0;
     tombstone_flag = 0;
-    key = _key;
-    value = _value;
     checksum = 0;
 
     calculate_checksum();
     calculate_entry_length();
 };
 
-// Entry::Entry(std::stringstream fileEntry){
-
-// };
-
 Entry::~Entry(){
 };
 
-Entry::Entry(const Entry& other) {
+Entry::Entry(const Entry& other) : key(other.key), value(other.value){
     entry_length = other.entry_length;
     tombstone_flag = other.tombstone_flag;
-    key = other.key;
-    value = other.value;
     checksum = other.checksum;
 }
 
@@ -72,12 +73,12 @@ uint32_t Entry::get_checksum(){
 };
 
 void Entry::set_tombstone(){
-    tombstone_flag = -tombstone_flag;
+    tombstone_flag = tombstone_flag == ENTRY_TOMBSTONE_OFF? ENTRY_TOMBSTONE_ON : ENTRY_TOMBSTONE_OFF;
     return;
 };
 
 void Entry::set_tombstone(bool _tombstone_flag){
-    tombstone_flag = _tombstone_flag;
+    tombstone_flag = _tombstone_flag? ENTRY_TOMBSTONE_ON : ENTRY_TOMBSTONE_OFF;
     return;
 };
 
@@ -116,8 +117,25 @@ std::ostringstream Entry::get_ostream_bytes(){
     return ostream_bytes;
 };
 
+Entry::Entry(std::stringstream& fileEntry) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_PLACEHOLDER_VALUE){
+    fileEntry.read(reinterpret_cast<char*>(&entry_length), sizeof(entry_length));
+    fileEntry.read(reinterpret_cast<char*>(&tombstone_flag), sizeof(tombstone_flag));
+    bit_arr_size_type key_size;
+    fileEntry.read(reinterpret_cast<char*>(&key_size), sizeof(key_size));
+    std::string key_str(key_size, '\0');
+    fileEntry.read(&key_str[0], key_size);
+    key = Bits(key_str);
+    bit_arr_size_type value_size;
+    fileEntry.read(reinterpret_cast<char*>(&value_size), sizeof(value_size));
+    std::string value_str(value_size, '\0');
+    fileEntry.read(&value_str[0], value_size);
+    value = Bits(value_str);
+    fileEntry.read(reinterpret_cast<char*>(&checksum), sizeof(checksum));
+}
+
 bool Entry::check_checksum() {
-    std::string string_to_hash = this -> key.get_string_char(); + this -> value.get_string_char();
+    std::string string_to_hash = this -> key.get_string_char();
+    string_to_hash += this -> value.get_string_char();
     uint32_t new_checksum = crc32(string_to_hash);
 
     return this -> checksum == new_checksum;

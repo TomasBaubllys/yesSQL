@@ -1,7 +1,7 @@
 #include "../include/mem_table.h"
 
 MemTable::MemTable(){
-    avl_tree = AVL<Entry>();
+    avl_tree = AVL_tree();
     entry_array_length = 0;
     total_mem_table_size = 0;
 };
@@ -32,9 +32,28 @@ bool MemTable::insert_entry(Entry entry){
 };
 
 bool MemTable::remove_entry(Bits key){
+    bool is_entry_found;
     try{
-        entry_array_length--;
-        total_mem_table_size -= avl_tree.remove(key).get_entry_length();
+        // for now create a copy, we can play with memory in the future
+        Entry entry = avl_tree.search(key, is_entry_found);
+        if(is_entry_found && !entry.is_deleted()){
+            entry.set_tombstone(true);
+            avl_tree.insert(entry);
+        };
+        return true;
+    }
+    catch(const std::exception& e){
+        return false;
+    }
+    
+};
+
+bool MemTable::remove_entry(Entry& entry){
+    try{
+        if(!entry.is_deleted()){
+            entry.set_tombstone(true);
+            avl_tree.insert(entry);
+        };
         return true;
     }
     catch(const std::exception& e){

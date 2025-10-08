@@ -1,3 +1,6 @@
+#ifndef YSQL_AVL_TREE_INCLUDED
+#define YSQL_AVL_TREE_INCLUDED
+
 #include <iostream>
 #include "entry.h"
 #include <algorithm>
@@ -38,7 +41,7 @@ class AVL_tree
     Entry search(Node* root, Bits& key, bool& found);
 
     // destroys the entire tree
-    void make_empty(Node* node);
+    void make_empty(Node*& node);
 
     Entry pop_last(Node*& node);
 
@@ -61,3 +64,5 @@ class AVL_tree
 
     	std::vector<Entry> inorder();
 };
+
+#endif // YSQL_AVL_TREE_INCLUDED

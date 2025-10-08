@@ -44,16 +44,16 @@ class LsmTree{
         bool set(std::string key, std::string value);
 
         // returns a vector of all keys in current database
-        vector<std::string> get_keys();
+        std::vector<std::string> get_keys();
 
         // returns a vector of all keys with provided prefix
-        vector<std::string> get_keys(std::string prefix);
+        std::vector<std::string> get_keys(std::string prefix);
 
         // returns all keys forward from the provided key
-        vector<Entry> get_ff(std::string key);
+        std::vector<Entry> get_ff(std::string _key);
 
         // returns all keys backwards from the provided key
-        vector<Entry> get_fb(std::string key);
+        std::vector<Entry> get_fb(std::string _key);
 
         // returns true if removing an entry with provided key was successful
         bool remove(std::string key);

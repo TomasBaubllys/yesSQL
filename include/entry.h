@@ -1,13 +1,23 @@
 #ifndef YSQL_ENTRY_H_INCLUDED
 #define YSQL_ENTRY_H_INCLUDED
 
-#include "bits.h"
 #include "crc32.h"
 #include <sstream>
+#include <stdexcept>
 
 #define ENTRY_CHECKSUM_MISMATCH "Entry was corrupted - checksum missmatch encountered\n"
 #define ENTRY_PLACEHOLDER_VALUE "_placeholder_value"
 #define ENTRY_PLACEHOLDER_KEY "_placeholder_key" 
+// limit size of the key to uint16_t
+#define ENTRY_MAX_KEY_LEN 0xffff
+#define ENTRY_MAX_KEY_LEN_EXCEEDED_ERR_MSG "Maximum key length exceeded\n"
+
+// limit the size of the value to uint32_t
+#define ENTRY_MAX_VALUE_LEN 0xffffffff
+#define ENTRY_MAX_VALUE_LEN_EXCEEDED_ERR_MSG "Maximum value length exceeded\n"
+
+#define ENTRY_TOMBSTONE_OFF 0
+#define ENTRY_TOMBSTONE_ON 1
 
 class Entry {
   private:
@@ -26,13 +36,14 @@ class Entry {
   public:
 
     // constructor, no default constructor exists
+    // THROWS
     Entry (Bits _key, Bits _value);
 
     // copy constructor
     Entry(const Entry& other);
 
     // stringstream constructor
-    Entry (std::stringstream fileEntry);
+    Entry (std::stringstream& fileEntry);
 
     // desctructor
     ~Entry();
