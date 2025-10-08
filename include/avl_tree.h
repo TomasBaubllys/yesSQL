@@ -6,8 +6,6 @@
 #include <algorithm>
 #include <vector>
 
-using namespace std;
-
 #define AVL_TREE_INSERTION_FAILED_ERR "Failed to insert given entry to the tree\n"
 #define AVL_TREE_DELETION_FAILED_ERR "Failed to delete given entry from the tree\n"
 
