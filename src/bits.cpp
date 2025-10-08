@@ -105,3 +105,16 @@ void Bits::update_bits(std::vector<uint8_t>& new_bits) {
 
 	this -> arr = new_bits;
 }
+
+int8_t Bits::compare_to_str(const std::string& other) {
+	std::string internal_str = this -> get_string_char();
+
+	if(internal_str.length() > other.length()) {
+		return 1;
+	}
+	else if(internal_str.length() < other.length()) {
+		return -1;
+	}
+
+	return internal_str.compare(other);
+}

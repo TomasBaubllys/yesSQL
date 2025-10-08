@@ -26,6 +26,9 @@
 #define ENTRY_TOMBSTONE_OFF 0
 #define ENTRY_TOMBSTONE_ON 1
 
+using key_len_type = uint16_t;
+using value_len_type = uint32_t;
+
 class Entry {
   private:
     uint64_t entry_length;
