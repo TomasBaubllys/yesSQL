@@ -119,6 +119,13 @@ uint16_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
         std::string value_str = value_bytes.str();
 
         // sizes guaranteed by ENTRY constructor
+        if(key_str.size() > ENTRY_MAX_KEY_LEN) {
+            throw std::length_error(ENTRY_MAX_KEY_LEN_EXCEEDED_ERR_MSG);
+        }
+
+        if(value_str.size() > ENTRY_MAX_VALUE_LEN) {
+            throw std::length_error(ENTRY_MAX_VALUE_LEN_EXCEEDED_ERR_MSG);
+        }
         uint16_t key_len = key_str.size();
         uint32_t value_len = value_str.size();
 
@@ -128,8 +135,6 @@ uint16_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
         index_out.write(key_str.data(), key_len);
         // write the offset
         index_out.write(reinterpret_cast<char*>(&offset), sizeof(offset));
-
-
 
         // write the sizeof data
         data_out.write(reinterpret_cast<char*>(&value_len), sizeof(value_len));
