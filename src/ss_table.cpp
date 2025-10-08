@@ -91,6 +91,27 @@ uint16_t fill_ss_table(std::vector<Entry>& entry_vector) {
 		return 0;
 	}	
 
+	// check vector size if it doesnt exceed uint16_t
+	if()
+
 	this -> first_index = entry_vector.first().get_key();
 	this -> last_index = entry_vector.back().get_key();
+	
+	std::ofstream data_out(this -> data_file);
+	std::ofstream index_out(this -> index_file);
+
+	if(!data_out) {
+		// throw
+	}
+
+	if(!index_out) {
+		// throw
+	}
+
+	// write buffers to files ->>>>>>>, reikia skaidyt rakta nuo entry 
+	//realiai saugot entry(length, tombstone, data, checksum).....
+	//
+	for(uint16_t i = 0; i < )
+
 }
+
