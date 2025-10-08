@@ -3,7 +3,10 @@
 
 #include "entry.h"
 #include <filesystem>
+#include <stdexcept>
 
+#define SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG "Failed to open data file\n"
+#define SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG "Failed to open index file\n"
 
 class SS_Table{
     private:
@@ -21,18 +24,18 @@ class SS_Table{
         ~SS_Table();
 
         // returns a specific entry at specific index
-        Entry* read_entry_at_offset(uint64_t offset);
+        Entry read_entry_at_offset(uint64_t offset);
         // returns entry with a given key. if entry is not there, returns placeolder entry and found = false
-        Entry* get(Bits& key, bool& found);
+        Entry get(Bits& key, bool& found);
 
-	// returns the first index in the ss_table
-	Bits get_last_index();
+        // returns the first index in the ss_table
+        Bits get_last_index();
 
-	// returns the last index in the ss_table
-	Bits get_first_index();
+        // returns the last index in the ss_table
+        Bits get_first_index();
 
-	// creates / fills the ss table with the given vector
-	uint16_t fill_ss_table(std::vector<Entry>& entry_vector);
+        // creates / fills the ss table with the given vector
+        uint16_t fill_ss_table(std::vector<Entry>& entry_vector);
 };
 
 
