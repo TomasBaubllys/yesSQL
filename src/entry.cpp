@@ -103,8 +103,8 @@ Entry Entry::operator=(const Entry& other){
 std::ostringstream Entry::get_ostream_bytes(){
     std::ostringstream ostream_bytes;
 
-    bit_arr_size_type key_size = key.size();
-    bit_arr_size_type value_size = value.size();
+    key_len_type key_size = key.size();
+    value_len_type value_size = value.size();
 
     ostream_bytes.write(reinterpret_cast<const char*>(&entry_length), sizeof(entry_length));
     ostream_bytes.write(reinterpret_cast<const char*>(&tombstone_flag), sizeof(tombstone_flag));
@@ -121,8 +121,8 @@ std::ostringstream Entry::get_ostream_bytes(){
 std::ostringstream Entry::get_ostream_data_bytes() {
     std::ostringstream ostream_bytes;
 
-    bit_arr_size_type key_size = this -> key.size();
-    bit_arr_size_type value_size = this -> value.size();
+    key_len_type key_size = this -> key.size();
+    value_len_type value_size = this -> value.size();
 
     uint64_t size_no_key = this -> entry_length - key_size;
 
@@ -138,7 +138,7 @@ std::ostringstream Entry::get_ostream_data_bytes() {
 std::ostringstream Entry::get_ostream_key_bytes() {
     std::ostringstream ostream_bytes;
 
-    bit_arr_size_type key_size = this -> key.size();
+    key_len_type key_size = this -> key.size();
     ostream_bytes.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
     ostream_bytes.write(this -> key.get_string_char().data(), key_size);
 
@@ -155,7 +155,7 @@ Entry::Entry(std::stringstream& file_entry) : key(ENTRY_PLACEHOLDER_KEY), value(
         throw std::runtime_error(ENTRY_FAILED_READ_TOMBSTONE_FLAG_MSG);
     }
 
-    bit_arr_size_type key_size;
+    key_len_type key_size;
     if(!file_entry.read(reinterpret_cast<char*>(&key_size), sizeof(key_size))) {
         throw std::runtime_error(ENTRY_FAILED_READ_KEY_LENGTH_MSG);
     }
@@ -166,7 +166,7 @@ Entry::Entry(std::stringstream& file_entry) : key(ENTRY_PLACEHOLDER_KEY), value(
     }
 
     key = Bits(key_str);
-    bit_arr_size_type value_size;
+    value_len_type value_size;
 
     if(!file_entry.read(reinterpret_cast<char*>(&value_size), sizeof(value_size))) {
         throw std::runtime_error(ENTRY_FAILED_READ_VALUE_LENGTH_MSG);
@@ -186,7 +186,7 @@ Entry::Entry(std::stringstream& file_entry) : key(ENTRY_PLACEHOLDER_KEY), value(
 
 // ADD ERROR CHECKING FOR UNEXPECTED EOF
 Entry::Entry(std::stringstream& file_entry_key, std::stringstream& file_entry_data) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_PLACEHOLDER_VALUE) {
-    bit_arr_size_type key_len = 0;
+    key_len_type key_len = 0;
     if(!file_entry_key.read(reinterpret_cast<char*>(&key_len), sizeof(key_len))) {
         throw std::runtime_error(ENTRY_FAILED_READ_KEY_LENGTH_MSG);
     }
@@ -207,7 +207,7 @@ Entry::Entry(std::stringstream& file_entry_key, std::stringstream& file_entry_da
         throw std::runtime_error(ENTRY_FAILED_READ_TOMBSTONE_FLAG_MSG);
     }
 
-    bit_arr_size_type value_len = 0;
+    value_len_type value_len = 0;
     if(!file_entry_data.read(reinterpret_cast<char*>(&value_len), sizeof(value_len))) {
         throw std::runtime_error(ENTRY_FAILED_READ_VALUE_LENGTH_MSG);
     }
@@ -232,6 +232,6 @@ bool Entry::check_checksum() {
     return this -> checksum == new_checksum;
 };
 
-bit_arr_size_type Entry::get_key_length() {
+key_len_type Entry::get_key_length() {
     return this -> key.size();
 }
