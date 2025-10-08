@@ -1,4 +1,5 @@
 #include "../include/entry.h"
+#include <stdexcept>
 
 void Entry::calculate_checksum(){
     std::string key_string = key.get_string_char();
@@ -117,21 +118,111 @@ std::ostringstream Entry::get_ostream_bytes(){
     return ostream_bytes;
 };
 
-Entry::Entry(std::stringstream& fileEntry) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_PLACEHOLDER_VALUE){
-    fileEntry.read(reinterpret_cast<char*>(&entry_length), sizeof(entry_length));
-    fileEntry.read(reinterpret_cast<char*>(&tombstone_flag), sizeof(tombstone_flag));
+std::ostringstream Entry::get_ostream_data_bytes() {
+    std::ostringstream ostream_bytes;
+
+    bit_arr_size_type key_size = this -> key.size();
+    bit_arr_size_type value_size = this -> value.size();
+
+    uint64_t size_no_key = this -> entry_length - key_size;
+
+    ostream_bytes.write(reinterpret_cast<const char*>(&size_no_key), sizeof(size_no_key));
+    ostream_bytes.write(reinterpret_cast<const char*>(&tombstone_flag), sizeof(tombstone_flag));
+    ostream_bytes.write(reinterpret_cast<const char*>(&value_size), sizeof(value_size));
+    ostream_bytes.write(value.get_string_char().data(), value_size);
+    ostream_bytes.write(reinterpret_cast<const char*>(&checksum), sizeof(checksum));
+
+    return ostream_bytes;
+}
+
+std::ostringstream Entry::get_ostream_key_bytes() {
+    std::ostringstream ostream_bytes;
+
+    bit_arr_size_type key_size = this -> key.size();
+    ostream_bytes.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
+    ostream_bytes.write(this -> key.get_string_char().data(), key_size);
+
+    return ostream_bytes;
+}
+
+// ADD ERROR CHECKING FOR UNEXPECTED EOF
+Entry::Entry(std::stringstream& file_entry) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_PLACEHOLDER_VALUE){
+    if(!file_entry.read(reinterpret_cast<char*>(&entry_length), sizeof(entry_length))) {
+        throw std::runtime_error(ENTRY_FAILED_READ_VALUE_MSG);
+    }
+
+    if(!file_entry.read(reinterpret_cast<char*>(&tombstone_flag), sizeof(tombstone_flag))) {
+        throw std::runtime_error(ENTRY_FAILED_READ_TOMBSTONE_FLAG_MSG);
+    }
+
     bit_arr_size_type key_size;
-    fileEntry.read(reinterpret_cast<char*>(&key_size), sizeof(key_size));
+    if(!file_entry.read(reinterpret_cast<char*>(&key_size), sizeof(key_size))) {
+        throw std::runtime_error(ENTRY_FAILED_READ_KEY_LENGTH_MSG);
+    }
+
     std::string key_str(key_size, '\0');
-    fileEntry.read(&key_str[0], key_size);
+    if(!file_entry.read(&key_str[0], key_size)) {
+        throw std::runtime_error(ENTRY_FAILED_READ_KEY_MSG);
+    }
+
     key = Bits(key_str);
     bit_arr_size_type value_size;
-    fileEntry.read(reinterpret_cast<char*>(&value_size), sizeof(value_size));
+
+    if(!file_entry.read(reinterpret_cast<char*>(&value_size), sizeof(value_size))) {
+        throw std::runtime_error(ENTRY_FAILED_READ_VALUE_LENGTH_MSG);
+    }
+
     std::string value_str(value_size, '\0');
-    fileEntry.read(&value_str[0], value_size);
+
+    if(!file_entry.read(&value_str[0], value_size)) {
+        throw std::runtime_error(ENTRY_FAILED_READ_VALUE_MSG);
+    }
+
     value = Bits(value_str);
-    fileEntry.read(reinterpret_cast<char*>(&checksum), sizeof(checksum));
+    if(!file_entry.read(reinterpret_cast<char*>(&checksum), sizeof(checksum))) {
+        throw std::runtime_error(ENTRY_FAILED_READ_CHECKSUM_MSG);
+    }
 }
+
+// ADD ERROR CHECKING FOR UNEXPECTED EOF
+Entry::Entry(std::stringstream& file_entry_key, std::stringstream& file_entry_data) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_PLACEHOLDER_VALUE) {
+    bit_arr_size_type key_len = 0;
+    if(!file_entry_key.read(reinterpret_cast<char*>(&key_len), sizeof(key_len))) {
+        throw std::runtime_error(ENTRY_FAILED_READ_KEY_LENGTH_MSG);
+    }
+    std::string key_str(key_len, '\0');
+    if(!file_entry_key.read(&key_str[0], key_len)) {
+        throw std::runtime_error(ENTRY_FAILED_READ_KEY_MSG);
+    }
+    this -> key = Bits(key_str);
+
+    uint64_t size_no_key = 0;
+
+    if(!file_entry_data.read(reinterpret_cast<char*>(&size_no_key), sizeof(size_no_key))) {
+        throw std::runtime_error(ENTRY_FAILED_READ_LENGTH_MSG);
+    }
+    this -> entry_length = size_no_key + key_len;
+
+    if(!file_entry_data.read(reinterpret_cast<char*>(&tombstone_flag), sizeof(tombstone_flag))) {
+        throw std::runtime_error(ENTRY_FAILED_READ_TOMBSTONE_FLAG_MSG);
+    }
+
+    bit_arr_size_type value_len = 0;
+    if(!file_entry_data.read(reinterpret_cast<char*>(&value_len), sizeof(value_len))) {
+        throw std::runtime_error(ENTRY_FAILED_READ_VALUE_LENGTH_MSG);
+    }
+    std::string value_str(value_len, '\0');
+
+    if(!file_entry_data.read(&value_str[0], value_len)) {
+        throw std::runtime_error(ENTRY_FAILED_READ_VALUE_MSG);
+    }
+    this -> value = Bits(value_str);
+
+    if(!file_entry_data.read(reinterpret_cast<char*>(&checksum), sizeof(checksum))) {
+        throw std::runtime_error(ENTRY_FAILED_READ_CHECKSUM_MSG);
+    }
+}
+
 
 bool Entry::check_checksum() {
     std::string string_to_hash = this -> key.get_string_char();

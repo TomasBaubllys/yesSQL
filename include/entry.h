@@ -15,6 +15,13 @@
 // limit the size of the value to uint32_t
 #define ENTRY_MAX_VALUE_LEN 0xffffffff
 #define ENTRY_MAX_VALUE_LEN_EXCEEDED_ERR_MSG "Maximum value length exceeded\n"
+#define ENTRY_FAILED_READ_LENGTH_MSG "Failed to read entry_length"
+#define ENTRY_FAILED_READ_KEY_MSG "Failed to read key"
+#define ENTRY_FAILED_READ_KEY_LENGTH_MSG "Failed to read key_length"
+#define ENTRY_FAILED_READ_VALUE_MSG "Failed to read value"
+#define ENTRY_FAILED_READ_VALUE_LENGTH_MSG "Failed to read value_length"
+#define ENTRY_FAILED_READ_TOMBSTONE_FLAG_MSG "Failed to read tombstone_flag"
+#define ENTRY_FAILED_READ_CHECKSUM_MSG "Failed to read checksum"
 
 #define ENTRY_TOMBSTONE_OFF 0
 #define ENTRY_TOMBSTONE_ON 1
@@ -42,8 +49,11 @@ class Entry {
     // copy constructor
     Entry(const Entry& other);
 
-    // stringstream constructor
-    Entry (std::stringstream& fileEntry);
+    // THROWS
+    Entry(std::stringstream& file_entry);
+
+    // THROWS
+    Entry(std::stringstream& file_entry_key, std::stringstream& file_entry_data);
 
     // desctructor
     ~Entry();
@@ -102,6 +112,12 @@ class Entry {
 
     //function to dump bytes
     std::ostringstream get_ostream_bytes();
+
+    // function to dump bytes except key
+    std::ostringstream get_ostream_data_bytes();
+
+    // function to dump key bytes only
+    std::ostringstream get_ostream_key_bytes();
 
     // returns true if checksum is still valid, false if data corruption appeared
     bool check_checksum();
