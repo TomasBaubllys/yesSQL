@@ -1,4 +1,5 @@
 #include "../include/ss_table.h"
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -108,6 +109,8 @@ uint16_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
 		throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
 	}
 
+	uint64_t offset = 0;
+
 	for(uint16_t i = 0; i < entry_vector.size(); ++i) {
         std::ostringstream key_bytes = entry_vector.at(i).get_ostream_key_bytes();
         std::ostringstream value_bytes = entry_vector.at(i).get_ostream_data_bytes();
@@ -115,8 +118,28 @@ uint16_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
         std::string key_str = key_bytes.str();
         std::string value_str = value_bytes.str();
 
-        index_out.write(key_str.data(), key_str.size());
-        data_out.write(value_str.data(), value_str.size());
+        // sizes guaranteed by ENTRY constructor
+        uint16_t key_len = key_str.size();
+        uint32_t value_len = value_str.size();
+
+        // write the index length
+        index_out.write(reinterpret_cast<char*>(&key_len), sizeof(key_len));
+        // write the key itself
+        index_out.write(key_str.data(), key_len);
+        // write the offset
+        index_out.write(reinterpret_cast<char*>(&offset), sizeof(offset));
+
+
+
+        // write the sizeof data
+        data_out.write(reinterpret_cast<char*>(&value_len), sizeof(value_len));
+        // write the data
+        data_out.write(value_str.data(), value_len);
+
+        offset += value_len;
     }
+
+    data_out.close();
+    index_out.close();
 }
 
