@@ -8,6 +8,13 @@
 #include "ss_table_controller.h"
 #include <thread>
 
+// .sst_l[level_index]_[file_type]_[ss_table_count].bin
+#define LSM_TREE_SS_TABLE_FILE_NAME_DATA ".sst_l%d_data_%d.bin"
+#define LSM_TREE_SS_TABLE_FILE_NAME_INDEX ".sst_l%d_index_%d.bin"
+#define LSM_TREE_SS_TABLE_FILE_NAME_OFFSET ".sst_l%d_offset_%d.bin"
+#define LSM_TREE_SS_TABLE_MAX_LENGTH 25
+
+
 // Hello everybody
 // LsmTree
 // To do:
@@ -50,10 +57,10 @@ class LsmTree{
         std::vector<std::string> get_keys(std::string prefix);
 
         // returns all keys forward from the provided key
-        std::vector<Entry> get_ff(std::string _key);
+        std::vector<Entry> get_ff(std::string key);
 
         // returns all keys backwards from the provided key
-        std::vector<Entry> get_fb(std::string _key);
+        std::vector<Entry> get_fb(std::string key);
 
         // returns true if removing an entry with provided key was successful
         bool remove(std::string key);
@@ -61,8 +68,11 @@ class LsmTree{
         // flushes MemTable to SStable
         void flush_mem_table();
 
-        // compacts level[index] with level[index + 1]
+        // compact level[index] with level [index + 1]
         void compact_level(uint16_t index);
+        
+        // compact level0 with level1
+        void compact_level_0();
 };
 
 #endif
