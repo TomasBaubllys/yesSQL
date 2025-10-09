@@ -119,7 +119,7 @@ std::ostringstream Entry::get_ostream_bytes(){
     return ostream_bytes;
 };
 
-std::string Entry::get_string_data_bytes() {
+std::string Entry::get_string_data_bytes() const {
 
     value_len_type value_len = this -> value.size();
     std::string value_str = this -> value.get_string_char();
@@ -153,7 +153,7 @@ std::string Entry::get_string_data_bytes() {
     return raw_bytes;
 }
 
-std::string Entry::get_string_key_bytes() {
+std::string Entry::get_string_key_bytes() const {
     key_len_type key_size = this -> key.size();
     std::string key_str = this -> key.get_string_char();
     std::string raw_bytes(key_size, '\0');
@@ -253,6 +253,6 @@ bool Entry::check_checksum() {
     return this -> checksum == new_checksum;
 };
 
-key_len_type Entry::get_key_length() {
+key_len_type Entry::get_key_length() const {
     return this -> key.size();
 }

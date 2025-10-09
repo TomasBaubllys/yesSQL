@@ -118,16 +118,16 @@ class Entry {
     std::ostringstream get_ostream_bytes();
 
     // function to dump bytes except key
-    std::string get_string_data_bytes();
+    std::string get_string_data_bytes() const;
 
     // function to dump key bytes only
-    std::string get_string_key_bytes();
+    std::string get_string_key_bytes() const;
 
     // returns true if checksum is still valid, false if data corruption appeared
     bool check_checksum();
 
     // returns the length of the saved key
-    key_len_type get_key_length();
+    key_len_type get_key_length() const;
 };
 
 #endif

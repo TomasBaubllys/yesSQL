@@ -36,19 +36,19 @@ class Bits {
 		~Bits(); 
 
 		// returns the size of the saved bit array
-		bit_arr_size_type size();
+		bit_arr_size_type size() const;
 		
 		// returns the bits as a character vector
-		std::vector<char> get_char_vector();
+		std::vector<char> get_char_vector() const;
 
 		// returns the bits as a string
-		std::string get_string_char();
+		std::string get_string_char() const;
 
 		// returns bits as a string containing only 0 and 1s
 		// std::string get_string_bits();
 
 		// returns the bits as and integer vector, if bits dont fill the last integer it will be padded with 0 bits to be interpreted as little endian
-		std::vector<uint32_t> get_int_array();   
+		std::vector<uint32_t> get_int_array() const;
 		
 		// compares to bit objects bit by bit
 		inline bool operator==(const Bits& other) {
@@ -105,7 +105,7 @@ class Bits {
 		}	
 
 		// returns 0 if equal, 1 if Bits is greater, -1 if string is greater
-		int8_t compare_to_str(const std::string& other);
+		int8_t compare_to_str(const std::string& other) const;
 
 		// update the bitstream !throws!
 		void update_bits(std::vector<uint8_t>& new_bits);
