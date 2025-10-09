@@ -33,7 +33,7 @@ class SS_Table{
 
         // returns a stream from n bytes with a certain offset
         // the stringstream can be used directly to construct an entry after reading the key
-        std::stringstream read_stream_at_offset(uint64_t& offset);
+        std::string read_stream_at_offset(uint64_t& offset);
 
     public:
         std::filesystem::path data_path();

@@ -22,6 +22,7 @@
 #define ENTRY_FAILED_READ_VALUE_LENGTH_MSG "Entry failed to read value_length\n"
 #define ENTRY_FAILED_READ_TOMBSTONE_FLAG_MSG "Entry failed to read tombstone_flag\n"
 #define ENTRY_FAILED_READ_CHECKSUM_MSG "Entry failed to read checksum\n"
+#define ENTRY_DATA_TOO_SHORT_ERR_MSG "Entry data string is too short\n"
 
 #define ENTRY_TOMBSTONE_OFF 0
 #define ENTRY_TOMBSTONE_ON 1
@@ -56,7 +57,7 @@ class Entry {
     Entry(std::stringstream& file_entry);
 
     // THROWS
-    Entry(std::stringstream& file_entry_key, std::stringstream& file_entry_data);
+    Entry(std::string& file_entry_key, std::string& file_entry_data);
 
     // desctructor
     ~Entry();
@@ -117,10 +118,10 @@ class Entry {
     std::ostringstream get_ostream_bytes();
 
     // function to dump bytes except key
-    std::stringstream get_ostream_data_bytes();
+    std::string get_string_data_bytes();
 
     // function to dump key bytes only
-    std::stringstream get_ostream_key_bytes();
+    std::string get_string_key_bytes();
 
     // returns true if checksum is still valid, false if data corruption appeared
     bool check_checksum();

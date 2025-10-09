@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include "../include/entry.h"
 
-std::stringstream SS_Table::read_stream_at_offset(uint64_t& offset) {
+std::string SS_Table::read_stream_at_offset(uint64_t& offset) {
     std::ifstream data_in(this -> data_file, std::ios::binary);
     if(!data_in) {
         throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
@@ -29,16 +29,11 @@ std::stringstream SS_Table::read_stream_at_offset(uint64_t& offset) {
 
     data_in.read(&raw_data[0], data_len);
 
-    std::stringstream raw_data_stream;
-
-    raw_data_stream.write(reinterpret_cast<char*>(&data_len), sizeof(data_len));
-    raw_data_stream.write(raw_data.data(), data_len);
-
     if(data_in.fail()) {
         throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
     }
 
-    return raw_data_stream;
+    return raw_data;
 }
 
 // TEST AND check return values
@@ -65,8 +60,7 @@ Entry SS_Table::get(Bits& key, bool& found) {
     uint64_t key_offset = 0;
     uint64_t data_offset = 0;
     key_len_type key_length = 0;
-    std::string key_string;
-    std::stringstream key_stream;
+    std::string key_str;
 
     // binary search for the key
     while(binary_search_left <= binary_search_right) {
@@ -100,14 +94,14 @@ Entry SS_Table::get(Bits& key, bool& found) {
         // now read the key
         // not very efficient
         // fails here
-        key_string.resize(key_length);
-        index_in.read(&key_string[0], key_length);
+        key_str.resize(key_length);
+        index_in.read(&key_str[0], key_length);
         if(index_in.fail()) {
             throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
         }
 
         // compare the key
-        int8_t compare = key.compare_to_str(key_string);
+        int8_t compare = key.compare_to_str(key_str);
 
         // std::cout << "Comparing: " << key_string << " and " << key.get_string_char() << " Compare value: " << int(compare) << std::endl;
 
@@ -119,9 +113,6 @@ Entry SS_Table::get(Bits& key, bool& found) {
             }
 
             found = true;
-            key_stream.clear();
-            key_stream.write(reinterpret_cast<char*>(&key_length), sizeof(key_length));
-            key_stream.write(key_string.data(), key_length);
             break;
         }
 
@@ -154,10 +145,10 @@ Entry SS_Table::get(Bits& key, bool& found) {
     }
 
     // read the value
-    std::stringstream data_stream = this -> read_stream_at_offset(data_offset);
+    std::string data_str = this -> read_stream_at_offset(data_offset);
 
     // construct an entry and return AAAAAAAAA
-    return Entry(key_stream, data_stream);
+    return Entry(key_str, data_str);
 }
 
 SS_Table::SS_Table(const std::filesystem::path& _data_file, const std::filesystem::path& _index_file, std::filesystem::path& _index_offset_file)
@@ -213,48 +204,24 @@ uint16_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
     uint64_t key_offset = 0;
 
 	for(key_len_type i = 0; i < entry_vector.size(); ++i) {
-        std::stringstream key_in = entry_vector.at(i).get_ostream_key_bytes();
-        std::stringstream value_in = entry_vector.at(i).get_ostream_data_bytes();
+        std::string key_in = entry_vector.at(i).get_string_key_bytes();
+        std::string data_in = entry_vector.at(i).get_string_data_bytes();
 
-        key_len_type key_len;
-        uint64_t value_len;
-
-        key_in.read(reinterpret_cast<char*>(&key_len), sizeof(key_len));
-        value_in.read(reinterpret_cast<char*>(&value_len), sizeof(value_len));
-
-        std::string key_str(key_len, '\0');
-        std::string value_str(value_len, '\0');
-
-        key_in.read(&key_str[0], key_len);
-        value_in.read(&value_str[0], value_len);
-
-        // sizes guaranteed by ENTRY constructor
-        if(key_str.size() > ENTRY_MAX_KEY_LEN) {
-            throw std::length_error(ENTRY_MAX_KEY_LEN_EXCEEDED_ERR_MSG);
-        }
-
-        if(value_str.size() > ENTRY_MAX_VALUE_LEN) {
-            throw std::length_error(ENTRY_MAX_VALUE_LEN_EXCEEDED_ERR_MSG);
-        }
+        key_len_type key_len = key_in.size();
+        uint64_t data_len = data_in.size();
 
         // write to the index offset mapping file
         index_offset_out.write(reinterpret_cast<char*>(&key_offset), sizeof(key_offset));
 
         // write the index length
         index_out.write(reinterpret_cast<char*>(&key_len), sizeof(key_len));
-
-        // cout << key_len << std::endl;
-        // write the key itself
-        index_out.write(&key_str[0], key_len);
-        // write the offset
+        index_out.write(&key_in[0], key_len);
         index_out.write(reinterpret_cast<char*>(&data_offset), sizeof(data_offset));
 
-        // write the sizeof data
-        data_out.write(reinterpret_cast<char*>(&value_len), sizeof(value_len));
-        // write the data
-        data_out.write(&value_str[0], value_len);
+        data_out.write(reinterpret_cast<char*>(&data_len), sizeof(data_len));
+        data_out.write(&data_in[0], data_len);
 
-        data_offset += value_len + sizeof(value_len);
+        data_offset += data_len + sizeof(data_len);
         key_offset += key_len + sizeof(key_len) + sizeof(data_offset);
     }
 
