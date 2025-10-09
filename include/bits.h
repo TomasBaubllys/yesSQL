@@ -56,10 +56,25 @@ class Bits {
 		}
 
 		inline bool operator>(const Bits& other) {
+			if(this -> arr.size() > other.arr.size()) {
+				return true;
+			}
+			else if(this -> arr.size() < other.arr.size()) {
+				return false;
+			}
+
 			return this -> arr > other.arr;
 		}	
 
 		inline bool operator<(const Bits& other) {
+			if(this -> arr.size() > other.arr.size()) {
+				return false;
+			}
+			else if(this -> arr.size() < other.arr.size()) {
+				return true;
+			}
+
+
 			return this -> arr < other.arr;
 		}		
 
@@ -68,10 +83,24 @@ class Bits {
 		}		
 
 		inline bool operator<=(const Bits& other) {
+			if(this -> arr.size() > other.arr.size()) {
+				return false;
+			}
+			else if(this -> arr.size() < other.arr.size()) {
+				return true;
+			}
+
 			return this -> arr <= other.arr;
 		}	
 
 		inline bool operator>=(const Bits& other) {
+			if(this -> arr.size() > other.arr.size()) {
+				return true;
+			}
+			else if(this -> arr.size() < other.arr.size()) {
+				return false;
+			}
+
 			return this -> arr >= other.arr;
 		}	
 

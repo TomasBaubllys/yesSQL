@@ -18,7 +18,7 @@ std::stringstream SS_Table::read_stream_at_offset(uint64_t& offset) {
         throw std::runtime_error(SS_TABLE_BAD_OFFSET_ERR_MSG);
     }
 
-    value_len_type data_len = 0;
+    uint64_t data_len = 0;
     data_in.read(reinterpret_cast<char*>(&data_len), sizeof(data_len));
 
     if(data_in.fail()) {
@@ -29,11 +29,16 @@ std::stringstream SS_Table::read_stream_at_offset(uint64_t& offset) {
 
     data_in.read(&raw_data[0], data_len);
 
+    std::stringstream raw_data_stream;
+
+    raw_data_stream.write(reinterpret_cast<char*>(&data_len), sizeof(data_len));
+    raw_data_stream.write(raw_data.data(), data_len);
+
     if(data_in.fail()) {
         throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
     }
 
-    return std::stringstream(raw_data);
+    return raw_data_stream;
 }
 
 // TEST AND check return values
@@ -55,8 +60,8 @@ Entry SS_Table::get(Bits& key, bool& found) {
     }
 
     // first set the index to the middle
-    key_len_type binary_search_right = this -> record_count - 1;
-    key_len_type binary_search_left = 0;
+    uint64_t binary_search_right = this -> record_count - 1;
+    uint64_t binary_search_left = 0;
     uint64_t key_offset = 0;
     uint64_t data_offset = 0;
     key_len_type key_length = 0;
@@ -65,7 +70,7 @@ Entry SS_Table::get(Bits& key, bool& found) {
 
     // binary search for the key
     while(binary_search_left <= binary_search_right) {
-        key_len_type binary_search_index = binary_search_left + (binary_search_right - binary_search_left) / 2;
+        uint64_t binary_search_index = binary_search_left + (binary_search_right - binary_search_left) / 2;
 
         // read the key offset
         index_offset_in.seekg(binary_search_index * sizeof(uint64_t) , index_offset_in.beg);
@@ -104,14 +109,19 @@ Entry SS_Table::get(Bits& key, bool& found) {
         // compare the key
         int8_t compare = key.compare_to_str(key_string);
 
-        //std::cout << "Comparing: " << key_string << " and " << key.get_string_char() << " Compare value: " << int(compare) << std::endl;
+        // std::cout << "Comparing: " << key_string << " and " << key.get_string_char() << " Compare value: " << int(compare) << std::endl;
 
         // match found
         if(compare == 0) {
             index_in.read(reinterpret_cast<char*>(&data_offset), sizeof(data_offset));
+            if(index_in.fail()) {
+                throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            }
+
             found = true;
             key_stream.clear();
-            key_stream.str(key_string);
+            key_stream.write(reinterpret_cast<char*>(&key_length), sizeof(key_length));
+            key_stream.write(key_string.data(), key_length);
             break;
         }
 
@@ -203,21 +213,14 @@ uint16_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
     uint64_t key_offset = 0;
 
 	for(key_len_type i = 0; i < entry_vector.size(); ++i) {
-        std::ostringstream key_bytes = entry_vector.at(i).get_ostream_key_bytes();
-        std::ostringstream value_bytes = entry_vector.at(i).get_ostream_data_bytes();
-
-        // FIXED BUT THIS PROBABLY SLOW
-        std::string key_buffer = key_bytes.str();
-        std::string value_buffer = value_bytes.str();
-
-        std::stringstream key_in(key_buffer);
-        std::stringstream value_in(value_buffer);
+        std::stringstream key_in = entry_vector.at(i).get_ostream_key_bytes();
+        std::stringstream value_in = entry_vector.at(i).get_ostream_data_bytes();
 
         key_len_type key_len;
-        value_len_type value_len;
+        uint64_t value_len;
 
         key_in.read(reinterpret_cast<char*>(&key_len), sizeof(key_len));
-        value_in.read(reinterpret_cast<char*>(&value_len), sizeof(key_len));
+        value_in.read(reinterpret_cast<char*>(&value_len), sizeof(value_len));
 
         std::string key_str(key_len, '\0');
         std::string value_str(value_len, '\0');

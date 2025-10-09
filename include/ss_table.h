@@ -5,9 +5,9 @@
 #include <filesystem>
 #include <stdexcept>
 
-#define SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG "Failed to open data file\n"
-#define SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG "Failed to open index file\n"
-#define SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG "Failed to open index offset file\n"
+#define SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG "SS_table failed to open data file\n"
+#define SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG "SS_table failed to open index file\n"
+#define SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG "SS_table failed to open index offset file\n"
 #define SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG "SS_table unexpected EOF encountered in index offset file\n"
 #define SS_TABLE_UNEXPECTED_INDEX_EOF_MSG "SS_table unexpected EOF encountered in index file\n"
 #define SS_TABLE_EMPTY_INDEX_FILE_MSG "SS_Table index file is empty\n"

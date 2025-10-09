@@ -118,8 +118,8 @@ std::ostringstream Entry::get_ostream_bytes(){
     return ostream_bytes;
 };
 
-std::ostringstream Entry::get_ostream_data_bytes() {
-    std::ostringstream ostream_bytes;
+std::stringstream Entry::get_ostream_data_bytes() {
+    std::stringstream ostream_bytes;
 
     key_len_type key_size = this -> key.size();
     value_len_type value_size = this -> value.size();
@@ -135,8 +135,8 @@ std::ostringstream Entry::get_ostream_data_bytes() {
     return ostream_bytes;
 }
 
-std::ostringstream Entry::get_ostream_key_bytes() {
-    std::ostringstream ostream_bytes;
+std::stringstream Entry::get_ostream_key_bytes() {
+    std::stringstream ostream_bytes;
 
     key_len_type key_size = this -> key.size();
     ostream_bytes.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
