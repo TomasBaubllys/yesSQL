@@ -203,7 +203,7 @@ uint64_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
 	uint64_t data_offset = 0;
     uint64_t key_offset = 0;
 
-	for(Entry& entry : entry_vector) {
+	for(const Entry& entry : entry_vector) {
         std::string key_in = entry.get_string_key_bytes();
         std::string data_in = entry.get_string_data_bytes();
 
