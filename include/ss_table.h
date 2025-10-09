@@ -53,7 +53,7 @@ class SS_Table{
         Bits get_first_index();
 
         // creates / fills the ss table with the given vector
-        uint16_t fill_ss_table(std::vector<Entry>& entry_vector);
+        uint64_t fill_ss_table(std::vector<Entry>& entry_vector);
 };
 
 

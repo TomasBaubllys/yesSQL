@@ -176,7 +176,7 @@ Bits SS_Table::get_first_index() {
 	return this -> first_index;
 }
 
-uint16_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
+uint64_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
 	if(entry_vector.size() == 0) {
 		return 0;
 	}	
@@ -203,9 +203,9 @@ uint16_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
 	uint64_t data_offset = 0;
     uint64_t key_offset = 0;
 
-	for(key_len_type i = 0; i < entry_vector.size(); ++i) {
-        std::string key_in = entry_vector.at(i).get_string_key_bytes();
-        std::string data_in = entry_vector.at(i).get_string_data_bytes();
+	for(Entry& entry : entry_vector) {
+        std::string key_in = entry.get_string_key_bytes();
+        std::string data_in = entry.get_string_data_bytes();
 
         key_len_type key_len = key_in.size();
         uint64_t data_len = data_in.size();
@@ -215,11 +215,11 @@ uint16_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
 
         // write the index length
         index_out.write(reinterpret_cast<char*>(&key_len), sizeof(key_len));
-        index_out.write(&key_in[0], key_len);
+        index_out.write(key_in.data(), key_len);
         index_out.write(reinterpret_cast<char*>(&data_offset), sizeof(data_offset));
 
         data_out.write(reinterpret_cast<char*>(&data_len), sizeof(data_len));
-        data_out.write(&data_in[0], data_len);
+        data_out.write(data_in.data(), data_len);
 
         data_offset += data_len + sizeof(data_len);
         key_offset += key_len + sizeof(key_len) + sizeof(data_offset);
