@@ -334,7 +334,7 @@ uint64_t SS_Table::append(const std::vector<Entry>& entry_vector) {
     return entry_vector.size();
 }
 
-SS_Table::Keynator::Keynator(std::filesystem::path& index_file, std::filesystem::path& index_offset_file, std::filesystem::path& data_file) : index_stream(index_file), index_offset_stream(index_offset_file), data_file(data_file), current_data_offset(0) {
+SS_Table::Keynator::Keynator(std::filesystem::path& index_file, std::filesystem::path& index_offset_file, std::filesystem::path& data_file, uint64_t record_count) : index_stream(index_file), index_offset_stream(index_offset_file), data_file(data_file), current_data_offset(0), record_count(record_count), records_read(0) {
     if(index_stream.fail()) {
         throw std::runtime_error(SS_TABLE_KEYNATOR_FAILED_OPEN_INDEX_FILE_ERR_MSG);
     }
@@ -350,6 +350,9 @@ SS_Table::Keynator::~Keynator() {
 
 Bits SS_Table::Keynator::get_next_key() {
     // probably complete unnecesarry
+    if(this -> records_read >= this -> record_count) {
+        return Bits(ENTRY_PLACEHOLDER_KEY);
+    }
 
     if(index_offset_stream.fail()) {
         throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
@@ -379,11 +382,12 @@ Bits SS_Table::Keynator::get_next_key() {
         throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
     }
 
-    this -> index_stream.read(reinterpret_cast<char*>(& this -> current_data_offset), sizeof(this ->current_data_offset));
+    this -> index_stream.read(reinterpret_cast<char*>(& this -> current_data_offset), sizeof(this -> current_data_offset));
     if(index_stream.fail()) {
         throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
     }
 
+    ++this -> records_read;
     return Bits(current_key_str);
 }
 
@@ -414,7 +418,7 @@ std::string SS_Table::Keynator::get_current_data_string() {
 }
 
 SS_Table::Keynator SS_Table::get_keynator() {
-    return Keynator(this -> index_file, this -> index_offset_file, this -> data_file);
+    return Keynator(this -> index_file, this -> index_offset_file, this -> data_file, this -> record_count);
 }
 
 int8_t SS_Table::init_writing() {

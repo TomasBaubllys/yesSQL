@@ -2,6 +2,7 @@
 #define SS_TABLE_H_INCLUDED
 
 #include "entry.h"
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
@@ -95,9 +96,11 @@ class SS_Table{
                 std::filesystem::path data_file;
 
                 // THROWS
-                Keynator(std::filesystem::path& index_file, std::filesystem::path& index_offset_file, std::filesystem::path& data_file);
+                Keynator(std::filesystem::path& index_file, std::filesystem::path& index_offset_file, std::filesystem::path& data_file, uint64_t record_count);
 
                 uint64_t current_data_offset;
+                uint64_t records_read;
+                uint64_t record_count;
             public:
                 ~Keynator();
                 // THROWS
