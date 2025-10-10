@@ -202,7 +202,7 @@ void LsmTree::flush_mem_table(){
     }
 
     if(ss_table_controllers.size() == 0){
-            SS_Table_Controller controller_l0 = SS_Table_Controller(ratio, ss_table_controllers.size() + 1);
+            SS_Table_Controller controller_l0 = SS_Table_Controller(SS_TABLE_CONTROLER_RATIO, ss_table_controllers.size());
             ss_table_controllers.push_back(controller_l0);
     }
 
@@ -213,15 +213,37 @@ void LsmTree::flush_mem_table(){
  }
 
 
-
-
 void LsmTree::compact_level(uint16_t index){
     if(this -> ss_table_controllers.empty()){
         throw std::runtime_error("no ss_table_controllers - no levels.");
     }
 
-    //
+    if(ss_table_controllers.size() <= index + 1){
+        // reikia naujo lygio
+        SS_Table_Controller level_n_1 = SS_Table_Controller(SS_TABLE_CONTROLER_RATIO, ss_table_controllers.size());
+        ss_table_controllers.push_back(level_n_1);
+    }
+
+    // select one table at level[index]
+    // get a vector of all overlapping key ranges in level[index + 1]
+
+    for(uint16_t i = 0; i < ss_table_controllers[index].get_ss_tables_count(); ++i){
+        std::vector<uint16_t> ss_tables_overlaping_key_ranges_indexes;
+
+        Bits first_index = ss_table_controllers[index][i].get_first_index();    
+        Bits last_index = ss_table_controllers[index][i].get_last_index();
+     
+        // get indexes of all overlapping ss_tables in level n + 1
+        for(uint16_t j = 0; i < ss_table_controllers[index + 1].get_ss_tables_count(); ++j){
+            if(ss_table_controllers[index + 1][j].check_overlap(first_index, last_index)){
+                ss_tables_overlaping_key_ranges_indexes.push_back(j);
+            }
+        }
+
+        // turiu vectoriu visu lenteliu indexu kurias reikes kartu merginti
+
+
+    }
 
 }
-
 

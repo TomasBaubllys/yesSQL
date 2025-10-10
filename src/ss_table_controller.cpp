@@ -23,7 +23,7 @@ Entry SS_Table_Controller::get(Bits& key, bool& found){
 }
 
 SS_Table_Controller:: SS_Table_Controller(uint16_t ratio, uint16_t current_level): 
-    sstables(SS_TABLE_CONTROLLER_MAX_VECTOR_SIZE), ss_table_count(0){
+    sstables(SS_TABLE_CONTROLLER_MAX_VECTOR_SIZE){
         this -> level = current_level;
         // to do later: use ratio to calculate size for every level
         max_size = SS_TABLE_CONTROLLER_MAX_SIZE;
@@ -52,4 +52,11 @@ bool SS_Table_Controller:: is_over_limit(){
 uint16_t SS_Table_Controller::get_ss_tables_count(){
     return sstables.size();
 }
+
+
+
+const SS_Table& SS_Table_Controller::operator[](std::size_t index) const{
+    return this -> sstables.at(index);
+}
+
 
