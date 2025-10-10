@@ -16,7 +16,6 @@ bool Min_heap::Compare_heap_element::operator()(Heap_element& a, Heap_element&b)
 Min_heap::Heap_element::Heap_element(Bits k, uint16_t l, uint16_t f_i)
         : key(k), level(l), file_index(f_i){}
 
-
 uint16_t Min_heap:: size(){
     return this -> min_heap.size();
 }
@@ -31,6 +30,7 @@ const Min_heap::Heap_element& Min_heap:: top(){
 
 
 void Min_heap::push(Bits key, uint16_t level, uint16_t file_index){
+
     this -> min_heap.emplace(key, level, file_index);
     return;
 }
