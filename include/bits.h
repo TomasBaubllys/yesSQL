@@ -51,11 +51,11 @@ class Bits {
 		std::vector<uint32_t> get_int_array() const;
 		
 		// compares to bit objects bit by bit
-		inline bool operator==(const Bits& other) {
+		inline bool operator==(const Bits& other) const {
 			return this -> arr == other.arr;
 		}
 
-		inline bool operator>(const Bits& other) {
+		inline bool operator>(const Bits& other) const {
 			if(this -> arr.size() > other.arr.size()) {
 				return true;
 			}
@@ -66,7 +66,7 @@ class Bits {
 			return this -> arr > other.arr;
 		}	
 
-		inline bool operator<(const Bits& other) {
+		inline bool operator<(const Bits& other) const {
 			if(this -> arr.size() > other.arr.size()) {
 				return false;
 			}
@@ -78,11 +78,11 @@ class Bits {
 			return this -> arr < other.arr;
 		}		
 
-		inline bool operator!=(const Bits& other) {
+		inline bool operator!=(const Bits& other) const {
 			return this -> arr != other.arr;
 		}		
 
-		inline bool operator<=(const Bits& other) {
+		inline bool operator<=(const Bits& other) const {
 			if(this -> arr.size() > other.arr.size()) {
 				return false;
 			}
@@ -93,16 +93,14 @@ class Bits {
 			return this -> arr <= other.arr;
 		}	
 
-		inline bool operator>=(const Bits& other) {
+		inline bool operator>=(const Bits& other) const {
 			if(this -> arr.size() > other.arr.size()) {
 				return true;
 			}
 			else if(this -> arr.size() < other.arr.size()) {
 				return false;
 			}
-
-			return this -> arr >= other.arr;
-		}	
+		}
 
 		// returns 0 if equal, 1 if Bits is greater, -1 if string is greater
 		int8_t compare_to_str(const std::string& other) const;

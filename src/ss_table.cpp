@@ -2,7 +2,6 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <stdexcept>
 #include "../include/entry.h"
 
@@ -152,8 +151,7 @@ Entry SS_Table::get(Bits& key, bool& found) {
 }
 
 SS_Table::SS_Table(const std::filesystem::path& _data_file, const std::filesystem::path& _index_file, std::filesystem::path& _index_offset_file)
-    : data_file(_data_file), index_file(_index_file), index_offset_file(_index_offset_file), first_index(ENTRY_PLACEHOLDER_KEY), last_index((ENTRY_PLACEHOLDER_VALUE)), record_count(0) {
-        
+    : data_file(_data_file), index_file(_index_file), index_offset_file(_index_offset_file), first_index(ENTRY_PLACEHOLDER_KEY), last_index((ENTRY_PLACEHOLDER_VALUE)), record_count(0), data_file_size(0), index_file_size(0), index_offset_file_size(0) {
 
     };
 
