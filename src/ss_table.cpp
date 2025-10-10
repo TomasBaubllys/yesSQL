@@ -170,11 +170,11 @@ std::filesystem::path SS_Table::index_path() {
 }
 
 
-Bits SS_Table::get_last_index() {
+Bits SS_Table::get_last_index() const {
 	return this -> last_index;
 }
 
-Bits SS_Table::get_first_index() {
+Bits SS_Table::get_first_index() const {
 	return this -> first_index;
 }
 
