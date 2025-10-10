@@ -235,7 +235,10 @@ uint64_t SS_Table::append(const std::vector<Entry>& entry_vector) {
         return 0;
     }
 
-    this -> first_index = entry_vector.front().get_key();
+    if(this -> first_index == Bits(ENTRY_PLACEHOLDER_KEY)) {
+        this -> first_index = entry_vector.front().get_key();
+    }
+
     this -> last_index = entry_vector.back().get_key();
 
     std::ofstream data_out(this -> data_file, std::ios::binary | std::ios::app);
@@ -281,7 +284,7 @@ uint64_t SS_Table::append(const std::vector<Entry>& entry_vector) {
 
     this -> data_file_size = data_offset;
     this -> index_file_size = key_offset;
-    this -> record_count = entry_vector.size();
+    this -> record_count += entry_vector.size();
 
-    return record_count;
+    return entry_vector.size();
 }
