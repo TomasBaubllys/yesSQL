@@ -1,7 +1,10 @@
 #include "../include/lsm_tree.h"
+#include "../include/min_heap.h"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <cstring>
+
 
 LsmTree::LsmTree(){
     write_ahead_log = Wal();
@@ -235,12 +238,57 @@ void LsmTree::compact_level(uint16_t index){
      
         // get indexes of all overlapping ss_tables in level n + 1
         for(uint16_t j = 0; i < ss_table_controllers[index + 1].get_ss_tables_count(); ++j){
-            if(ss_table_controllers[index + 1][j].check_overlap(first_index, last_index)){
+            if(ss_table_controllers[index + 1][j].overlap(first_index, last_index)){
                 ss_tables_overlaping_key_ranges_indexes.push_back(j);
             }
         }
 
         // turiu vectoriu visu lenteliu indexu kurias reikes kartu merginti
+        // man reikia sukurti nauja lentele, i kuria viska merginsiu
+        // reikia keynatoriu tu sstable is kuriu skaitau
+
+        std::string filename_data(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
+        std::string filename_index(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
+        std::string filename_offset(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
+
+        // PROBLEM: nameing files: how do we know which one is deleted, which is still there? we cannot have repeating names
+        // bad fix is still a fix
+        uint16_t ss_table_count = ss_table_controllers[index + 1].get_ss_tables_count();
+
+        snprintf(&filename_data[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_DATA,  index + 1, ss_table_count);
+        snprintf(&filename_index[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_INDEX,  index + 1, ss_table_count);
+        snprintf(&filename_offset[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_OFFSET,  index + 1, ss_table_count);
+
+        std::string level_n_1_dir(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
+        snprintf(&level_n_1_dir[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_LEVEL_DIR, index + 1);
+        //level_n_1_dir.resize(strlen(level_n_1_dir.c_str())); // trim nulls
+
+        if (!std::filesystem::exists(level_n_1_dir)) {
+            std::filesystem::create_directories(level_n_1_dir);
+        }
+
+        std::filesystem::path filepath_data = std::filesystem::path(level_n_1_dir) / filename_data;
+        std::filesystem::path filepath_index = std::filesystem::path(level_n_1_dir) / filename_index;
+        std::filesystem::path filepath_offset = std::filesystem::path(level_n_1_dir) / filename_offset;
+
+        
+        SS_Table new_table = SS_Table(filepath_data, filepath_index, filepath_offset);
+
+        // create keynator for the level n ss table
+        SS_Table::Keynator keynator_level_n = ss_table_controllers[index][i].get_keynator();
+
+        std::vector<SS_Table::Keynator> keynators;
+        keynators.push_back(keynator_level_n);
+
+        // create keynators for level n + 1 sstables
+        for(uint16_t k  = 0; k < ss_tables_overlaping_key_ranges_indexes.size(); ++k){
+            uint16_t table_index = ss_tables_overlaping_key_ranges_indexes[k];
+            SS_Table::Keynator keynator = (ss_table_controllers[index + 1][table_index]).get_keynator();
+
+            keynators.push_back(keynator);
+        }
+
+        // now the heap logic....
 
 
     }

@@ -1,6 +1,6 @@
 #include "../include/ss_table_controller.h"
 
-void SS_Table_Controller::add_sstable(SS_Table sstable){
+void SS_Table_Controller::add_sstable(const SS_Table& sstable){
     sstables.push_back(sstable);
 }
 
@@ -55,8 +55,8 @@ uint16_t SS_Table_Controller::get_ss_tables_count(){
 
 
 
-const SS_Table& SS_Table_Controller::operator[](std::size_t index) const{
-    return this -> sstables.at(index);
+SS_Table& SS_Table_Controller::operator[](std::size_t index){
+    return sstables.at(index);
 }
 
 
