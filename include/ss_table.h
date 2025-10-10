@@ -57,7 +57,8 @@ class SS_Table{
         Bits get_first_index();
 
         // creates / fills the ss table with the given vector
-        uint64_t fill_ss_table(std::vector<Entry>& entry_vector);
+        // overwrites the current files
+        uint64_t fill_ss_table(const std::vector<Entry>& entry_vector);
 };
 
 
