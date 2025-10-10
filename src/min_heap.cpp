@@ -4,9 +4,14 @@ bool Compare_heap_element::operator()(Heap_element& a, Heap_element&b){
     if(a.key != b.key){
         return a.key > b.key;
     }
-    
-    return a.level > b.level;   
+    else if(a.level != b.level){
+        return a.level > b.level;   
+    } else{
+        return a.file_index < b.file_index;
+    }
+
 }
+
 
 Heap_element::Heap_element(Bits k, uint16_t l, uint16_t f_i)
         : key(k), level(l), file_index(f_i){}
