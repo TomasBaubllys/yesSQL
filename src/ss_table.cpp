@@ -93,8 +93,6 @@ Entry SS_Table::get(Bits& key, bool& found) {
         }
 
         // now read the key
-        // not very efficient
-        // fails here
         key_str.resize(key_length);
         index_in.read(&key_str[0], key_length);
         if(index_in.fail()) {
@@ -216,14 +214,35 @@ uint64_t SS_Table::fill_ss_table(const std::vector<Entry>& entry_vector) {
 
         // write to the index offset mapping file
         index_offset_out.write(reinterpret_cast<char*>(&key_offset), sizeof(key_offset));
+        if(index_offset_out.fail()) {
+            throw std::runtime_error(SS_TABLE_FAILED_INDEX_OFFSET_WRITE_ERR_MSG);
+        }
 
         // write the index length
         index_out.write(reinterpret_cast<char*>(&key_len), sizeof(key_len));
+        if(index_out.fail()) {
+            throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+        }
+
         index_out.write(key_in.data(), key_len);
+        if(index_out.fail()) {
+            throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+        }
+
         index_out.write(reinterpret_cast<char*>(&data_offset), sizeof(data_offset));
+        if(index_out.fail()) {
+            throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+        }
 
         data_out.write(reinterpret_cast<char*>(&data_len), sizeof(data_len));
+        if(data_out.fail()) {
+            throw std::runtime_error(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG);
+        }
+
         data_out.write(data_in.data(), data_len);
+        if(data_out.fail()) {
+            throw std::runtime_error(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG);
+        }
 
         data_offset += data_len + sizeof(data_len);
         key_offset += key_len + sizeof(key_len) + sizeof(data_offset);
@@ -275,14 +294,35 @@ uint64_t SS_Table::append(const std::vector<Entry>& entry_vector) {
 
         // write to the index offset mapping file
         index_offset_out.write(reinterpret_cast<char*>(&key_offset), sizeof(key_offset));
+        if(index_offset_out.fail()) {
+            throw std::runtime_error(SS_TABLE_FAILED_INDEX_OFFSET_WRITE_ERR_MSG);
+        }
 
         // write the index length
         index_out.write(reinterpret_cast<char*>(&key_len), sizeof(key_len));
+        if(index_out.fail()) {
+            throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+        }
+
         index_out.write(key_in.data(), key_len);
+        if(index_out.fail()) {
+            throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+        }
+
         index_out.write(reinterpret_cast<char*>(&data_offset), sizeof(data_offset));
+        if(index_out.fail()) {
+            throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+        }
 
         data_out.write(reinterpret_cast<char*>(&data_len), sizeof(data_len));
+        if(data_out.fail()) {
+            throw std::runtime_error(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG);
+        }
+
         data_out.write(data_in.data(), data_len);
+        if(data_out.fail()) {
+            throw std::runtime_error(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG);
+        }
 
         data_offset += data_len + sizeof(data_len);
         key_offset += key_len + sizeof(key_len) + sizeof(data_offset);
@@ -398,10 +438,41 @@ int8_t SS_Table::init_writing() {
 }
 
 int8_t SS_Table::write(const Bits& key, const std::string& data_string) {
-    uint64_t current_data_offset = this -> data_ofstream.tellp();
-    uint64_t current_index_offset = this -> index_ofstream.tellp();
-    uint64_t
+    uint64_t data_offset = this -> data_ofstream.tellp();
+    uint64_t key_offset = this -> index_ofstream.tellp();
+    uint64_t data_length = data_string.length();
+    std::string key_string = key.get_string_char();
+    key_len_type key_length = key.size();
 
+    index_offset_ofstream.write(reinterpret_cast<char*>(&key_offset), sizeof(key_offset));
+    if(index_offset_ofstream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_INDEX_OFFSET_WRITE_ERR_MSG);
+    }
+
+    index_ofstream.write(reinterpret_cast<char*>(&key_length), sizeof(key_length));
+    if(index_ofstream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+    }
+
+    index_ofstream.write(&key_string[0], key_length);
+    if(index_ofstream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+    }
+
+    index_ofstream.write(reinterpret_cast<char*>(&data_offset), sizeof(data_offset));
+    if(index_ofstream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+    }
+
+    data_ofstream.write(reinterpret_cast<char*>(&data_length), sizeof(data_length));
+    if(data_ofstream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG);
+    }
+
+    data_ofstream.write(&data_string[0], data_length);
+    if(data_ofstream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG);
+    }
 
     return 0;
 }
@@ -425,4 +496,16 @@ int8_t SS_Table::stop_writing() {
     }
 
     return ret_value;
+}
+
+bool SS_Table::overlap(const Bits& first_index, const Bits& last_index) {
+    if (first_index >= this -> first_index && first_index <= this -> last_index) {
+        return true;
+    }
+
+    if(last_index <= this -> last_index && last_index >= this -> first_index) {
+        return true;
+    }
+
+    return false;
 }

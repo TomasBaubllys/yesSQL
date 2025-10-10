@@ -6,16 +6,20 @@
 #include <fstream>
 #include <stdexcept>
 
-#define SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG "SS_table failed to open data file\n"
-#define SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG "SS_table failed to open index file\n"
-#define SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG "SS_table failed to open index offset file\n"
-#define SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG "SS_table unexpected EOF encountered in index offset file\n"
-#define SS_TABLE_UNEXPECTED_INDEX_EOF_MSG "SS_table unexpected EOF encountered in index file\n"
+#define SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG "SS_Table failed to open data file\n"
+#define SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG "SS_Table failed to open index file\n"
+#define SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG "SS_Table failed to open index offset file\n"
+#define SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG "SS_Table unexpected EOF encountered in index offset file\n"
+#define SS_TABLE_UNEXPECTED_INDEX_EOF_MSG "SS_Table unexpected EOF encountered in index file\n"
 #define SS_TABLE_EMPTY_INDEX_FILE_MSG "SS_Table index file is empty\n"
 #define SS_TABLE_EMPTY_INDEX_OFFSET_FILE_MSG "SS_Table index offset file is empty\n"
 #define SS_TABLE_EMPTY_DATA_FILE_MSG "SS_Table data file is empty\n"
 #define SS_TABLE_BAD_OFFSET_ERR_MSG "SS_Table incorrect data offset\n"
-#define SS_TABLE_UNEXPECTED_DATA_EOF_MSG "SS_table unexpected EOF encountered in data file\n"
+#define SS_TABLE_UNEXPECTED_DATA_EOF_MSG "SS_Table unexpected EOF encountered in data file\n"
+
+#define SS_TABLE_FAILED_DATA_WRITE_ERR_MSG "SS_Table failed to write to the data file\n"
+#define SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG "SS_Table failed to write to the index file\n"
+#define SS_TABLE_FAILED_INDEX_OFFSET_WRITE_ERR_MSG "SS_Table failed to write to the index offset file\n"
 
 #define SS_TABLE_KEY_OFFSET_RECORD_SIZE sizeof(uint64_t)
 
@@ -112,16 +116,31 @@ class SS_Table{
                 friend class SS_Table;
         };
 
-        // returns a keynator that points to the begging of the index file
+        // THROWS
+        // @brief returns Keynator type for key value merging logic
         Keynator get_keynator();
 
         // THROWS
+        // @brief initializes internal files for writing
+        // allow the function write(const Bits&, const string&) to be called
         int8_t init_writing();
 
         // THROWS
+        // @brief writes the key and data string to internal files
+        // can only be called once init_writing() has been called, it is up to the caller to make sure that writen data is the correct order
+        // throws an error if init_write was not called
+        // @note data_string must be exactly the same format as it was received from Keynator
         int8_t write(const Bits& key, const std::string& data_string);
 
+        // @brief closes internal files
+        // must be called after write() was called and the user is done writing data
+        // if first bit is set - data file closing failed
+        // if second bit is set - index file closing failed
+        // if third bit is set - index offset file closing failed
         int8_t stop_writing();
+
+        // @brief returns true if provided indexes (keys) overlap with this tables indexes
+        bool overlap(const Bits& first_index, const Bits& last_index);
 };
 
 
