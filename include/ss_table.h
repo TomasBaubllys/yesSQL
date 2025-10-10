@@ -140,7 +140,7 @@ class SS_Table{
         int8_t stop_writing();
 
         // @brief returns true if provided indexes (keys) overlap with this tables indexes
-        bool overlap(const Bits& first_index, const Bits& last_index);
+        bool overlap(const Bits& first_index, const Bits& last_index) const;
 };
 
 

@@ -497,7 +497,7 @@ int8_t SS_Table::stop_writing() {
     return ret_value;
 }
 
-bool SS_Table::overlap(const Bits& first_index, const Bits& last_index) {
+bool SS_Table::overlap(const Bits& first_index, const Bits& last_index) const {
     if (first_index >= this -> first_index && first_index <= this -> last_index) {
         return true;
     }
