@@ -3,7 +3,6 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <pstl/glue_algorithm_impl.h>
 #include <stdexcept>
 #include "../include/entry.h"
 
