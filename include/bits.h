@@ -100,6 +100,8 @@ class Bits {
 			else if(this -> arr.size() < other.arr.size()) {
 				return false;
 			}
+
+			return this -> arr >= other.arr;
 		}
 
 		// returns 0 if equal, 1 if Bits is greater, -1 if string is greater
