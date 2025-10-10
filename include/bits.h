@@ -51,11 +51,11 @@ class Bits {
 		std::vector<uint32_t> get_int_array() const;
 		
 		// compares to bit objects bit by bit
-		inline bool operator==(const Bits& other) {
+		inline bool operator==(const Bits& other) const {
 			return this -> arr == other.arr;
 		}
 
-		inline bool operator>(const Bits& other) {
+		inline bool operator>(const Bits& other) const {
 			if(this -> arr.size() > other.arr.size()) {
 				return true;
 			}
@@ -66,7 +66,7 @@ class Bits {
 			return this -> arr > other.arr;
 		}	
 
-		inline bool operator<(const Bits& other) {
+		inline bool operator<(const Bits& other) const {
 			if(this -> arr.size() > other.arr.size()) {
 				return false;
 			}
@@ -78,11 +78,11 @@ class Bits {
 			return this -> arr < other.arr;
 		}		
 
-		inline bool operator!=(const Bits& other) {
+		inline bool operator!=(const Bits& other) const {
 			return this -> arr != other.arr;
 		}		
 
-		inline bool operator<=(const Bits& other) {
+		inline bool operator<=(const Bits& other) const {
 			if(this -> arr.size() > other.arr.size()) {
 				return false;
 			}
@@ -93,7 +93,7 @@ class Bits {
 			return this -> arr <= other.arr;
 		}	
 
-		inline bool operator>=(const Bits& other) {
+		inline bool operator>=(const Bits& other) const {
 			if(this -> arr.size() > other.arr.size()) {
 				return true;
 			}

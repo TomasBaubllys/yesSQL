@@ -31,6 +31,10 @@ class SS_Table{
         // used for binary search (the maximum allowed key is 2^16 so if the table contains unique keys...)
         uint64_t record_count;
 
+        uint64_t data_file_size;
+        uint64_t index_file_size;
+        uint64_t index_offset_file_size;
+
         // returns a stream from n bytes with a certain offset
         // the stringstream can be used directly to construct an entry after reading the key
         std::string read_stream_at_offset(uint64_t& offset);
