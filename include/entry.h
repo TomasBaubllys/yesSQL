@@ -69,10 +69,10 @@ class Entry {
     bool is_deleted();
 
     // returns key as Bits class
-    Bits get_key();
+    Bits get_key() const;
     
     // returns value as Bits class
-    Bits get_value();
+    Bits get_value() const;
 
     // returns checksum as Bytes
     uint32_t get_checksum();
