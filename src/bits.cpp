@@ -1,4 +1,4 @@
-/*
+  /*
 
 Last updated 9/18/2025
 */
@@ -43,11 +43,11 @@ Bits::Bits(const Bits& org) {
 Bits::~Bits() {
 }
 
-bit_arr_size_type Bits::size() {
+bit_arr_size_type Bits::size() const {
 	return this -> arr.size();
 }
 		
-std::vector<char> Bits::get_char_vector() {
+std::vector<char> Bits::get_char_vector() const {
 	std::vector<char> ch_arr;
 	ch_arr.reserve(this -> arr.size());
 
@@ -58,7 +58,7 @@ std::vector<char> Bits::get_char_vector() {
 	return ch_arr;
 }
 
-std::string Bits::get_string_char() {
+std::string Bits::get_string_char() const {
 	std::string str;
 	
 	for(bit_arr_size_type i = 0; i < this -> arr.size(); ++i) {
@@ -68,7 +68,7 @@ std::string Bits::get_string_char() {
 	return str;
 }
 
-std::vector<uint32_t> Bits::get_int_array() {
+std::vector<uint32_t> Bits::get_int_array() const {
 	uint8_t padding_size = this -> arr.size() % 4;
 	uint32_t int_vec_size = this -> arr.size() / 4;
 
@@ -106,7 +106,7 @@ void Bits::update_bits(std::vector<uint8_t>& new_bits) {
 	this -> arr = new_bits;
 }
 
-int8_t Bits::compare_to_str(const std::string& other) {
+int8_t Bits::compare_to_str(const std::string& other) const {
 	std::string internal_str = this -> get_string_char();
 
 	if(internal_str.length() > other.length()) {

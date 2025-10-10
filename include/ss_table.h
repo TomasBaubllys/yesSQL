@@ -5,9 +5,9 @@
 #include <filesystem>
 #include <stdexcept>
 
-#define SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG "Failed to open data file\n"
-#define SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG "Failed to open index file\n"
-#define SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG "Failed to open index offset file\n"
+#define SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG "SS_table failed to open data file\n"
+#define SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG "SS_table failed to open index file\n"
+#define SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG "SS_table failed to open index offset file\n"
 #define SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG "SS_table unexpected EOF encountered in index offset file\n"
 #define SS_TABLE_UNEXPECTED_INDEX_EOF_MSG "SS_table unexpected EOF encountered in index file\n"
 #define SS_TABLE_EMPTY_INDEX_FILE_MSG "SS_Table index file is empty\n"
@@ -33,7 +33,7 @@ class SS_Table{
 
         // returns a stream from n bytes with a certain offset
         // the stringstream can be used directly to construct an entry after reading the key
-        std::stringstream read_stream_at_offset(uint64_t& offset);
+        std::string read_stream_at_offset(uint64_t& offset);
 
     public:
         std::filesystem::path data_path();
@@ -53,7 +53,7 @@ class SS_Table{
         Bits get_first_index();
 
         // creates / fills the ss table with the given vector
-        uint16_t fill_ss_table(std::vector<Entry>& entry_vector);
+        uint64_t fill_ss_table(std::vector<Entry>& entry_vector);
 };
 
 

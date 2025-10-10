@@ -1,4 +1,5 @@
 #include "../include/entry.h"
+#include <cstring>
 #include <stdexcept>
 
 void Entry::calculate_checksum(){
@@ -118,31 +119,50 @@ std::ostringstream Entry::get_ostream_bytes(){
     return ostream_bytes;
 };
 
-std::ostringstream Entry::get_ostream_data_bytes() {
-    std::ostringstream ostream_bytes;
+std::string Entry::get_string_data_bytes() const {
 
-    key_len_type key_size = this -> key.size();
-    value_len_type value_size = this -> value.size();
+    value_len_type value_len = this -> value.size();
+    std::string value_str = this -> value.get_string_char();
 
-    uint64_t size_no_key = this -> entry_length - key_size;
+    // key_len_type key_size = this -> key.size();
+    // value_len_type value_size = this -> value.size();
 
-    ostream_bytes.write(reinterpret_cast<const char*>(&size_no_key), sizeof(size_no_key));
-    ostream_bytes.write(reinterpret_cast<const char*>(&tombstone_flag), sizeof(tombstone_flag));
-    ostream_bytes.write(reinterpret_cast<const char*>(&value_size), sizeof(value_size));
-    ostream_bytes.write(value.get_string_char().data(), value_size);
-    ostream_bytes.write(reinterpret_cast<const char*>(&checksum), sizeof(checksum));
+    uint64_t total_record_size = sizeof(tombstone_flag) +
+                                sizeof(value_len) +
+                                value_len +
+                                sizeof(checksum);
 
-    return ostream_bytes;
+
+    std::string raw_bytes(total_record_size, '\0');
+    char* ptr = raw_bytes.data();
+
+    // write the tombstone_flag
+    memcpy(ptr, &tombstone_flag, sizeof(tombstone_flag));
+    ptr += sizeof(tombstone_flag);
+
+    // write the value size
+    memcpy(ptr, &value_len, sizeof(value_len));
+    ptr += sizeof(value_len);
+
+    // write the value
+    memcpy(ptr, &value_str[0], value_len);
+    ptr += value_len;
+
+    // write the checksum
+    memcpy(ptr, &checksum, sizeof(checksum));
+    return raw_bytes;
 }
 
-std::ostringstream Entry::get_ostream_key_bytes() {
-    std::ostringstream ostream_bytes;
-
+std::string Entry::get_string_key_bytes() const {
     key_len_type key_size = this -> key.size();
-    ostream_bytes.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
-    ostream_bytes.write(this -> key.get_string_char().data(), key_size);
+    std::string key_str = this -> key.get_string_char();
+    std::string raw_bytes(key_size, '\0');
 
-    return ostream_bytes;
+    char* ptr = raw_bytes.data();
+
+    memcpy(ptr, &key_str[0], key_size);
+
+    return raw_bytes;
 }
 
 // ADD ERROR CHECKING FOR UNEXPECTED EOF
@@ -185,42 +205,43 @@ Entry::Entry(std::stringstream& file_entry) : key(ENTRY_PLACEHOLDER_KEY), value(
 }
 
 // ADD ERROR CHECKING FOR UNEXPECTED EOF
-Entry::Entry(std::stringstream& file_entry_key, std::stringstream& file_entry_data) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_PLACEHOLDER_VALUE) {
-    key_len_type key_len = 0;
-    if(!file_entry_key.read(reinterpret_cast<char*>(&key_len), sizeof(key_len))) {
-        throw std::runtime_error(ENTRY_FAILED_READ_KEY_LENGTH_MSG);
-    }
-    std::string key_str(key_len, '\0');
-    if(!file_entry_key.read(&key_str[0], key_len)) {
+Entry::Entry(std::string& file_entry_key, std::string& file_entry_data) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_PLACEHOLDER_VALUE) {
+    // check if key is somewhat valid
+    if(file_entry_key.empty()) {
         throw std::runtime_error(ENTRY_FAILED_READ_KEY_MSG);
     }
-    this -> key = Bits(key_str);
 
-    uint64_t size_no_key = 0;
-
-    if(!file_entry_data.read(reinterpret_cast<char*>(&size_no_key), sizeof(size_no_key))) {
-        throw std::runtime_error(ENTRY_FAILED_READ_LENGTH_MSG);
-    }
-    this -> entry_length = size_no_key + key_len;
-
-    if(!file_entry_data.read(reinterpret_cast<char*>(&tombstone_flag), sizeof(tombstone_flag))) {
-        throw std::runtime_error(ENTRY_FAILED_READ_TOMBSTONE_FLAG_MSG);
+    if(file_entry_data.size() < sizeof(tombstone_flag) + sizeof(value_len_type)) {
+        throw std::runtime_error(ENTRY_DATA_TOO_SHORT_ERR_MSG);
     }
 
+    char* data_ptr = file_entry_data.data();
+    memcpy(&tombstone_flag, &data_ptr, sizeof(tombstone_flag));
+    data_ptr += sizeof(tombstone_flag);
+
+    // read the size of the data
     value_len_type value_len = 0;
-    if(!file_entry_data.read(reinterpret_cast<char*>(&value_len), sizeof(value_len))) {
-        throw std::runtime_error(ENTRY_FAILED_READ_VALUE_LENGTH_MSG);
+    memcpy(&value_len, data_ptr, sizeof(value_len));
+    data_ptr += sizeof(value_len);
+
+    if(file_entry_data.size() < sizeof(tombstone_flag) + sizeof(value_len_type) + value_len) {
+        throw std::runtime_error(ENTRY_DATA_TOO_SHORT_ERR_MSG);
     }
+
+    // read the data
     std::string value_str(value_len, '\0');
+    memcpy(&value_str[0], data_ptr, value_len);
+    data_ptr += value_len;
 
-    if(!file_entry_data.read(&value_str[0], value_len)) {
-        throw std::runtime_error(ENTRY_FAILED_READ_VALUE_MSG);
+    if(file_entry_data.size() < sizeof(tombstone_flag) + sizeof(value_len_type) + value_len + sizeof(checksum)) {
+        throw std::runtime_error(ENTRY_DATA_TOO_SHORT_ERR_MSG);
     }
+
+    // read the checksum
+    memcpy(&checksum, data_ptr, sizeof(checksum));
+
+    this -> key = Bits(file_entry_key);
     this -> value = Bits(value_str);
-
-    if(!file_entry_data.read(reinterpret_cast<char*>(&checksum), sizeof(checksum))) {
-        throw std::runtime_error(ENTRY_FAILED_READ_CHECKSUM_MSG);
-    }
 }
 
 
@@ -232,6 +253,6 @@ bool Entry::check_checksum() {
     return this -> checksum == new_checksum;
 };
 
-key_len_type Entry::get_key_length() {
+key_len_type Entry::get_key_length() const {
     return this -> key.size();
 }
