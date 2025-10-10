@@ -1,6 +1,6 @@
 #include "../include/min_heap.h"
 \
-bool Compare_heap_element::operator()(Heap_element& a, Heap_element&b){
+bool Min_heap::Compare_heap_element::operator()(Heap_element& a, Heap_element&b){
     if(a.key != b.key){
         return a.key > b.key;
     }
@@ -13,7 +13,7 @@ bool Compare_heap_element::operator()(Heap_element& a, Heap_element&b){
 }
 
 
-Heap_element::Heap_element(Bits k, uint16_t l, uint16_t f_i)
+Min_heap::Heap_element::Heap_element(Bits k, uint16_t l, uint16_t f_i)
         : key(k), level(l), file_index(f_i){}
 
 
@@ -25,7 +25,7 @@ bool Min_heap::empty(){
     return this -> min_heap.empty();
 }
 
-const Heap_element& Min_heap:: top(){
+const Min_heap::Heap_element& Min_heap:: top(){
     return this -> min_heap.top();
 }
 

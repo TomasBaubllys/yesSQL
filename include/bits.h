@@ -102,7 +102,8 @@ class Bits {
 			}
 
 			return this -> arr >= other.arr;
-		}	
+
+		}
 
 		// returns 0 if equal, 1 if Bits is greater, -1 if string is greater
 		int8_t compare_to_str(const std::string& other) const;
