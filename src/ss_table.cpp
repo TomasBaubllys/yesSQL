@@ -155,7 +155,11 @@ SS_Table::SS_Table(const std::filesystem::path& _data_file, const std::filesyste
 
     };
 
-SS_Table:: ~SS_Table(){};
+SS_Table:: ~SS_Table(){
+    remove(this -> data_file);
+    remove(this -> index_file);
+    remove(this -> index_offset_file);
+};
 
 std::filesystem::path SS_Table::data_path() {
     return this -> data_file;
