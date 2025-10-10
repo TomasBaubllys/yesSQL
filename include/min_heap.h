@@ -7,22 +7,21 @@
 #include "bits.h"
 
 
-struct Heap_element{
+
+
+class Min_heap{
+    private:
+    struct Heap_element{
         Bits key;
         uint16_t level;
         uint16_t file_index;
 
         Heap_element(Bits key, uint16_t level, uint16_t file_index);
-};
+    };
 
-struct Compare_heap_element{
-    bool operator()(Heap_element& a, Heap_element& b);
-};
-
-class Min_heap{
-    private:
-      
-
+    struct Compare_heap_element{
+        bool operator()(Heap_element& a, Heap_element& b);
+    };
         std::priority_queue<Heap_element, std::vector<Heap_element>, Compare_heap_element> min_heap;
 
     public:
