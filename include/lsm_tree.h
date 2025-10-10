@@ -37,6 +37,7 @@ class LsmTree{
         // one contrller per each level
         std::vector<SS_Table_Controller> ss_table_controllers;
         uint16_t ratio;
+
     public:
         // default constructor initializes mem_table 
         LsmTree();
