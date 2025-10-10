@@ -74,10 +74,10 @@ class SS_Table{
         Entry get(Bits& key, bool& found);
 
         // returns the first index in the ss_table
-        Bits get_last_index();
+        Bits get_last_index() const;
 
         // returns the last index in the ss_table
-        Bits get_first_index();
+        Bits get_first_index() const;
 
         // appends a new vector to the end of the ss table
         // does NOT check if a vector is sorted or if it is correct
