@@ -1,7 +1,9 @@
 #include "../include/ss_table.h"
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <pstl/glue_algorithm_impl.h>
 #include <stdexcept>
 #include "../include/entry.h"
 
@@ -291,4 +293,136 @@ uint64_t SS_Table::append(const std::vector<Entry>& entry_vector) {
     this -> record_count += entry_vector.size();
 
     return entry_vector.size();
+}
+
+SS_Table::Keynator::Keynator(std::filesystem::path& index_file, std::filesystem::path& index_offset_file, std::filesystem::path& data_file) : index_stream(index_file), index_offset_stream(index_offset_file), data_file(data_file), current_data_offset(0) {
+    if(index_stream.fail()) {
+        throw std::runtime_error(SS_TABLE_KEYNATOR_FAILED_OPEN_INDEX_FILE_ERR_MSG);
+    }
+
+    if(index_offset_stream.fail()) {
+        throw std::runtime_error(SS_TABLE_KEYNATOR_FAILED_OPEN_INDEX_OFFSET_FILE_ERR_MSG);
+    }
+}
+
+SS_Table::Keynator::~Keynator() {
+
+}
+
+Bits SS_Table::Keynator::get_next_key() {
+    // probably complete unnecesarry
+
+    if(index_offset_stream.fail()) {
+        throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
+    }
+
+    uint64_t current_key_offset = 0;
+
+    index_offset_stream.read(reinterpret_cast<char*>(&current_key_offset), sizeof(current_key_offset));
+    if(index_offset_stream.fail()) {
+        throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
+    }
+
+    this -> index_stream.seekg(current_key_offset, this -> index_stream.beg);
+    if(index_stream.fail()) {
+        throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+    }
+
+    key_len_type current_key_size = 0;
+    this -> index_stream.read(reinterpret_cast<char*>(&current_key_size), sizeof(current_key_size));
+    if(index_stream.fail()) {
+        throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+    }
+
+    std::string current_key_str(current_key_size, '\0');
+    this -> index_stream.read(&current_key_str[0], current_key_size);
+    if(index_stream.fail()) {
+        throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+    }
+
+    this -> index_stream.read(reinterpret_cast<char*>(& this -> current_data_offset), sizeof(this ->current_data_offset));
+    if(index_stream.fail()) {
+        throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+    }
+
+    return Bits(current_key_str);
+}
+
+std::string SS_Table::Keynator::get_current_data_string() {
+    std::ifstream data_stream(this -> data_file);
+    if(data_stream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
+    }
+
+    data_stream.seekg(this -> current_data_offset, data_stream.beg);
+    if(data_stream.fail()) {
+        throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+    }
+
+    uint64_t data_string_length = 0;
+    data_stream.read(reinterpret_cast<char*>(&data_string_length), sizeof(data_string_length));
+    if(data_stream.fail()) {
+        throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+    }
+
+    std::string data_string(data_string_length, '\0');
+    data_stream.read(&data_string[0], data_string_length);
+    if(data_stream.fail()) {
+        throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+    }
+
+    return data_string;
+}
+
+SS_Table::Keynator SS_Table::get_keynator() {
+    return Keynator(this -> index_file, this -> index_offset_file, this -> data_file);
+}
+
+int8_t SS_Table::init_writing() {
+    this -> data_ofstream.open(this -> data_file);
+    if(this -> data_ofstream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
+    }
+
+    this -> index_ofstream.open(this -> index_file);
+    if(this -> index_ofstream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+    }
+
+    this -> index_offset_ofstream.open(this -> index_offset_file);
+    if(this ->index_offset_ofstream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
+    }
+
+    return 0;
+}
+
+int8_t SS_Table::write(const Bits& key, const std::string& data_string) {
+    uint64_t current_data_offset = this -> data_ofstream.tellp();
+    uint64_t current_index_offset = this -> index_ofstream.tellp();
+    uint64_t
+
+
+    return 0;
+}
+
+int8_t SS_Table::stop_writing() {
+    int8_t ret_value = 0;
+
+    this -> data_ofstream.close();
+    if(data_ofstream.is_open()) {
+        ret_value |= 1;
+    }
+
+    this -> index_ofstream.close();
+    if(index_ofstream.is_open()) {
+        ret_value |= 2;
+    }
+
+    this -> index_offset_ofstream.close();
+    if(index_offset_ofstream.is_open()) {
+        ret_value |= 4;
+    }
+
+    return ret_value;
 }
