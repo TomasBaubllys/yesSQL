@@ -174,7 +174,7 @@ Bits SS_Table::get_first_index() {
 	return this -> first_index;
 }
 
-uint64_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
+uint64_t SS_Table::fill_ss_table(const std::vector<Entry>& entry_vector) {
 	if(entry_vector.size() == 0) {
 		return 0;
 	}	
@@ -223,8 +223,65 @@ uint64_t SS_Table::fill_ss_table(std::vector<Entry>& entry_vector) {
         key_offset += key_len + sizeof(key_len) + sizeof(data_offset);
     }
 
+    this -> data_file_size = data_offset;
+    this -> index_file_size = key_offset;
     this -> record_count = entry_vector.size();
 
     return record_count;
 }
 
+uint64_t SS_Table::append(const std::vector<Entry>& entry_vector) {
+    if(entry_vector.size() == 0) {
+        return 0;
+    }
+
+    this -> first_index = entry_vector.front().get_key();
+    this -> last_index = entry_vector.back().get_key();
+
+    std::ofstream data_out(this -> data_file, std::ios::binary | std::ios::app);
+    std::ofstream index_out(this -> index_file, std::ios::binary | std::ios::app);
+    std::ofstream index_offset_out(this ->index_offset_file, std::ios::binary | std::ios::app);
+
+    if(!data_out) {
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
+    }
+
+    if(!index_out) {
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+    }
+
+    if(!index_offset_out) {
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
+    }
+
+    uint64_t data_offset = this -> data_file_size;
+    uint64_t key_offset = this -> index_file_size;
+
+    for(const Entry& entry : entry_vector) {
+        std::string key_in = entry.get_string_key_bytes();
+        std::string data_in = entry.get_string_data_bytes();
+
+        key_len_type key_len = key_in.size();
+        uint64_t data_len = data_in.size();
+
+        // write to the index offset mapping file
+        index_offset_out.write(reinterpret_cast<char*>(&key_offset), sizeof(key_offset));
+
+        // write the index length
+        index_out.write(reinterpret_cast<char*>(&key_len), sizeof(key_len));
+        index_out.write(key_in.data(), key_len);
+        index_out.write(reinterpret_cast<char*>(&data_offset), sizeof(data_offset));
+
+        data_out.write(reinterpret_cast<char*>(&data_len), sizeof(data_len));
+        data_out.write(data_in.data(), data_len);
+
+        data_offset += data_len + sizeof(data_len);
+        key_offset += key_len + sizeof(key_len) + sizeof(data_offset);
+    }
+
+    this -> data_file_size = data_offset;
+    this -> index_file_size = key_offset;
+    this -> record_count = entry_vector.size();
+
+    return record_count;
+}

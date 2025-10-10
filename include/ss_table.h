@@ -56,6 +56,11 @@ class SS_Table{
         // returns the last index in the ss_table
         Bits get_first_index();
 
+        // appends a new vector to the end of the ss table
+        // does NOT check if a vector is sorted or if it is correct
+        // use with caution
+        uint64_t append(const std::vector<Entry>& entry_vector);
+
         // creates / fills the ss table with the given vector
         // overwrites the current files
         uint64_t fill_ss_table(const std::vector<Entry>& entry_vector);

@@ -62,11 +62,11 @@ bool Entry::is_deleted(){
     return tombstone_flag;
 };
 
-Bits Entry::get_key(){
+Bits Entry::get_key() const {
     return key;
 };
 
-Bits Entry::get_value(){
+Bits Entry::get_value() const {
     return value;
 };
 
