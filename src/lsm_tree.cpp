@@ -179,40 +179,27 @@ void LsmTree::flush_mem_table(){
     }
     // TODO LATER if sm_id > MAX_SS_TABLES_PER_LEVEL --> merge
 
-    std::string filename_data = "sst_l0_data_" + std::to_string(sm_id) + ".bin";
-    std::string filename_index = "sst_l0_index_" + std::to_string(sm_id) + ".bin";
+    std::string filename_data(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
+    std::string filename_index(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
+    std::string filename_offset(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
+
+    snprintf(&filename_data[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_DATA,  0, std::to_string(sm_id));
+    snprintf(&filename_index[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_INDEX,  0, std::to_string(sm_id));
+    snprintf(&filename_offset[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_OFFSET,  0, std::to_string(sm_id));
+
+   
     std::filesystem::path filepath_data = level0_dir / filename_data;
     std::filesystem::path filepath_index = level0_dir / filename_index;
+    std::filesystem::path filepath_offset = level0_dir / filename_offset;
 
+    SS_Table ss_table(filepath_data, filepath_index, filepath_offset);
 
-    std::ofstream ofsd(filepath_data, std::ios::binary);
-    std::ofstream ofsi(filename_index, std::ios::binary);
-    if(!ofsd && !ofsi){
-        cout << "Failed to create a Level_0 SStable" << endl;
+    uint16_t record_count = ss_table.fill_ss_table(entries);
+
+    if(record_count == 0){
+        throw std::runtime_error("Empty entries vector, could not fill ss table");
+
     }
-
-    for(auto& entry : entries){
-        auto offset = ofsd.tellp();
-
-        std::ostringstream oss = entry.get_ostream_bytes();
-        std::string raw = oss.str();
-        ofsd.write(raw.data(), raw.size());
-
-        Bits key = entry.get_key();
-        bit_arr_size_type key_size = key.size();
-
-        ofsi.write(reinterpret_cast<char*>(&key_size), sizeof(key_size));
-        Bits key = entry.get_key();
-        ofsi.write(key.get_string_char().c_str(), key_size);
-        ofsi.write(reinterpret_cast<char*>(&offset), sizeof(offset));
-    }
-
-    
-
-    ofsd.close();
-    ofsi.close();
-
-    SS_Table ss_table_l0(filename_data, filename_index);
 
     if(ss_table_controllers.size() == 0){
             SS_Table_Controller controller_l0 = SS_Table_Controller(ratio, ss_table_controllers.size() + 1);
@@ -220,12 +207,21 @@ void LsmTree::flush_mem_table(){
     }
 
     // ss table controller level 0 add a table
-    ss_table_controllers.at(0).add_sstable(ss_table_l0);
-
-    if(ss_table_controllers.at(0).is_over_limit()){
-        compact_level(0);
-    }
+    ss_table_controllers.at(0).add_sstable(ss_table);
 
     return;
  }
+
+
+
+
+void LsmTree::compact_level(uint16_t index){
+    if(this -> ss_table_controllers.empty()){
+        throw std::runtime_error("no ss_table_controllers - no levels.");
+    }
+
+    //
+
+}
+
 

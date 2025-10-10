@@ -2,7 +2,6 @@
 
 void SS_Table_Controller::add_sstable(SS_Table sstable){
     sstables.push_back(sstable);
-    ++ss_table_count;
 }
 
 
@@ -12,7 +11,7 @@ Entry SS_Table_Controller::get(Bits& key, bool& found){
     std::string placeholder_key(ENTRY_PLACEHOLDER_KEY);
 	std::string placeholder_value(ENTRY_PLACEHOLDER_VALUE);
 
-    for(auto it = sstables.rbegin(); it != sstables.rend(); ++it){
+    for(auto it = sstables.rend(); it != sstables.rbegin(); --it){
         Entry e = it -> get(key, found);
         if(found){
             return e;
@@ -50,4 +49,7 @@ bool SS_Table_Controller:: is_over_limit(){
     return calculate_size_bytes() > max_size;
 }
 
+uint16_t SS_Table_Controller::get_ss_tables_count(){
+    return sstables.size();
+}
 
