@@ -59,4 +59,8 @@ SS_Table& SS_Table_Controller::operator[](std::size_t index){
     return sstables.at(index);
 }
 
+uint16_t SS_Table_Controller::get_level(){
+    return this -> level;
+}
+
 

@@ -12,6 +12,7 @@
 #define LSM_TREE_SS_TABLE_FILE_NAME_DATA ".sst_l%d_data_%d.bin"
 #define LSM_TREE_SS_TABLE_FILE_NAME_INDEX ".sst_l%d_index_%d.bin"
 #define LSM_TREE_SS_TABLE_FILE_NAME_OFFSET ".sst_l%d_offset_%d.bin"
+#define LSM_TREE_LEVEL_DIR "data/val/Level_%d"
 #define LSM_TREE_SS_TABLE_MAX_LENGTH 25
 
 
@@ -37,7 +38,6 @@ class LsmTree{
         // one contrller per each level
         std::vector<SS_Table_Controller> ss_table_controllers;
         uint16_t ratio;
-
     public:
         // default constructor initializes mem_table 
         LsmTree();
@@ -70,10 +70,10 @@ class LsmTree{
         void flush_mem_table();
 
         // compact level[index] with level [index + 1]
-        void compact_level(uint16_t index);
+        bool compact_level(uint16_t index);
         
         // compact level0 with level1
-        void compact_level_0();
+        bool compact_level_0();
 };
 
 #endif
