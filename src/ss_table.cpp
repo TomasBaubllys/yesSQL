@@ -441,6 +441,10 @@ int8_t SS_Table::init_writing() {
 }
 
 int8_t SS_Table::write(const Bits& key, const std::string& data_string) {
+    if(this -> first_index == Bits(ENTRY_PLACEHOLDER_KEY)) {
+        this -> first_index = key;
+    }
+
     uint64_t data_offset = this -> data_ofstream.tellp();
     uint64_t key_offset = this -> index_ofstream.tellp();
     uint64_t data_length = data_string.length();
@@ -477,6 +481,8 @@ int8_t SS_Table::write(const Bits& key, const std::string& data_string) {
         throw std::runtime_error(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG);
     }
 
+    ++this -> record_count;
+    this -> last_index = key;
     return 0;
 }
 
