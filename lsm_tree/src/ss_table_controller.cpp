@@ -55,7 +55,7 @@ uint16_t SS_Table_Controller::get_ss_tables_count(){
 
 
 
-SS_Table& SS_Table_Controller::operator[](std::size_t index){
+const SS_Table* SS_Table_Controller::operator[](std::size_t index){
     return sstables.at(index);
 }
 

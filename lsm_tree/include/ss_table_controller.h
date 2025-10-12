@@ -30,7 +30,7 @@ class SS_Table_Controller{
 
         uint16_t get_ss_tables_count();
 
-        SS_Table& operator[](std::size_t index);
+        const SS_Table* operator[](std::size_t index);
 
         uint16_t get_level();
 

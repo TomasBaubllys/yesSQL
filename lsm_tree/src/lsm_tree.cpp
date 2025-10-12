@@ -195,9 +195,9 @@ void LsmTree::flush_mem_table(){
     std::filesystem::path filepath_index = level0_dir / filename_index;
     std::filesystem::path filepath_offset = level0_dir / filename_offset;
 
-    SS_Table ss_table(filepath_data, filepath_index, filepath_offset);
+    SS_Table* ss_table = new SS_Table(filepath_data, filepath_index, filepath_offset);
 
-    uint16_t record_count = ss_table.fill_ss_table(entries);
+    uint16_t record_count = ss_table -> fill_ss_table(entries);
 
     if(record_count == 0){
         throw std::runtime_error("Empty entries vector, could not fill ss table");
@@ -209,7 +209,7 @@ void LsmTree::flush_mem_table(){
     }
 
     // ss table controller level 0 add a table
-    ss_table_controllers.at(0).add_sstable(std::move(ss_table));
+    ss_table_controllers.at(0).add_sstable(ss_table);
 
     return;
  }
@@ -229,12 +229,12 @@ bool LsmTree::compact_level(uint16_t index){
         for(uint16_t i = 0; i < ss_table_controllers[index].get_ss_tables_count(); ++i){
             std::vector<uint16_t> ss_tables_overlaping_key_ranges_indexes;
 
-            Bits first_index = ss_table_controllers[index][i].get_first_index();    
-            Bits last_index = ss_table_controllers[index][i].get_last_index();
+            Bits first_index = ss_table_controllers[index][i] -> get_first_index();    
+            Bits last_index = ss_table_controllers[index][i] -> get_last_index();
         
             // get indexes of all overlapping ss_tables in level n + 1
             for(uint16_t j = 0; j < ss_table_controllers[index + 1].get_ss_tables_count(); ++j){
-                if(ss_table_controllers[index + 1][j].overlap(first_index, last_index)){
+                if(ss_table_controllers[index + 1][j] -> overlap(first_index, last_index)){
                     ss_tables_overlaping_key_ranges_indexes.push_back(j);
                 }
             }
@@ -268,10 +268,10 @@ bool LsmTree::compact_level(uint16_t index){
             std::filesystem::path filepath_offset = std::filesystem::path(level_n_1_dir) / filename_offset;
 
             
-            SS_Table new_table = SS_Table(filepath_data, filepath_index, filepath_offset);
+            SS_Table* new_table = new SS_Table(filepath_data, filepath_index, filepath_offset);
 
             // create keynator for the level n ss table
-            SS_Table::Keynator keynator_level_n = (ss_table_controllers[index][i].get_keynator());
+            SS_Table::Keynator keynator_level_n = (ss_table_controllers[index][i] -> get_keynator());
 
             std::vector<SS_Table::Keynator*> keynators;
             keynators.push_back(&keynator_level_n);
@@ -279,7 +279,7 @@ bool LsmTree::compact_level(uint16_t index){
             // create keynators for level n + 1 sstables
             for(uint16_t k  = 0; k < ss_tables_overlaping_key_ranges_indexes.size(); ++k){
                 uint16_t table_index = ss_tables_overlaping_key_ranges_indexes[k];
-                SS_Table::Keynator keynator = ((ss_table_controllers[index + 1][table_index]).get_keynator());
+                SS_Table::Keynator keynator = ((ss_table_controllers[index + 1][table_index]) -> get_keynator());
 
                 keynators.push_back(&keynator);
             }
@@ -299,19 +299,19 @@ bool LsmTree::compact_level(uint16_t index){
                 }
             }
 
-            new_table.init_writing();
+            new_table -> init_writing();
 
             // wont work for level 0 compactin!!!!
             do{
                 
                 Min_heap::Heap_element top_element = heap.top();
-                new_table.write(top_element.key, top_element.keynator -> get_current_data_string());
+                new_table -> write(top_element.key, top_element.keynator -> get_current_data_string());
                 heap.remove_by_key(top_element.key);
                 
             }while(!heap.empty());
 
 
-            new_table.stop_writing();
+            new_table -> stop_writing();
 
             // istrinti ss_table_controllers[index][i]
             // istrnti visas overlappinancias lenteles is index + 1
@@ -330,7 +330,7 @@ bool LsmTree::compact_level(uint16_t index){
             }
 
             // 0 -> 0; 1 -> 1 
-            ss_table_controllers.at(index + 1).add_sstable(std::move(new_table));
+            ss_table_controllers.at(index + 1).add_sstable(new_table);
 
             return true;
         
