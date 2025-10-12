@@ -39,7 +39,7 @@ uint64_t SS_Table_Controller:: calculate_size_bytes(){
 
     // for now only data files
     for(auto& sst : sstables){
-        size += std::filesystem::file_size(sst.data_path());
+        size += std::filesystem::file_size(sst -> data_path());
     }
 
     return size;
