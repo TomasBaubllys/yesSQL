@@ -31,7 +31,7 @@ bool MemTable::insert_entry(Entry entry){
     
 };
 
-bool MemTable::remove_entry(Bits key){
+bool MemTable::remove_find_entry(Bits key){
     bool is_entry_found;
     try{
         // for now create a copy, we can play with memory in the future
