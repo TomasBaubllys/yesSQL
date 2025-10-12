@@ -10,11 +10,11 @@
 #include <limits>
 
 // .sst_l[level_index]_[file_type]_[ss_table_count].bin
-#define LSM_TREE_SS_TABLE_FILE_NAME_DATA ".sst_l%u_data_%u.bin"
-#define LSM_TREE_SS_TABLE_FILE_NAME_INDEX ".sst_l%u_index_%u.bin"
-#define LSM_TREE_SS_TABLE_FILE_NAME_OFFSET ".sst_l%u_offset_%u.bin"
+#define LSM_TREE_SS_TABLE_FILE_NAME_DATA ".sst_l%u_data_%lu.bin"
+#define LSM_TREE_SS_TABLE_FILE_NAME_INDEX ".sst_l%u_index_%lu.bin"
+#define LSM_TREE_SS_TABLE_FILE_NAME_OFFSET ".sst_l%u_offset_%lu.bin"
 #define LSM_TREE_LEVEL_DIR "data/val/Level_%u"
-#define LSM_TREE_SS_TABLE_MAX_LENGTH 30
+#define LSM_TREE_SS_TABLE_MAX_LENGTH 35
 
 
 // Hello everybody

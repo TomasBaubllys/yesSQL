@@ -23,7 +23,7 @@ class SS_Table_Controller{
         SS_Table_Controller(uint16_t ratio, uint16_t current_level);
         ~SS_Table_Controller();
         void add_sstable(const SS_Table* sstable);
-        Entry get(Bits& key, bool& found);
+        Entry get(const Bits& key, bool& found) const;
 
         uint64_t calculate_size_bytes();
 

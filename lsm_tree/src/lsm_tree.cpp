@@ -27,7 +27,7 @@ Entry LsmTree::get(std::string key){
     }
 
     if(ss_table_controllers.size() > 0){
-        for(auto ss_table_controller_level : ss_table_controllers){
+        for(const SS_Table_Controller& ss_table_controller_level : ss_table_controllers){
             entry = ss_table_controller_level.get(key_bits, is_found);
             
             if(is_found){
@@ -82,7 +82,7 @@ std::vector<std::string> LsmTree::get_keys(){
     std::vector<std::string> keys;
     keys.reserve(entries.size());
 
-    for(auto entry : entries){
+    for(const Entry& entry : entries){
         keys.emplace_back(entry.get_key().get_string_char());
     }
     // add adding keys from ss tables and checking if overlap
@@ -91,7 +91,7 @@ std::vector<std::string> LsmTree::get_keys(){
 };
 
 std::vector<std::string> LsmTree::get_keys(std::string prefix){
-    int string_start_position = 0;
+    uint32_t string_start_position = 0;
 
     std::vector<Entry> entries = mem_table.dump_entries();
     std::vector<std::string> keys;
@@ -109,7 +109,7 @@ std::vector<std::string> LsmTree::get_keys(std::string prefix){
 };
 
 std::vector<Entry> LsmTree::get_ff(std::string _key){
-    int ff_marker = -1;
+    int32_t ff_marker = -1;
 
     std::vector<std::string> keys = get_keys();
 

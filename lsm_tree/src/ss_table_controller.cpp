@@ -6,13 +6,13 @@ void SS_Table_Controller::add_sstable(const SS_Table* sstable){
 }
 
 
-Entry SS_Table_Controller::get(Bits& key, bool& found){
+Entry SS_Table_Controller::get(const Bits& key, bool& found) const{
     found = false;
 
     std::string placeholder_key(ENTRY_PLACEHOLDER_KEY);
 	std::string placeholder_value(ENTRY_PLACEHOLDER_VALUE);
 
-    for(auto it = sstables.rend(); it != sstables.rbegin(); --it){
+    for(std::vector<const SS_Table*>::const_reverse_iterator it = sstables.rend(); it != sstables.rbegin(); --it){
         Entry e = (*it) -> get(key, found);
         if(found){
             return e;
@@ -39,7 +39,7 @@ uint64_t SS_Table_Controller:: calculate_size_bytes(){
     uint64_t size = 0;
 
     // for now only data files
-    for(auto& sst : sstables){
+    for(const SS_Table*& sst : sstables){
         size += std::filesystem::file_size(sst -> data_path());
     }
 

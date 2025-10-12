@@ -71,7 +71,7 @@ class SS_Table{
         // returns a specific entry at specific index
         // Entry read_entry_at_offset(uint64_t offset);
         // returns entry with a given key. if entry is not there, returns placeolder entry and found = false
-        Entry get(Bits& key, bool& found) const;
+        Entry get(const Bits& key, bool& found) const;
 
         // returns the first index in the ss_table
         Bits get_last_index() const;
