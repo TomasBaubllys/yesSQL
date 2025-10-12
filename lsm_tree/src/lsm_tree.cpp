@@ -215,25 +215,12 @@ void LsmTree::flush_mem_table(){
     return;
  }
 
-
-<<<<<<< HEAD
-
-
-void LsmTree::compact_level(uint16_t index){
-=======
 bool LsmTree::compact_level(uint16_t index){
 >>>>>>> SStable
     if(this -> ss_table_controllers.empty()){
         throw std::runtime_error("no ss_table_controllers - no levels.");
     }
 
-<<<<<<< HEAD
-    //
-
-}
-
-
-=======
     if(ss_table_controllers.size() <= index + 1){
         // reikia naujo lygio
         SS_Table_Controller level_n_1 = SS_Table_Controller(SS_TABLE_CONTROLER_RATIO, ss_table_controllers.size());
@@ -335,4 +322,3 @@ bool LsmTree::compact_level(uint16_t index){
     catch(std::exception e){
         return false;
     }
->>>>>>> SStable
