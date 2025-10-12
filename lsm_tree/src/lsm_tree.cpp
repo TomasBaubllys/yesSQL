@@ -97,7 +97,7 @@ std::vector<std::string> LsmTree::get_keys(std::string prefix){
     std::vector<std::string> keys;
     
 
-    for(auto entry : entries){
+    for(const Entry& entry : entries){
         std::string key = entry.get_key().get_string_char();
         if(key.rfind("prefix", string_start_position)){
             keys.push_back(key);
