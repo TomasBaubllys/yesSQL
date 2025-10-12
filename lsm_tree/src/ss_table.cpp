@@ -160,11 +160,11 @@ SS_Table:: ~SS_Table(){
     remove(this -> index_offset_file);
 };
 
-std::filesystem::path SS_Table::data_path() {
+std::filesystem::path SS_Table::data_path() const {
     return this -> data_file;
 }
 
-std::filesystem::path SS_Table::index_path() {
+std::filesystem::path SS_Table::index_path() const {
     return this -> index_file;
 }
 

@@ -54,8 +54,8 @@ class SS_Table{
         std::string read_stream_at_offset(uint64_t& offset) const;
 
     public:
-        std::filesystem::path data_path();
-        std::filesystem::path index_path();
+        std::filesystem::path data_path() const;
+        std::filesystem::path index_path() const;
         SS_Table(const std::filesystem::path& _data_file, const std::filesystem::path& _index_file, std::filesystem::path& _index_offset_file);
 
         // no copying allowed
