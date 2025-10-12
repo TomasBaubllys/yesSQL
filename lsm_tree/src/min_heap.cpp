@@ -13,8 +13,8 @@ bool Min_heap::Compare_heap_element::operator()(Heap_element& a, Heap_element&b)
 }
 
 
-Min_heap::Heap_element::Heap_element(Bits k, uint16_t l, uint16_t f_i)
-        : key(k), level(l), file_index(f_i){}
+Min_heap::Heap_element::Heap_element(Bits k, uint16_t l, uint16_t f_i, SS_Table::Keynator* kntr)
+        : key(k), level(l), file_index(f_i), keynator(kntr){}
 
 
 uint16_t Min_heap:: size(){
@@ -30,8 +30,8 @@ const Min_heap::Heap_element& Min_heap:: top(){
 }
 
 
-void Min_heap::push(Bits key, uint16_t level, uint16_t file_index){
-    this -> min_heap.emplace(key, level, file_index);
+void Min_heap::push(Bits key, uint16_t level, uint16_t file_index, SS_Table::Keynator* keynator){
+    this -> min_heap.emplace(key, level, file_index, keynator);
     return;
 }
 
@@ -52,6 +52,10 @@ void Min_heap::remove_by_key(Bits& key){
         Heap_element element = this -> min_heap.top();
         if(element.key == key){
             this -> min_heap.pop();
+            if(key != Bits(ENTRY_PLACEHOLDER_KEY)){
+                this -> push(element.keynator -> get_next_key(), element.level, element.file_index, element.keynator);
+            }
+            
         }
         else{
             break;

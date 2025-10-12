@@ -1,6 +1,6 @@
 #include "../include/ss_table_controller.h"
 
-void SS_Table_Controller::add_sstable(const SS_Table& sstable){
+void SS_Table_Controller::add_sstable(const SS_Table* sstable){
     sstables.push_back(sstable);
 }
 
@@ -12,7 +12,7 @@ Entry SS_Table_Controller::get(Bits& key, bool& found){
 	std::string placeholder_value(ENTRY_PLACEHOLDER_VALUE);
 
     for(auto it = sstables.rend(); it != sstables.rbegin(); --it){
-        Entry e = it -> get(key, found);
+        Entry e = (*it) -> get(key, found);
         if(found){
             return e;
         }
@@ -62,5 +62,11 @@ SS_Table& SS_Table_Controller::operator[](std::size_t index){
 uint16_t SS_Table_Controller::get_level(){
     return this -> level;
 }
+
+void  SS_Table_Controller::delete_sstable(uint16_t index){
+    this -> sstables.erase(sstables.begin() + index);
+    return;
+}
+
 
 

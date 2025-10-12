@@ -12,7 +12,7 @@
 
 class SS_Table_Controller{
     private:
-        std::vector<SS_Table> sstables;
+        std::vector<const SS_Table*> sstables;
         uint16_t level;
         uint16_t ratio;
         // ideally not fixed for every level (the higher the level, more tables)
@@ -21,7 +21,7 @@ class SS_Table_Controller{
     public:
         SS_Table_Controller(uint16_t ratio, uint16_t current_level);
         ~SS_Table_Controller();
-        void add_sstable(const SS_Table& sstable);
+        void add_sstable(const SS_Table* sstable);
         Entry get(Bits& key, bool& found);
 
         uint64_t calculate_size_bytes();
@@ -33,6 +33,8 @@ class SS_Table_Controller{
         SS_Table& operator[](std::size_t index);
 
         uint16_t get_level();
+
+        void delete_sstable(uint16_t index);
 
         /*
         for()

@@ -173,7 +173,7 @@ void LsmTree::flush_mem_table(){
         std::filesystem::create_directories(level0_dir);
     }
 
-    int sm_id = 0;
+    uint16_t sm_id = 0;
 
     for(auto& p : std::filesystem::directory_iterator(level0_dir)){
         if(p.is_regular_file()){
@@ -186,9 +186,9 @@ void LsmTree::flush_mem_table(){
     std::string filename_index(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
     std::string filename_offset(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
 
-    snprintf(&filename_data[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_DATA,  0, std::to_string(sm_id));
-    snprintf(&filename_index[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_INDEX,  0, std::to_string(sm_id));
-    snprintf(&filename_offset[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_OFFSET,  0, std::to_string(sm_id));
+    snprintf(&filename_data[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_DATA,  0, sm_id);
+    snprintf(&filename_index[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_INDEX,  0, sm_id);
+    snprintf(&filename_offset[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_OFFSET,  0, sm_id);
 
    
     std::filesystem::path filepath_data = level0_dir / filename_data;
@@ -205,12 +205,11 @@ void LsmTree::flush_mem_table(){
     }
 
     if(ss_table_controllers.size() == 0){
-            SS_Table_Controller controller_l0 = SS_Table_Controller(SS_TABLE_CONTROLER_RATIO, ss_table_controllers.size());
-            ss_table_controllers.push_back(controller_l0);
+        ss_table_controllers.emplace_back(SS_TABLE_CONTROLER_RATIO, ss_table_controllers.size());
     }
 
     // ss table controller level 0 add a table
-    ss_table_controllers.at(0).add_sstable(ss_table);
+    ss_table_controllers.at(0).add_sstable(std::move(ss_table));
 
     return;
  }
@@ -221,11 +220,6 @@ bool LsmTree::compact_level(uint16_t index){
         throw std::runtime_error("no ss_table_controllers - no levels.");
     }
 
-    if(ss_table_controllers.size() <= index + 1){
-        // reikia naujo lygio
-        SS_Table_Controller level_n_1 = SS_Table_Controller(SS_TABLE_CONTROLER_RATIO, ss_table_controllers.size());
-        ss_table_controllers.push_back(level_n_1);
-    }
 
     // select one table at level[index]
     // get a vector of all overlapping key ranges in level[index + 1]
@@ -239,7 +233,7 @@ bool LsmTree::compact_level(uint16_t index){
             Bits last_index = ss_table_controllers[index][i].get_last_index();
         
             // get indexes of all overlapping ss_tables in level n + 1
-            for(uint16_t j = 0; i < ss_table_controllers[index + 1].get_ss_tables_count(); ++j){
+            for(uint16_t j = 0; j < ss_table_controllers[index + 1].get_ss_tables_count(); ++j){
                 if(ss_table_controllers[index + 1][j].overlap(first_index, last_index)){
                     ss_tables_overlaping_key_ranges_indexes.push_back(j);
                 }
@@ -277,17 +271,17 @@ bool LsmTree::compact_level(uint16_t index){
             SS_Table new_table = SS_Table(filepath_data, filepath_index, filepath_offset);
 
             // create keynator for the level n ss table
-            SS_Table::Keynator keynator_level_n = ss_table_controllers[index][i].get_keynator();
+            SS_Table::Keynator keynator_level_n = (ss_table_controllers[index][i].get_keynator());
 
-            std::vector<SS_Table::Keynator> keynators;
-            keynators.push_back(keynator_level_n);
+            std::vector<SS_Table::Keynator*> keynators;
+            keynators.push_back(&keynator_level_n);
 
             // create keynators for level n + 1 sstables
             for(uint16_t k  = 0; k < ss_tables_overlaping_key_ranges_indexes.size(); ++k){
                 uint16_t table_index = ss_tables_overlaping_key_ranges_indexes[k];
-                SS_Table::Keynator keynator = (ss_table_controllers[index + 1][table_index]).get_keynator();
+                SS_Table::Keynator keynator = ((ss_table_controllers[index + 1][table_index]).get_keynator());
 
-                keynators.push_back(keynator);
+                keynators.push_back(&keynator);
             }
 
             // now the heap logic....
@@ -295,30 +289,56 @@ bool LsmTree::compact_level(uint16_t index){
             // pagal ideja mes i ss_table_overlapping kisam visas lenteles,kurios saugomos contrllerio sstables, kontrollerio sstables yra vektorius, tai viskas kisama i gaa --> kuo didesnis indexas, tuo naujesne lentele
             Min_heap heap = Min_heap();
 
+
+            for(uint16_t k = 0; k < keynators.size(); ++k){
+                if(k == 0){
+                    heap.push(keynators[0] -> get_next_key(), ss_table_controllers[index].get_level(), ss_tables_overlaping_key_ranges_indexes[k], keynators[0]);
+                }
+                else{
+                    heap.push(keynators[k] -> get_next_key(), ss_table_controllers[index + 1].get_level(), ss_tables_overlaping_key_ranges_indexes[k], keynators[k]);
+                }
+            }
+
             new_table.init_writing();
 
             // wont work for level 0 compactin!!!!
             do{
-                for(uint16_t k = 0; k < keynators.size(); ++k){
-                    if(k == 0){
-                        heap.push(keynators[0].get_next_key(), ss_table_controllers[index].get_level(), ss_tables_overlaping_key_ranges_indexes[k], &(keynators[0]));
-                    }
-                    else{
-                        heap.push(keynators[k].get_next_key(), ss_table_controllers[index + 1].get_level(), ss_tables_overlaping_key_ranges_indexes[k]);
-                    }
-                }
-
-                // problem problem - kai man reikia data duomenu, as neglaiu kreiptis i keynatoriu nes as net nezinau kuris keynatorius ten buvo - as tik zinau 
-                // kad mano top elemetas turi key, level and indexa bet tada kazkaip man reikia atsekti kurios lenteles keynatorius buvo ant virusaus???
-                new_table.write(, )
-
-
-
-
+                
+                Min_heap::Heap_element top_element = heap.top();
+                new_table.write(top_element.key, top_element.keynator -> get_current_data_string());
+                heap.remove_by_key(top_element.key);
+                
             }while(!heap.empty());
+
+
+            new_table.stop_writing();
+
+            // istrinti ss_table_controllers[index][i]
+            // istrnti visas overlappinancias lenteles is index + 1
+            ss_table_controllers.at(index).delete_sstable(i);
+
+            for(uint16_t l = 0; l < ss_tables_overlaping_key_ranges_indexes.size(); ++l){
+                ss_table_controllers.at(index + 1).delete_sstable(ss_tables_overlaping_key_ranges_indexes[l]);
+            }
+
+
+            // noriu compactint 3 lygi, vadinas conreoller.size() yra 4, tai turiu tikrint 
+
+            if(ss_table_controllers.size() == index + 1){
+                // reikia naujo lygio
+                ss_table_controllers.emplace_back(SS_TABLE_CONTROLER_RATIO, ss_table_controllers.size());
+            }
+
+            // 0 -> 0; 1 -> 1 
+            ss_table_controllers.at(index + 1).add_sstable(std::move(new_table));
+
+            return true;
         
     }
     }
     catch(std::exception e){
         return false;
     }
+
+    return false;
+}
