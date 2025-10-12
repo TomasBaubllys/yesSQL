@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include "../include/entry.h"
 
-std::string SS_Table::read_stream_at_offset(uint64_t& offset) {
+std::string SS_Table::read_stream_at_offset(uint64_t& offset) const {
     std::ifstream data_in(this -> data_file, std::ios::binary);
     if(!data_in) {
         throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
@@ -334,7 +334,7 @@ uint64_t SS_Table::append(const std::vector<Entry>& entry_vector) {
     return entry_vector.size();
 }
 
-SS_Table::Keynator::Keynator(std::filesystem::path& index_file, std::filesystem::path& index_offset_file, std::filesystem::path& data_file, uint64_t record_count) : index_stream(index_file), index_offset_stream(index_offset_file), data_file(data_file), current_data_offset(0), record_count(record_count), records_read(0) {
+SS_Table::Keynator::Keynator(const std::filesystem::path& index_file, const std::filesystem::path& index_offset_file, const std::filesystem::path& data_file, uint64_t record_count) : index_stream(index_file), index_offset_stream(index_offset_file), data_file(data_file), current_data_offset(0), record_count(record_count), records_read(0) {
     if(index_stream.fail()) {
         throw std::runtime_error(SS_TABLE_KEYNATOR_FAILED_OPEN_INDEX_FILE_ERR_MSG);
     }
@@ -417,7 +417,7 @@ std::string SS_Table::Keynator::get_current_data_string() {
     return data_string;
 }
 
-SS_Table::Keynator SS_Table::get_keynator() {
+SS_Table::Keynator SS_Table::get_keynator() const {
     return Keynator(this -> index_file, this -> index_offset_file, this -> data_file, this -> record_count);
 }
 
