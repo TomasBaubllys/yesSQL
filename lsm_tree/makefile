@@ -24,7 +24,3 @@ $(OBJS_DIR)/%.o: $(SRC_DIR)/%.cpp
 clean:
 	rm -rf $(OBJS_DIR) $(BIN_DIR)
 
-<<<<<<< HEAD
-
-=======
->>>>>>> merge_new
