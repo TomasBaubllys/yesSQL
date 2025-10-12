@@ -37,7 +37,7 @@ std::string SS_Table::read_stream_at_offset(uint64_t& offset) {
 }
 
 // TEST AND check return values
-Entry SS_Table::get(Bits& key, bool& found) {
+Entry SS_Table::get(Bits& key, bool& found) const {
     found = false;
 
     if(key < this -> first_index || key > this ->last_index) {
