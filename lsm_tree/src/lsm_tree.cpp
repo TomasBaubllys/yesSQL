@@ -81,7 +81,7 @@ std::vector<std::string> LsmTree::get_keys(std::string prefix){
     return keys;
 };
 
-/*std::vector<Entry> LsmTree::get_ff(std::string _key){
+std::vector<Entry> LsmTree::get_ff(std::string _key){
     int ff_marker = -1;
 
     std::vector<std::string> keys = get_keys();
@@ -94,7 +94,6 @@ std::vector<std::string> LsmTree::get_keys(std::string prefix){
     }
     if (ff_marker == -1){
         std::cerr<<"No key was found";
-        return;
     }
 
     std::vector<Entry> all_entries = mem_table.dump_entries();
@@ -103,9 +102,9 @@ std::vector<std::string> LsmTree::get_keys(std::string prefix){
     
     return std::vector<Entry>(all_entries.begin() + ff_marker, all_entries.end());
 
-};*/
+};
 
-/*std::vector<Entry> LsmTree::get_fb(std::string _key){
+std::vector<Entry> LsmTree::get_fb(std::string _key){
     int fb_marker = -1;
 
     std::vector<std::string> keys = get_keys();
@@ -118,7 +117,6 @@ std::vector<std::string> LsmTree::get_keys(std::string prefix){
     }
     if (fb_marker == -1){
         std::cerr<<"No key was found";
-        return;
     }
 
     std::vector<Entry> all_entries = mem_table.dump_entries();
@@ -126,7 +124,7 @@ std::vector<std::string> LsmTree::get_keys(std::string prefix){
     // add adding keys from ss tables and checking if overlap
     
     return std::vector<Entry>(all_entries.begin(), all_entries.begin() + fb_marker);
-};*/
+};
 
 bool LsmTree::remove(std::string key){
     try{
