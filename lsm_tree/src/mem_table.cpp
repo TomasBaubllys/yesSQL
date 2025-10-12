@@ -31,7 +31,7 @@ bool MemTable::insert_entry(Entry entry){
     
 };
 
-bool MemTable::remove_entry(Bits key){
+bool MemTable::remove_find_entry(Bits key){
     bool is_entry_found;
     try{
         // for now create a copy, we can play with memory in the future
@@ -62,11 +62,19 @@ bool MemTable::remove_entry(Entry& entry){
     
 };
 
-Entry MemTable::find(Bits key){
-    bool found;
+Entry MemTable::find(Bits key, bool& found){
     Entry found_entry = avl_tree.search(key, found);
 
     return found_entry;
+};
+
+bool MemTable::is_full(){
+
+    if(total_mem_table_size >= MEM_TABLE_BYTES_MAX_SIZE){
+        return true;
+    }
+
+    return false;
 };
 
 std::vector<Entry> MemTable::dump_entries(){
@@ -74,5 +82,5 @@ std::vector<Entry> MemTable::dump_entries(){
     results = avl_tree.inorder();
 
     return results;
-}
+};
 
