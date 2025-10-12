@@ -7,13 +7,14 @@
 #include "mem_table.h"
 #include "ss_table_controller.h"
 #include <thread>
+#include <limits>
 
 // .sst_l[level_index]_[file_type]_[ss_table_count].bin
 #define LSM_TREE_SS_TABLE_FILE_NAME_DATA ".sst_l%u_data_%u.bin"
 #define LSM_TREE_SS_TABLE_FILE_NAME_INDEX ".sst_l%u_index_%u.bin"
 #define LSM_TREE_SS_TABLE_FILE_NAME_OFFSET ".sst_l%u_offset_%u.bin"
 #define LSM_TREE_LEVEL_DIR "data/val/Level_%u"
-#define LSM_TREE_SS_TABLE_MAX_LENGTH 25
+#define LSM_TREE_SS_TABLE_MAX_LENGTH 30
 
 
 // Hello everybody

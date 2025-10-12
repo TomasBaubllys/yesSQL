@@ -1,5 +1,6 @@
 #include "../include/lsm_tree.h"
 #include "../include/min_heap.h"
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -53,7 +54,7 @@ bool LsmTree::set(std::string key, std::string value){
         thread_2.join();
 
     }
-    catch(std::exception e){
+    catch(std::exception& e){
         return false;
     }
 
@@ -112,7 +113,7 @@ std::vector<Entry> LsmTree::get_ff(std::string _key){
 
     std::vector<std::string> keys = get_keys();
 
-    for(int i = 0; i<keys.size(); ++i){
+    for(uint32_t i = 0; i < keys.size(); ++i){
         if(keys.at(i) == _key){
             ff_marker = i;
             break;
@@ -135,7 +136,7 @@ std::vector<Entry> LsmTree::get_fb(std::string _key){
 
     std::vector<std::string> keys = get_keys();
 
-    for(int i = 0; i<keys.size(); ++i){
+    for(uint32_t i = 0; i < keys.size(); ++i){
         if(keys.at(i) == _key){
             fb_marker = i;
             break;
@@ -166,7 +167,7 @@ bool LsmTree::remove(std::string key){
         thread_1.join();
         thread_2.join();
     }
-    catch(std::exception e){
+    catch(std::exception& e){
         return false;
     }
 
@@ -184,6 +185,8 @@ bool LsmTree::remove(std::string key){
             return false;
         }        
     }
+
+    return true;
 };
 
 
@@ -238,6 +241,7 @@ void LsmTree::flush_mem_table(){
 
     if(record_count == 0){
         throw std::runtime_error("Empty entries vector, could not fill ss table");
+    }
 
     std::ofstream ofsd(filepath_data, std::ios::binary);
     std::ofstream ofsi(filename_index, std::ios::binary);
@@ -257,6 +261,11 @@ void LsmTree::flush_mem_table(){
 
 
 bool LsmTree::compact_level(uint16_t index){
+    // check for overflow
+    if(index + 1 < index) {
+        return false;
+    }
+
     if(this -> ss_table_controllers.empty()){
         throw std::runtime_error("no ss_table_controllers - no levels.");
     }
@@ -406,8 +415,7 @@ bool LsmTree::compact_level(uint16_t index){
 
 
             // noriu compactint 3 lygi, vadinas conreoller.size() yra 4, tai turiu tikrint 
-
-            if(ss_table_controllers.size() == index + 1){
+            if(ss_table_controllers.size() == (uint16_t)(index + 1)){
                 // reikia naujo lygio
                 ss_table_controllers.emplace_back(SS_TABLE_CONTROLER_RATIO, ss_table_controllers.size());
             }
@@ -419,7 +427,7 @@ bool LsmTree::compact_level(uint16_t index){
         
     }
     }
-    catch(std::exception e){
+    catch(std::exception& e){
         return false;
     }
 
