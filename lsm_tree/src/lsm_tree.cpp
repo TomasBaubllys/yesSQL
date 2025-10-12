@@ -120,7 +120,7 @@ std::vector<Entry> LsmTree::get_ff(std::string _key){
     }
     if (ff_marker == -1){
         std::cerr<<"No key was found";
-    };
+    }
 
     std::vector<Entry> all_entries = mem_table.dump_entries();
 
@@ -269,9 +269,22 @@ bool LsmTree::compact_level(uint16_t index){
 
         for(uint16_t i = 0; i < ss_table_controllers[index].get_ss_tables_count(); ++i){
             std::vector<uint16_t> ss_tables_overlaping_key_ranges_indexes;
+            // only used for level0 compaction
+            std::vector<uint16_t> ss_tables_overlaping_key_ranges_indexes_level_0;
+
 
             Bits first_index = ss_table_controllers[index][i] -> get_first_index();    
             Bits last_index = ss_table_controllers[index][i] -> get_last_index();
+
+
+            // special compression for level 0; get overlapping ss_tables in the same 0 level
+            if(index == 0){
+                for(uint16_t m = 0; m < ss_table_controllers[index].get_ss_tables_count(); ++m){
+                    if(ss_table_controllers[index][m] -> overlap(first_index, last_index) && m != i){
+                        ss_tables_overlaping_key_ranges_indexes_level_0.push_back(m);
+                    }
+                }
+            }
         
             // get indexes of all overlapping ss_tables in level n + 1
             for(uint16_t j = 0; j < ss_table_controllers[index + 1].get_ss_tables_count(); ++j){
@@ -289,7 +302,8 @@ bool LsmTree::compact_level(uint16_t index){
             std::string filename_offset(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
 
             // PROBLEM: nameing files: how do we know which one is deleted, which is still there? we cannot have repeating names
-            // bad fix is still a fix
+            // bad fix is still a fix 
+            // has to be some global variable ;O
             uint16_t ss_table_count = ss_table_controllers[index + 1].get_ss_tables_count();
 
             snprintf(&filename_data[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_DATA,  index + 1, ss_table_count);
@@ -317,6 +331,21 @@ bool LsmTree::compact_level(uint16_t index){
             std::vector<SS_Table::Keynator*> keynators;
             keynators.push_back(&keynator_level_n);
 
+            int count_level_0_tables = 0;
+            // level 0 compaction: create keynators for overlapping tables for level 0
+            if(index == 0){
+                for(uint16_t k  = 0; k < ss_tables_overlaping_key_ranges_indexes_level_0.size(); ++k){
+                    if(k != i){
+                        uint16_t table_index = ss_tables_overlaping_key_ranges_indexes_level_0[k];
+                        SS_Table::Keynator keynator = ((ss_table_controllers[index][table_index]) -> get_keynator());
+
+                        keynators.push_back(&keynator);
+                        ++count_level_0_tables;
+                    }
+                }
+            }
+
+        
             // create keynators for level n + 1 sstables
             for(uint16_t k  = 0; k < ss_tables_overlaping_key_ranges_indexes.size(); ++k){
                 uint16_t table_index = ss_tables_overlaping_key_ranges_indexes[k];
@@ -331,12 +360,19 @@ bool LsmTree::compact_level(uint16_t index){
             Min_heap heap = Min_heap();
 
 
-            for(uint16_t k = 0; k < keynators.size(); ++k){
+            for(uint16_t k = 0; k < (keynators.size() - count_level_0_tables); ++k){
                 if(k == 0){
                     heap.push(keynators[0] -> get_next_key(), ss_table_controllers[index].get_level(), ss_tables_overlaping_key_ranges_indexes[k], keynators[0]);
                 }
                 else{
                     heap.push(keynators[k] -> get_next_key(), ss_table_controllers[index + 1].get_level(), ss_tables_overlaping_key_ranges_indexes[k], keynators[k]);
+                }
+            }
+
+            if(count_level_0_tables > 0){
+                for(uint16_t k = 0; k < count_level_0_tables; ++k){
+                    uint16_t current_index = (keynators.size() - count_level_0_tables) + k;
+                    heap.push(keynators[current_index] -> get_next_key(), ss_table_controllers[index].get_level(), ss_tables_overlaping_key_ranges_indexes_level_0[k], keynators[current_index]);
                 }
             }
 
@@ -357,6 +393,12 @@ bool LsmTree::compact_level(uint16_t index){
             // istrinti ss_table_controllers[index][i]
             // istrnti visas overlappinancias lenteles is index + 1
             ss_table_controllers.at(index).delete_sstable(i);
+
+            if(index == 0){
+                for(uint16_t l = 0; l < ss_tables_overlaping_key_ranges_indexes_level_0.size(); ++l){
+                    ss_table_controllers.at(index).delete_sstable(ss_tables_overlaping_key_ranges_indexes_level_0[l]);
+                }
+            }
 
             for(uint16_t l = 0; l < ss_tables_overlaping_key_ranges_indexes.size(); ++l){
                 ss_table_controllers.at(index + 1).delete_sstable(ss_tables_overlaping_key_ranges_indexes[l]);
