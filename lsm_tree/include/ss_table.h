@@ -30,9 +30,9 @@
 
 class SS_Table{
     private:
-        std::filesystem::path data_file;
-        std::filesystem::path index_file;
-        std::filesystem::path index_offset_file;
+        const std::filesystem::path data_file;
+        const std::filesystem::path index_file;
+        const std::filesystem::path index_offset_file;
         
         // ??? for level compaction to check for overlapping rnges
         Bits first_index;
