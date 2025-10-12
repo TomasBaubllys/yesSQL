@@ -1,5 +1,5 @@
 #include "../include/min_heap.h"
-
+\
 bool Min_heap::Compare_heap_element::operator()(Heap_element& a, Heap_element&b){
     if(a.key != b.key){
         return a.key > b.key;
@@ -13,8 +13,9 @@ bool Min_heap::Compare_heap_element::operator()(Heap_element& a, Heap_element&b)
 }
 
 
-Min_heap::Heap_element::Heap_element(Bits k, uint16_t l, uint16_t f_i, SS_Table::Keynator* knt)
-        : key(k), level(l), file_index(f_i), keynator(knt){}
+Min_heap::Heap_element::Heap_element(Bits k, uint16_t l, uint16_t f_i)
+        : key(k), level(l), file_index(f_i){}
+
 
 uint16_t Min_heap:: size(){
     return this -> min_heap.size();
@@ -29,8 +30,8 @@ const Min_heap::Heap_element& Min_heap:: top(){
 }
 
 
-void Min_heap::push(Bits key, uint16_t level, uint16_t file_index, SS_Table::Keynator* keynator){
-    this -> min_heap.emplace(key, level, file_index, keynator);
+void Min_heap::push(Bits key, uint16_t level, uint16_t file_index){
+    this -> min_heap.emplace(key, level, file_index);
     return;
 }
 
@@ -41,28 +42,16 @@ void Min_heap::pop(){
 
     return;
 }
-
-SS_Table::Keynator* Min_heap::get_top_keynator(){
-    return min_heap.top().keynator;
-}
 // for when we need to pop all of the elements with the same key
 void Min_heap::remove_by_key(Bits& key){
     if(this -> min_heap.empty()){
         return;
     }
-
     while (true)
     {
         Heap_element element = this -> min_heap.top();
         if(element.key == key){
-
-            SS_Table::Keynator* top_keynator = get_top_keynator();
             this -> min_heap.pop();
-            Bits key = top_keynator -> get_next_key();
-            if(key == Bits(ENTRY_PLACEHOLDER_KEY)){
-                //HEEEEEEEELP
-            }
-            this -> push(top_keynator->get_next_key(), element.level, element.file_index, top_keynator);
         }
         else{
             break;
