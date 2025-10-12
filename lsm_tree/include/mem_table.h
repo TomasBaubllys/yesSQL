@@ -4,6 +4,8 @@
 #include "avl_tree.h"
 #include "entry.h"
 
+#define MEM_TABLE_BYTES_MAX_SIZE 100000
+
 class MemTable{
     private:
         AVL_tree avl_tree;
@@ -32,7 +34,10 @@ class MemTable{
         bool remove_entry(Entry& entry);
 
         // returns an Entry with parameter key
-        Entry find(Bits key);
+        Entry find(Bits key, bool& found);
+
+        // returns true if total_mem_table_size has exceeded MEM_TABLE_BYTES_MAX_SIZE
+        bool is_full();
 
         // get all entries from AVL tree
         std::vector<Entry> dump_entries();

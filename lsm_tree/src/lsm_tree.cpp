@@ -14,16 +14,29 @@ LsmTree::~LsmTree(){
 Entry LsmTree::get(std::string key){
     Bits key_bits(key);
 
-    Entry return_entry = mem_table.find(key_bits);
+    bool is_found;
 
-    return return_entry;
+    Entry entry = mem_table.find(key_bits, is_found);
 
-    // add sstable handling if no entry found in memtable
+    if(is_found){
+        return entry;
+    }
+
+    if(ss_table_controllers.size() > 0){
+        for(auto ss_table_controller_level : ss_table_controllers){
+            entry = ss_table_controller_level.get(key_bits, is_found);
+            
+            if(is_found){
+                return entry;
+            }
+        }
+    }
+
+    std::cout<<"No entry found"<<std::endl;
+    return entry;
 };
 
 bool LsmTree::set(std::string key, std::string value){
-    
-    
     Bits key_bits(key);
     Bits value_bits(value);
 
@@ -36,14 +49,27 @@ bool LsmTree::set(std::string key, std::string value){
         thread_1.join();
         thread_2.join();
 
-        return true;
     }
     catch(std::exception e){
         return false;
     }
-    
-    // add memtable check and flushing to sstable
 
+    if(mem_table.is_full()){
+        try{
+            flush_mem_table();
+
+            mem_table.~MemTable();
+            write_ahead_log.clear_entries();
+
+            mem_table = MemTable();
+
+        }
+        catch(const std::exception& e){
+            return false;
+        }        
+    }
+
+    return true;
 
 };
 
@@ -91,8 +117,7 @@ std::vector<Entry> LsmTree::get_ff(std::string _key){
     }
     if (ff_marker == -1){
         std::cerr<<"No key was found";
-        return;
-    }
+    };
 
     std::vector<Entry> all_entries = mem_table.dump_entries();
 
@@ -115,7 +140,6 @@ std::vector<Entry> LsmTree::get_fb(std::string _key){
     }
     if (fb_marker == -1){
         std::cerr<<"No key was found";
-        return;
     }
 
     std::vector<Entry> all_entries = mem_table.dump_entries();
@@ -138,11 +162,24 @@ bool LsmTree::remove(std::string key){
 
         thread_1.join();
         thread_2.join();
-
-        return true;
     }
     catch(std::exception e){
         return false;
+    }
+
+    if(mem_table.is_full()){
+        try{
+            flush_mem_table();
+
+            mem_table.~MemTable();
+            write_ahead_log.clear_entries();
+
+            mem_table = MemTable();
+
+        }
+        catch(const std::exception& e){
+            return false;
+        }        
     }
 };
 
@@ -188,7 +225,7 @@ void LsmTree::flush_mem_table(){
     std::ofstream ofsd(filepath_data, std::ios::binary);
     std::ofstream ofsi(filename_index, std::ios::binary);
     if(!ofsd && !ofsi){
-        cout << "Failed to create a Level_0 SStable" << endl;
+        std::cout << "Failed to create a Level_0 SStable" << std::endl;
     }
 
     for(auto& entry : entries){
