@@ -8,6 +8,7 @@
 
 #define SS_TABLE_CONTROLLER_MAX_VECTOR_SIZE 5
 #define SS_TABLE_CONTROLLER_MAX_SIZE 0xffffffffffffffff
+#define SS_TABLE_CONTROLER_RATIO 100
 
 class SS_Table_Controller{
     private:
@@ -20,7 +21,7 @@ class SS_Table_Controller{
     public:
         SS_Table_Controller(uint16_t ratio, uint16_t current_level);
         ~SS_Table_Controller();
-        void add_sstable(SS_Table sstable);
+        void add_sstable(const SS_Table& sstable);
         Entry get(Bits& key, bool& found);
 
         uint64_t calculate_size_bytes();
@@ -28,6 +29,18 @@ class SS_Table_Controller{
         bool is_over_limit();
 
         uint16_t get_ss_tables_count();
+
+        SS_Table& operator[](std::size_t index);
+
+        uint16_t get_level();
+
+        /*
+        for()
+        std::vector<SS_table> check_overlapping_key_range(Bits firs_index, Bits last_index, SS_Table_Controller ss_controller);
+        // SS_TABLE_VIDUJ
+
+        bool cfkjdhjkf(first, last)
+        */
 
 };
 

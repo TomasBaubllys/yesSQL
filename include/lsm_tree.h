@@ -12,6 +12,10 @@
 #define LSM_TREE_SS_TABLE_FILE_NAME_DATA ".sst_l%d_data_%d.bin"
 #define LSM_TREE_SS_TABLE_FILE_NAME_INDEX ".sst_l%d_index_%d.bin"
 #define LSM_TREE_SS_TABLE_FILE_NAME_OFFSET ".sst_l%d_offset_%d.bin"
+<<<<<<< HEAD
+=======
+#define LSM_TREE_LEVEL_DIR "data/val/Level_%d"
+>>>>>>> SStable
 #define LSM_TREE_SS_TABLE_MAX_LENGTH 25
 
 
@@ -70,10 +74,17 @@ class LsmTree{
         void flush_mem_table();
 
         // compact level[index] with level [index + 1]
+<<<<<<< HEAD
         void compact_level(uint16_t index);
         
         // compact level0 with level1
         void compact_level_0();
+=======
+        bool compact_level(uint16_t index);
+        
+        // compact level0 with level1
+        bool compact_level_0();
+>>>>>>> SStable
 };
 
 #endif
