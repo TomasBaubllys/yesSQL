@@ -13,6 +13,7 @@ bool Min_heap::Compare_heap_element::operator()(Heap_element& a, Heap_element&b)
 }
 
 
+// make const later
 Min_heap::Heap_element::Heap_element(Bits k, uint16_t l, uint16_t f_i, SS_Table::Keynator* kntr)
         : key(k), level(l), file_index(f_i), keynator(kntr){}
 

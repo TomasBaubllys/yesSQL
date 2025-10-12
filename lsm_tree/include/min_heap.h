@@ -9,6 +9,7 @@
 
 class Min_heap{
     public:
+
         struct Heap_element{
             Bits key;
             uint16_t level;
