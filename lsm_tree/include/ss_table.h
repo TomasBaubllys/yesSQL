@@ -51,7 +51,7 @@ class SS_Table{
 
         // returns a stream from n bytes with a certain offset
         // the stringstream can be used directly to construct an entry after reading the key
-        std::string read_stream_at_offset(uint64_t& offset);
+        std::string read_stream_at_offset(uint64_t& offset) const;
 
     public:
         std::filesystem::path data_path();
@@ -93,10 +93,10 @@ class SS_Table{
                 std::ifstream index_stream;
                 std::ifstream index_offset_stream;
 
-                std::filesystem::path data_file;
+                const std::filesystem::path data_file;
 
                 // THROWS
-                Keynator(std::filesystem::path& index_file, std::filesystem::path& index_offset_file, std::filesystem::path& data_file, uint64_t record_count);
+                Keynator(const std::filesystem::path& index_file, const std::filesystem::path& index_offset_file, const std::filesystem::path& data_file, uint64_t record_count);
 
                 uint64_t current_data_offset;
                 uint64_t records_read;
@@ -121,7 +121,7 @@ class SS_Table{
 
         // THROWS
         // @brief returns Keynator type for key value merging logic
-        Keynator get_keynator();
+        Keynator get_keynator() const;
 
         // THROWS
         // @brief initializes internal files for writing
