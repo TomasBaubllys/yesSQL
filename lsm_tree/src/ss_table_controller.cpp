@@ -1,7 +1,8 @@
 #include "../include/ss_table_controller.h"
 
 void SS_Table_Controller::add_sstable(const SS_Table* sstable){
-    sstables.push_back(sstable);
+    this -> sstables.push_back(sstable);
+    ++this -> current_name_counter;
 }
 
 
@@ -23,7 +24,7 @@ Entry SS_Table_Controller::get(Bits& key, bool& found){
 }
 
 SS_Table_Controller:: SS_Table_Controller(uint16_t ratio, uint16_t current_level): 
-    sstables(SS_TABLE_CONTROLLER_MAX_VECTOR_SIZE){
+    sstables(SS_TABLE_CONTROLLER_MAX_VECTOR_SIZE), current_name_counter(0){
         this -> level = current_level;
         // to do later: use ratio to calculate size for every level
         max_size = SS_TABLE_CONTROLLER_MAX_SIZE;
@@ -68,5 +69,8 @@ void  SS_Table_Controller::delete_sstable(uint16_t index){
     return;
 }
 
+uint64_t SS_Table_Controller::get_current_name_counter() const {
+    return this -> current_name_counter;
+}
 
 

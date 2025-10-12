@@ -17,6 +17,7 @@ class SS_Table_Controller{
         uint16_t ratio;
         // ideally not fixed for every level (the higher the level, more tables)
         uint64_t max_size;
+        uint64_t current_name_counter;
 
     public:
         SS_Table_Controller(uint16_t ratio, uint16_t current_level);
@@ -35,6 +36,8 @@ class SS_Table_Controller{
         uint16_t get_level();
 
         void delete_sstable(uint16_t index);
+
+        uint64_t get_current_name_counter() const;
 
         /*
         for()

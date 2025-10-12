@@ -120,6 +120,7 @@ std::vector<Entry> LsmTree::get_ff(std::string _key){
         }
     }
     if (ff_marker == -1){
+        // no magical strings
         std::cerr<<"No key was found";
     }
 
@@ -208,27 +209,22 @@ bool LsmTree::remove(std::string key){
 void LsmTree::flush_mem_table(){
     std::vector<Entry> entries = mem_table.dump_entries();
 
+    // move to define
     std::filesystem::path level0_dir = "data/val/Level_0";
     if (!std::filesystem::exists(level0_dir)) {
         std::filesystem::create_directories(level0_dir);
     }
 
-    uint16_t sm_id = 0;
-
-    for(auto& p : std::filesystem::directory_iterator(level0_dir)){
-        if(p.is_regular_file()){
-            ++sm_id;
-        }
-    }
     // TODO LATER if sm_id > MAX_SS_TABLES_PER_LEVEL --> merge
 
+    uint64_t current_name_index = ss_table_controllers.front().get_current_name_counter();
     std::string filename_data(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
     std::string filename_index(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
     std::string filename_offset(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
 
-    snprintf(&filename_data[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_DATA,  0, sm_id);
-    snprintf(&filename_index[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_INDEX,  0, sm_id);
-    snprintf(&filename_offset[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_OFFSET,  0, sm_id);
+    snprintf(&filename_data[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_DATA,  0, current_name_index);
+    snprintf(&filename_index[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_INDEX,  0, current_name_index);
+    snprintf(&filename_offset[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_OFFSET,  0, current_name_index);
 
    
     std::filesystem::path filepath_data = level0_dir / filename_data;
@@ -313,7 +309,7 @@ bool LsmTree::compact_level(uint16_t index){
             // PROBLEM: nameing files: how do we know which one is deleted, which is still there? we cannot have repeating names
             // bad fix is still a fix 
             // has to be some global variable ;O
-            uint16_t ss_table_count = ss_table_controllers[index + 1].get_ss_tables_count();
+            uint64_t ss_table_count = ss_table_controllers[index + 1].get_current_name_counter();
 
             snprintf(&filename_data[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_DATA,  index + 1, ss_table_count);
             snprintf(&filename_index[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_INDEX,  index + 1, ss_table_count);
