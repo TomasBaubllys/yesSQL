@@ -26,6 +26,7 @@ bool MemTable::insert_entry(Entry entry){
         return true;
     }
     catch(const std::exception& e){
+        std::cerr << e.what() << std::endl;
         return false;
     }
     

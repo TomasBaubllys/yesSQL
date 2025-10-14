@@ -3,7 +3,7 @@
 #include <iostream>
 #include <random>
 
-#define ROUND1_ENTRY_COUNT 10000
+#define ROUND1_ENTRY_COUNT 100
 
 using namespace std;
 
@@ -53,7 +53,7 @@ bool test_mem_table(vector<Entry>& entries, LsmTree& lsm_tree) {
     cout << "Adding random entries to the lsm tree" << endl;
     for(const Entry& entry : entries) {
         // bruuh???
-        cout << "here" << endl;
+        //cout << "here" << endl;
         lsm_tree.set(entry.get_key().get_string_char(), entry.get_value().get_string_char());
     }
     cout << "Done" << endl;

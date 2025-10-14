@@ -69,6 +69,7 @@ bool LsmTree::set(std::string key, std::string value){
 
         }
         catch(const std::exception& e){
+            std::cerr << e.what() << std::endl;
             return false;
         }        
     }
@@ -217,7 +218,7 @@ void LsmTree::flush_mem_table(){
 
     // TODO LATER if sm_id > MAX_SS_TABLES_PER_LEVEL --> merge
 
-    uint64_t current_name_index = ss_table_controllers.front().get_current_name_counter();
+    uint64_t current_name_index = ss_table_controllers.empty()? 0 : ss_table_controllers.front().get_current_name_counter();
     std::string filename_data(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
     std::string filename_index(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
     std::string filename_offset(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
