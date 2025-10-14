@@ -246,6 +246,9 @@ void LsmTree::flush_mem_table(){
         std::cout << "Failed to create a Level_0 SStable" << std::endl;
     }
 
+    ofsd.close();
+    ofsi.close();
+
     if(ss_table_controllers.size() == 0){
         ss_table_controllers.emplace_back(SS_TABLE_CONTROLER_RATIO, ss_table_controllers.size());
     }
