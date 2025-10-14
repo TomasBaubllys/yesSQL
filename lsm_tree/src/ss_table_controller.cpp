@@ -54,7 +54,6 @@ uint16_t SS_Table_Controller::get_ss_tables_count(){
 }
 
 
-
 const SS_Table* SS_Table_Controller::operator[](std::size_t index){
     return sstables.at(index);
 }
@@ -64,6 +63,9 @@ uint16_t SS_Table_Controller::get_level(){
 }
 
 void  SS_Table_Controller::delete_sstable(uint16_t index){
+    const SS_Table *ss_table = this -> sstables.at(index);
+    delete(ss_table);
+
     this -> sstables.erase(sstables.begin() + index);
     return;
 }
@@ -72,4 +74,7 @@ uint64_t SS_Table_Controller::get_current_name_counter() const {
     return this -> current_name_counter;
 }
 
+bool SS_Table_Controller::empty() const {
+    return this -> sstables.empty();
+}
 

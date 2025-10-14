@@ -48,20 +48,23 @@ void Min_heap::remove_by_key(Bits& key){
     if(this -> min_heap.empty()){
         return;
     }
-    while (true)
-    {
+    while (true) {
+        if(this -> min_heap.empty()) {
+            break;
+        } 
+
         Heap_element element = this -> min_heap.top();
         if(element.key == key){
             this -> min_heap.pop();
-            if(key != Bits(ENTRY_PLACEHOLDER_KEY)){
-                this -> push(element.keynator -> get_next_key(), element.level, element.file_index, element.keynator);
+            Bits next_key = element.keynator->get_next_key();
+            if(next_key != Bits(ENTRY_PLACEHOLDER_KEY)){
+                this -> push(next_key, element.level, element.file_index, element.keynator);
             }
             
         }
         else{
             break;
-        }
-         
+        }    
     }
 
     return;

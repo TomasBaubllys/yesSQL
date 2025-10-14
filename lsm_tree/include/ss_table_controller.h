@@ -39,6 +39,8 @@ class SS_Table_Controller{
 
         uint64_t get_current_name_counter() const;
 
+        bool empty() const; 
+
         /*
         for()
         std::vector<SS_table> check_overlapping_key_range(Bits firs_index, Bits last_index, SS_Table_Controller ss_controller);

@@ -13,7 +13,7 @@
 #define LSM_TREE_SS_TABLE_FILE_NAME_DATA ".sst_l%u_data_%lu.bin"
 #define LSM_TREE_SS_TABLE_FILE_NAME_INDEX ".sst_l%u_index_%lu.bin"
 #define LSM_TREE_SS_TABLE_FILE_NAME_OFFSET ".sst_l%u_offset_%lu.bin"
-#define LSM_TREE_LEVEL_DIR "data/val/Level_%u"
+#define LSM_TREE_LEVEL_DIR "./data/val/Level_%u"
 #define LSM_TREE_SS_TABLE_MAX_LENGTH 35
 
 
