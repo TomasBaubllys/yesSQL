@@ -48,6 +48,7 @@ vector<Entry> generate_test_entries(size_t count, size_t key_size = 400, size_t 
     return entries;
 }
 
+
 // test if avl tree is filled correctly
 bool test_mem_table(vector<Entry>& entries, LsmTree& lsm_tree) {
     cout << "Adding random entries to the lsm tree" << endl;
@@ -87,11 +88,26 @@ int main(int argc, char* argv[]) {
 
     // fill mem table
     assert(test_mem_table(entries1, lsm_tree));
+    assert(test_mem_table(entries1, lsm_tree));
 
     // assert(false);
 
     // merge level 0
     assert(lsm_tree.compact_level(0));
+    assert(lsm_tree.compact_level(1));
+
+    cout << "Looking for all the entries in the lsm tree" << endl;
+    for(const Entry& entry : entries1) {
+        bool found = false;
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+    cout << "Done" << endl;
+
+
+    // assert(lsm_tree.compact_level(2));
 
     // look for all the entries
 
