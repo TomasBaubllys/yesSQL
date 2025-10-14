@@ -88,7 +88,9 @@ int main(int argc, char* argv[]) {
     // fill mem table
     assert(test_mem_table(entries1, lsm_tree));
 
-    // flush the mem_table
+    // merge level 0
+    lsm_tree.compact_level(0);
+
     // look for all the entries
 
 }

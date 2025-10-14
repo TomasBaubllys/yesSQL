@@ -268,15 +268,14 @@ bool LsmTree::compact_level(uint16_t index){
     // get a vector of all overlapping key ranges in level[index + 1]
     try{
         // probably wrap this in try catch
-
         for(uint16_t i = 0; i < ss_table_controllers[index].get_ss_tables_count(); ++i){
             std::vector<uint16_t> ss_tables_overlaping_key_ranges_indexes;
             // only used for level0 compaction
             std::vector<uint16_t> ss_tables_overlaping_key_ranges_indexes_level_0;
 
 
-            Bits first_index = ss_table_controllers[index][i] -> get_first_index();    
-            Bits last_index = ss_table_controllers[index][i] -> get_last_index();
+            Bits first_index(ss_table_controllers[index][i] -> get_first_index());    
+            Bits last_index(ss_table_controllers[index][i] -> get_last_index());
 
 
             // special compression for level 0; get overlapping ss_tables in the same 0 level
