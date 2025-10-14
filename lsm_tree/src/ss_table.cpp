@@ -252,7 +252,7 @@ uint64_t SS_Table::fill_ss_table(const std::vector<Entry>& entry_vector) {
     this -> data_file_size = data_offset;
     this -> index_file_size = key_offset;
     this -> record_count = entry_vector.size();
-
+    
     return record_count;
 }
 

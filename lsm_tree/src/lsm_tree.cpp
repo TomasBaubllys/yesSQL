@@ -46,6 +46,7 @@ bool LsmTree::set(std::string key, std::string value){
 
     Entry entry(key_bits, value_bits);
 
+    mem_table.insert_entry(entry);
     try{
         std::thread thread_1(&Wal::append_entry,&write_ahead_log, entry.get_ostream_bytes());
         std::thread thread_2(&MemTable::insert_entry, &mem_table, entry);
@@ -173,6 +174,7 @@ bool LsmTree::remove(std::string key){
         return false;
     }
 
+
     if(mem_table.is_full()){
         try{
             flush_mem_table();
@@ -239,15 +241,6 @@ void LsmTree::flush_mem_table(){
     if(record_count == 0){
         throw std::runtime_error("Empty entries vector, could not fill ss table");
     }
-
-    std::ofstream ofsd(filepath_data, std::ios::binary);
-    std::ofstream ofsi(filename_index, std::ios::binary);
-    if(!ofsd && !ofsi){
-        std::cout << "Failed to create a Level_0 SStable" << std::endl;
-    }
-
-    ofsd.close();
-    ofsi.close();
 
     if(ss_table_controllers.size() == 0){
         ss_table_controllers.emplace_back(SS_TABLE_CONTROLER_RATIO, ss_table_controllers.size());

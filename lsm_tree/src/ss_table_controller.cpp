@@ -13,7 +13,7 @@ Entry SS_Table_Controller::get(const Bits& key, bool& found) const{
 	std::string placeholder_value(ENTRY_PLACEHOLDER_VALUE);
 
     for(std::vector<const SS_Table*>::const_reverse_iterator it = sstables.rbegin(); it != sstables.rend(); ++it){
-        Entry e = (*it)->get(key, found);
+        Entry e = (*it) -> get(key, found);
         if(found){
             return e;
         }
