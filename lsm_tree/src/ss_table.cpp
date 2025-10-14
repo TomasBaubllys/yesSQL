@@ -20,8 +20,9 @@ std::string SS_Table::read_stream_at_offset(uint64_t& offset) const {
 
     uint64_t data_len = 0;
     data_in.read(reinterpret_cast<char*>(&data_len), sizeof(data_len));
-
+  
     if(data_in.fail()) {
+        std::cout<<"1"<<std::endl;
         throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
     }
 
@@ -30,6 +31,7 @@ std::string SS_Table::read_stream_at_offset(uint64_t& offset) const {
     data_in.read(&raw_data[0], data_len);
 
     if(data_in.fail()) {
+        std::cout<<"2"<<std::endl;
         throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
     }
 
@@ -399,18 +401,21 @@ std::string SS_Table::Keynator::get_current_data_string() {
 
     data_stream.seekg(this -> current_data_offset, data_stream.beg);
     if(data_stream.fail()) {
+        std::cout<<"3"<<std::endl;
         throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
     }
 
     uint64_t data_string_length = 0;
     data_stream.read(reinterpret_cast<char*>(&data_string_length), sizeof(data_string_length));
     if(data_stream.fail()) {
+        std::cout<<"4"<<std::endl;
         throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
     }
 
     std::string data_string(data_string_length, '\0');
     data_stream.read(&data_string[0], data_string_length);
     if(data_stream.fail()) {
+        std::cout<<"5"<<std::endl;
         throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
     }
 
