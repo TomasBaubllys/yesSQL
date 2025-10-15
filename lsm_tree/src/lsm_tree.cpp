@@ -385,11 +385,10 @@ bool LsmTree::compact_level(uint16_t index){
 
             // istrinti ss_table_controllers[index][i]
             // istrnti visas overlappinancias lenteles is index + 1
-            ss_table_controllers.at(index).delete_sstable(0);
-
+            // deleting tables
             if(index == 0){
                 for(uint16_t l = 0; l < ss_tables_overlaping_key_ranges_indexes_level_0.size(); ++l){
-                    // problem is here indexes become invalid after the first deletion
+                    // problem is here indexes become invalid after the first deletion (added - l) because indexes should be sorted
                     ss_table_controllers.at(index).delete_sstable(ss_tables_overlaping_key_ranges_indexes_level_0.at(l) - l);
                 }
             }
@@ -405,6 +404,7 @@ bool LsmTree::compact_level(uint16_t index){
             }
 
             // 0 -> 0; 1 -> 1 
+            ss_table_controllers.at(index).delete_sstable(0);
             ss_table_controllers.at(index + 1).add_sstable(new_table);
         }
     }

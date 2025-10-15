@@ -93,6 +93,7 @@ int main(int argc, char* argv[]) {
     // assert(false);
 
     // merge level 0
+    cout << "Compacting level 0..." << endl;
     assert(lsm_tree.compact_level(0));
     // assert(lsm_tree.compact_level(1));
 
