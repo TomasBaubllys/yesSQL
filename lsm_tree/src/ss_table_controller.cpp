@@ -22,7 +22,7 @@ Entry SS_Table_Controller::get(const Bits& key, bool& found) const{
 
 }
 
-SS_Table_Controller:: SS_Table_Controller(uint16_t ratio, uint16_t current_level): current_name_counter(0){
+SS_Table_Controller:: SS_Table_Controller(uint16_t ratio, level_index_type current_level): current_name_counter(0){
         this -> level = current_level;
         sstables.reserve(SS_TABLE_CONTROLLER_MAX_VECTOR_SIZE);
         // to do later: use ratio to calculate size for every level
@@ -62,7 +62,7 @@ uint16_t SS_Table_Controller::get_level(){
     return this -> level;
 }
 
-void  SS_Table_Controller::delete_sstable(uint16_t index){
+void  SS_Table_Controller::delete_sstable(table_index_type index){
     const SS_Table *ss_table = this -> sstables.at(index);
     delete(ss_table);
 
@@ -78,3 +78,10 @@ bool SS_Table_Controller::empty() const {
     return this -> sstables.empty();
 }
 
+const SS_Table*& SS_Table_Controller::at(table_index_type index) {
+    return this -> sstables.at(index);
+}
+
+const SS_Table*& SS_Table_Controller::front() {
+    return this -> sstables.front();
+}

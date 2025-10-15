@@ -10,17 +10,21 @@
 #define SS_TABLE_CONTROLLER_MAX_SIZE 0xffffffffffffffff
 #define SS_TABLE_CONTROLER_RATIO 100
 
+using table_index_type = uint16_t;
+using level_index_type = uint16_t;
+
+
 class SS_Table_Controller{
     private:
         std::vector<const SS_Table*> sstables;
-        uint16_t level;
+        level_index_type level;
         uint16_t ratio;
         // ideally not fixed for every level (the higher the level, more tables)
         uint64_t max_size;
         uint64_t current_name_counter;
 
     public:
-        SS_Table_Controller(uint16_t ratio, uint16_t current_level);
+        SS_Table_Controller(uint16_t ratio, level_index_type current_level);
         ~SS_Table_Controller();
         void add_sstable(const SS_Table* sstable);
         Entry get(const Bits& key, bool& found) const;
@@ -33,9 +37,13 @@ class SS_Table_Controller{
 
         const SS_Table* operator[](std::size_t index);
 
+        const SS_Table*& at(table_index_type index);
+        
+        const SS_Table*& front();
+
         uint16_t get_level();
 
-        void delete_sstable(uint16_t index);
+        void delete_sstable(table_index_type index);
 
         uint64_t get_current_name_counter() const;
 

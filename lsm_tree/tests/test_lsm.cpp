@@ -3,8 +3,8 @@
 #include <iostream>
 #include <random>
 
-#define ROUND1_ENTRY_COUNT 100
-#define ROUND2_ENTRY_COUNT 900
+#define ROUND1_ENTRY_COUNT 1000
+#define ROUND2_ENTRY_COUNT 1000
 
 using namespace std;
 
@@ -89,6 +89,7 @@ int main(int argc, char* argv[]) {
     
 
     // fill mem table
+    assert(test_mem_table(entries1, lsm_tree));
     assert(test_mem_table(entries1, lsm_tree));
     assert(test_mem_table(entries1, lsm_tree));
 

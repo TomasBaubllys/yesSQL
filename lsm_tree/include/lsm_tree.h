@@ -16,6 +16,7 @@
 #define LSM_TREE_LEVEL_DIR "./data/val/Level_%u"
 #define LSM_TREE_SS_TABLE_MAX_LENGTH 35
 
+#define LSM_TREE_EMPTY_SS_TABLE_CONTROLLERS_ERR_MSG "LSM_Tree ss_table_controller vector is empty\n"
 
 // Hello everybody
 // LsmTree
