@@ -279,8 +279,8 @@ bool LsmTree::compact_level(uint16_t index){
 
             // special compression for level 0; get overlapping ss_tables in the same 0 level
             if(index == 0){
-                for(uint16_t m = 1; m < ss_table_controllers[index].get_ss_tables_count(); ++m){
-                    if(ss_table_controllers[index][m] -> overlap(first_index, last_index)){
+                for(uint16_t m = 1; m < ss_table_controllers.at(0).get_ss_tables_count(); ++m){
+                    if(ss_table_controllers.at(0)[m] -> overlap(first_index, last_index)){
                         ss_tables_overlaping_key_ranges_indexes_level_0.push_back(m);
                     }
                 }
@@ -289,7 +289,7 @@ bool LsmTree::compact_level(uint16_t index){
             if(ss_table_controllers.size() > index + 1) {
                 // get indexes of all overlapping ss_tables in level n + 1
                 for(uint16_t j = 0; j < ss_table_controllers[index + 1].get_ss_tables_count(); ++j){
-                    if(ss_table_controllers[index + 1][j] -> overlap(first_index, last_index)){
+                    if(ss_table_controllers.at(index + 1)[j] -> overlap(first_index, last_index)){
                         ss_tables_overlaping_key_ranges_indexes.push_back(j);
                     }
                 }
@@ -336,7 +336,7 @@ bool LsmTree::compact_level(uint16_t index){
             // level 0 compaction: create keynators for overlapping tables for level 0
             if(index == 0){
                 for(uint16_t k  = 0; k < ss_tables_overlaping_key_ranges_indexes_level_0.size(); ++k){
-                    uint16_t table_index = ss_tables_overlaping_key_ranges_indexes_level_0[k];
+                    uint16_t table_index = ss_tables_overlaping_key_ranges_indexes_level_0.at(k);
                     // KOKS GYVAVIMO LAIKAS SITO DAIKTO:DDDDDD
                     // USE std::unique ptr and std::move()
                     keynators.push_back(std::move((ss_table_controllers[index][table_index]) -> get_keynator()));
@@ -347,8 +347,8 @@ bool LsmTree::compact_level(uint16_t index){
 
             // create keynators for level n + 1 sstables
             for(uint16_t k  = 0; k < ss_tables_overlaping_key_ranges_indexes.size(); ++k){
-                uint16_t table_index = ss_tables_overlaping_key_ranges_indexes[k];
-                keynators.push_back(std::move((ss_table_controllers[index + 1][table_index]) -> get_keynator()));
+                uint16_t table_index = ss_tables_overlaping_key_ranges_indexes.at(k);
+                keynators.push_back(std::move((ss_table_controllers.at(index + 1)[table_index]) -> get_keynator()));
             }
 
             // now the heap logic....
@@ -358,18 +358,23 @@ bool LsmTree::compact_level(uint16_t index){
 
             for(uint16_t k = 0; k < (keynators.size() - count_level_0_tables); ++k){
                 if(k == 0){
-                    heap.push(keynators.front().get_next_key(), ss_table_controllers[index].get_level(), 0, &keynators.front());
+                    heap.push(keynators.front().get_next_key(), ss_table_controllers.at(index).get_level(), 0, &keynators.front());
                 }
                 else{
-                    heap.push(keynators.at(k).get_next_key(), ss_table_controllers[index + 1].get_level(), ss_tables_overlaping_key_ranges_indexes[k], &keynators.at(k));
+                    // fails here when keynator.size() > 1
+                    // std::cout << k << "  " << ss_tables_overlaping_key_ranges_indexes.size() << std::endl;
+                    // NOW IT WILL NOT WORK COMPLETELY fails because ss_tables_overlaping... == k
+                    if(ss_table_controllers.size() > index + 1) {
+                        std::cout << "HERE1" << std::endl;
+                        heap.push(keynators.at(k).get_next_key(), ss_table_controllers.at(index + 1).get_level(), ss_tables_overlaping_key_ranges_indexes.at(k), &keynators.at(k));
+                        std::cout << "HERE2" << std::endl;
+                    }
                 }
             }
 
-            if(count_level_0_tables > 0){
-                for(uint16_t k = 0; k < count_level_0_tables; ++k){
-                    uint16_t current_index = (keynators.size() - count_level_0_tables) + k;
-                    heap.push(keynators.at(current_index).get_next_key(), ss_table_controllers[index].get_level(), ss_tables_overlaping_key_ranges_indexes_level_0[k], &keynators.at(current_index));
-                }
+            for(uint16_t k = 0; k < count_level_0_tables; ++k){
+                uint16_t current_index = (keynators.size() - count_level_0_tables) + k;
+                heap.push(keynators.at(current_index).get_next_key(), ss_table_controllers[index].get_level(), ss_tables_overlaping_key_ranges_indexes_level_0[k], &keynators.at(current_index));
             }
 
             new_table -> init_writing();

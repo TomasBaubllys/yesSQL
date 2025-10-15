@@ -3,7 +3,8 @@
 #include <iostream>
 #include <random>
 
-#define ROUND1_ENTRY_COUNT 50
+#define ROUND1_ENTRY_COUNT 100
+#define ROUND2_ENTRY_COUNT 900
 
 using namespace std;
 
@@ -79,12 +80,13 @@ bool test_mem_table_flush() {
 }
 
 int main(int argc, char* argv[]) {
-    cout << "Generating random test entries" << endl;
+    cout << "Generating random test entries (1)" << endl;
     vector<Entry> entries1 = generate_test_entries(ROUND1_ENTRY_COUNT, 321, 12321);
     cout << "Done" << endl;
     cout << "Creating empty lsm tree" << endl;
     LsmTree lsm_tree;
     cout << "Done" << endl;
+    
 
     // fill mem table
     assert(test_mem_table(entries1, lsm_tree));
@@ -95,10 +97,17 @@ int main(int argc, char* argv[]) {
     // merge level 0
     cout << "Compacting level 0..." << endl;
     assert(lsm_tree.compact_level(0));
-    cout << "Compacting level 1..." << endl;
-    assert(lsm_tree.compact_level(1));
 
-    cout << "Looking for all the entries in the lsm tree" << endl;
+    cout << "Generating random test entries (2)" << endl;
+    vector<Entry> entries2 = generate_test_entries(ROUND2_ENTRY_COUNT, 121, 22991);
+    cout << "Done" << endl;
+
+    assert(test_mem_table(entries2, lsm_tree));
+    assert(test_mem_table(entries1, lsm_tree));
+
+    assert(lsm_tree.compact_level(0));
+
+    cout << "Looking for all the entries in the lsm tree (1)" << endl;
     for(const Entry& entry : entries1) {
         bool found = false;
         Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
@@ -106,8 +115,16 @@ int main(int argc, char* argv[]) {
         assert(entry_got.get_key() == entry.get_key());
         assert(entry_got.get_value() == entry.get_value());
     }
-    cout << "Done" << endl;
 
+    cout << "Looking for all the entries in the lsm tree (2)" << endl;
+    for(const Entry& entry : entries2) {
+        bool found = false;
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+    cout << "Done" << endl;
 
     // assert(lsm_tree.compact_level(2));
 
