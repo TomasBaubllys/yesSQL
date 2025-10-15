@@ -104,9 +104,13 @@ int main(int argc, char* argv[]) {
     cout << "Done" << endl;
 
     assert(test_mem_table(entries2, lsm_tree));
+    assert(test_mem_table(entries2, lsm_tree));
     assert(test_mem_table(entries1, lsm_tree));
+    assert(test_mem_table(entries2, lsm_tree));
 
     assert(lsm_tree.compact_level(0));
+
+    assert(lsm_tree.compact_level(1));
 
     cout << "Looking for all the entries in the lsm tree (1)" << endl;
     for(const Entry& entry : entries1) {
@@ -126,8 +130,6 @@ int main(int argc, char* argv[]) {
         assert(entry_got.get_value() == entry.get_value());
     }
     cout << "Done" << endl;
-
-    // assert(lsm_tree.compact_level(2));
 
     // look for all the entries
 
