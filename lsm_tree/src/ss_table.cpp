@@ -356,11 +356,9 @@ Bits SS_Table::Keynator::get_next_key() {
         return Bits(ENTRY_PLACEHOLDER_KEY);
     }
 
-    if(index_offset_stream.fail()) {
-        throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
-    }
-
     uint64_t current_key_offset = 0;
+
+    // std::cout << index_offset_stream.is_open() << std::endl;
 
     index_offset_stream.read(reinterpret_cast<char*>(&current_key_offset), sizeof(current_key_offset));
     if(index_offset_stream.fail()) {

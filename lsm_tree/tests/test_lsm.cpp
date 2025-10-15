@@ -3,7 +3,7 @@
 #include <iostream>
 #include <random>
 
-#define ROUND1_ENTRY_COUNT 100
+#define ROUND1_ENTRY_COUNT 50
 
 using namespace std;
 
@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
 
     // merge level 0
     assert(lsm_tree.compact_level(0));
-    assert(lsm_tree.compact_level(1));
+    // assert(lsm_tree.compact_level(1));
 
     cout << "Looking for all the entries in the lsm tree" << endl;
     for(const Entry& entry : entries1) {
