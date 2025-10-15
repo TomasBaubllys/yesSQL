@@ -386,15 +386,19 @@ bool LsmTree::compact_level(uint16_t index){
             // istrinti ss_table_controllers[index][i]
             // istrnti visas overlappinancias lenteles is index + 1
             // deleting tables
+
+            std::sort(ss_tables_overlaping_key_ranges_indexes_level_0.begin(), ss_tables_overlaping_key_ranges_indexes_level_0.end());
             if(index == 0){
-                for(uint16_t l = 0; l < ss_tables_overlaping_key_ranges_indexes_level_0.size(); ++l){
-                    // problem is here indexes become invalid after the first deletion (added - l) because indexes should be sorted
-                    ss_table_controllers.at(index).delete_sstable(ss_tables_overlaping_key_ranges_indexes_level_0.at(l) - l);
+                while(!ss_tables_overlaping_key_ranges_indexes_level_0.empty()){
+                    ss_table_controllers.at(index).delete_sstable(ss_tables_overlaping_key_ranges_indexes_level_0.back());
+                    ss_tables_overlaping_key_ranges_indexes_level_0.pop_back();
                 }
             }
 
-            for(uint16_t l = 0; l < ss_tables_overlaping_key_ranges_indexes.size(); ++l){
-                ss_table_controllers.at(index + 1).delete_sstable(ss_tables_overlaping_key_ranges_indexes.at(l) - l);
+            std::sort(ss_tables_overlaping_key_ranges_indexes.begin(), ss_tables_overlaping_key_ranges_indexes.end());
+            while(!ss_tables_overlaping_key_ranges_indexes.empty()){
+                ss_table_controllers.at(index + 1).delete_sstable(ss_tables_overlaping_key_ranges_indexes.back());
+                ss_tables_overlaping_key_ranges_indexes.pop_back();
             }
 
             // noriu compactint 3 lygi, vadinas conreoller.size() yra 4, tai turiu tikrint 
