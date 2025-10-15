@@ -1,28 +1,28 @@
 #include "../include/avl_tree.h"
 
-AVL_tree::Node::Node(Entry& entry) : data(entry), left(nullptr), right(nullptr), height(1) {
+AVL_Tree::Node::Node(Entry& entry) : data(entry), left(nullptr), right(nullptr), height(1) {
 
 }
 
-uint32_t AVL_tree::height(AVL_tree::Node* node) {
+uint32_t AVL_Tree::height(AVL_Tree::Node* node) {
 	return node? node -> height : 0;
 }
 
-int32_t AVL_tree::get_balance(AVL_tree::Node* node) {
+int32_t AVL_Tree::get_balance(AVL_Tree::Node* node) {
 	return node? this -> height(node -> left) - this -> height(node -> right): 0;
 }
 
-AVL_tree::Node* AVL_tree::right_rotate(AVL_tree::Node* node) {
+AVL_Tree::Node* AVL_Tree::right_rotate(AVL_Tree::Node* node) {
 	if(!node) {
 		return nullptr;
 	}	
 
-	AVL_tree::Node* l_node = node -> left;
+	AVL_Tree::Node* l_node = node -> left;
 	if(!l_node) {
 		return nullptr;
 	}
 
-	AVL_tree::Node* lr_node = l_node -> right;
+	AVL_Tree::Node* lr_node = l_node -> right;
 
 	// perform the rotation
 	l_node -> right = node;
@@ -35,17 +35,17 @@ AVL_tree::Node* AVL_tree::right_rotate(AVL_tree::Node* node) {
 	return l_node;
 }
 	
-AVL_tree::Node* AVL_tree::left_rotate(AVL_tree::Node* node) {
+AVL_Tree::Node* AVL_Tree::left_rotate(AVL_Tree::Node* node) {
 	if(!node) {
 		return nullptr;
 	}
 
-	AVL_tree::Node* r_node = node -> right;
+	AVL_Tree::Node* r_node = node -> right;
 	if(!r_node) {
 		return nullptr;
 	}
 
-	AVL_tree::Node* rl_node = r_node -> left;
+	AVL_Tree::Node* rl_node = r_node -> left;
 
 	r_node -> left = node;
 	node -> right = rl_node;
@@ -56,14 +56,14 @@ AVL_tree::Node* AVL_tree::left_rotate(AVL_tree::Node* node) {
 	return r_node;
 }
 
-AVL_tree::Node* AVL_tree::insert(AVL_tree::Node* node, Entry& entry) {
+AVL_Tree::Node* AVL_Tree::insert(AVL_Tree::Node* node, Entry& entry) {
 	if(!entry.check_checksum()) {
 		std::cerr << ENTRY_CHECKSUM_MISMATCH;
 		return nullptr;
 	}
 
 	if(!node) {
-		AVL_tree::Node *new_node = new AVL_tree::Node(entry);
+		AVL_Tree::Node *new_node = new AVL_Tree::Node(entry);
 		if(!new_node) {
 			return nullptr;
 		}
@@ -108,19 +108,19 @@ AVL_tree::Node* AVL_tree::insert(AVL_tree::Node* node, Entry& entry) {
 	return node;
 }
 
-AVL_tree::Node* AVL_tree::min_value_node(AVL_tree::Node* node) {
+AVL_Tree::Node* AVL_Tree::min_value_node(AVL_Tree::Node* node) {
 	if(!node) {
 		return nullptr;
 	}	
 	
-	AVL_tree::Node* current = node;
+	AVL_Tree::Node* current = node;
 	while(current -> left) {
 		current = current -> left;
 	}
 	return current;
 }
 
-AVL_tree::Node* AVL_tree::delete_node(AVL_tree::Node* node, Bits& key) {
+AVL_Tree::Node* AVL_Tree::delete_node(AVL_Tree::Node* node, Bits& key) {
 	if(!node) {
 		return node;
 	}
@@ -133,20 +133,20 @@ AVL_tree::Node* AVL_tree::delete_node(AVL_tree::Node* node, Bits& key) {
 	}
 	else {
 		if(!(node -> left) || !(node -> right)) {
-			AVL_tree::Node* temp = node -> left? node -> left : node -> right;
+			AVL_Tree::Node* temp = node -> left? node -> left : node -> right;
 			if(!temp) {
 				// temp = node;
 				delete node;
 				node = nullptr;
 			}
 			else {
-				AVL_tree::Node* old = node;
+				AVL_Tree::Node* old = node;
 				node = temp;
 				delete old;
 			}
 		}
 		else {
-			AVL_tree::Node* temp = min_value_node(node -> right);
+			AVL_Tree::Node* temp = min_value_node(node -> right);
 			node -> data = temp -> data;
 			Bits temp_key = temp -> data.get_key();
 			node -> right = this -> delete_node(node -> right, temp_key);
@@ -183,7 +183,7 @@ AVL_tree::Node* AVL_tree::delete_node(AVL_tree::Node* node, Bits& key) {
 }
 
 // instead of entry use Bits
-AVL_tree::Node* AVL_tree::delete_node(AVL_tree::Node* node, Entry& entry) {
+AVL_Tree::Node* AVL_Tree::delete_node(AVL_Tree::Node* node, Entry& entry) {
 	if(!node) {
 		return node;
 	}
@@ -196,20 +196,20 @@ AVL_tree::Node* AVL_tree::delete_node(AVL_tree::Node* node, Entry& entry) {
 	}
 	else {
 		if(!(node -> left) || !(node -> right)) {
-			AVL_tree::Node* temp = node -> left? node -> left : node -> right;
+			AVL_Tree::Node* temp = node -> left? node -> left : node -> right;
 			if(!temp) {
 				// temp = node;
 				delete node;
 				node = nullptr;
 			}
 			else {
-				AVL_tree::Node* old = node;
+				AVL_Tree::Node* old = node;
 				node = temp;
 				delete old;
 			}
 		}
 		else {
-			AVL_tree::Node* temp = min_value_node(node -> right);
+			AVL_Tree::Node* temp = min_value_node(node -> right);
 			node -> data = temp -> data;
 			node -> right = this -> delete_node(node -> right, temp -> data);
 		}
@@ -244,7 +244,7 @@ AVL_tree::Node* AVL_tree::delete_node(AVL_tree::Node* node, Entry& entry) {
 	return node;
 }
 
-void AVL_tree::inorder(AVL_tree::Node* node, std::vector<Entry>& result) {
+void AVL_Tree::inorder(AVL_Tree::Node* node, std::vector<Entry>& result) {
 	if(node) {
 		this -> inorder(node -> left, result);
 		result.push_back(node -> data);
@@ -252,7 +252,7 @@ void AVL_tree::inorder(AVL_tree::Node* node, std::vector<Entry>& result) {
 	}	
 }
 
-void AVL_tree::print_inorder() {
+void AVL_Tree::print_inorder() {
 	std::vector<Entry> vec_inord = this -> inorder();
 
 	for(uint32_t i = 0; i < vec_inord.size(); ++i) {
@@ -260,7 +260,7 @@ void AVL_tree::print_inorder() {
 	}
 }
 
-Entry AVL_tree::search(AVL_tree::Node* node, Bits& key, bool& found) {
+Entry AVL_Tree::search(AVL_Tree::Node* node, Bits& key, bool& found) {
 	if(!node) {
 		found = false;
 		std::string key(ENTRY_PLACEHOLDER_KEY);
@@ -279,20 +279,20 @@ Entry AVL_tree::search(AVL_tree::Node* node, Bits& key, bool& found) {
 	return this -> search(node -> right, key, found);
 }
 
-AVL_tree::AVL_tree() : root(nullptr) {
+AVL_Tree::AVL_Tree() : root(nullptr) {
 	
 }
 
-AVL_tree::AVL_tree(Entry& entry) {
-	this -> root = new AVL_tree::Node(entry);
+AVL_Tree::AVL_Tree(Entry& entry) {
+	this -> root = new AVL_Tree::Node(entry);
 	
 	if(!this -> root) {
 		// throw something
 	}
 }
 
-void AVL_tree::insert(Entry& entry) {
-	AVL_tree::Node* new_root = this -> insert(this -> root, entry);
+void AVL_Tree::insert(Entry& entry) {
+	AVL_Tree::Node* new_root = this -> insert(this -> root, entry);
 	
 	if(!new_root) {
 		std::cerr << AVL_TREE_INSERTION_FAILED_ERR;
@@ -302,8 +302,8 @@ void AVL_tree::insert(Entry& entry) {
 	this -> root = new_root;
 }
 
-void AVL_tree::remove(Entry& entry) {
-	AVL_tree::Node* new_root = this -> delete_node(this -> root, entry);
+void AVL_Tree::remove(Entry& entry) {
+	AVL_Tree::Node* new_root = this -> delete_node(this -> root, entry);
 	if(!new_root) {
 		std::cerr << AVL_TREE_DELETION_FAILED_ERR;
 		return;
@@ -313,8 +313,8 @@ void AVL_tree::remove(Entry& entry) {
 	this -> root = new_root;
 }
 
-void AVL_tree::remove(Bits& key) {
-	AVL_tree::Node* new_root = this -> delete_node(this -> root, key);
+void AVL_Tree::remove(Bits& key) {
+	AVL_Tree::Node* new_root = this -> delete_node(this -> root, key);
 	if(!new_root) {
 		std::cerr << AVL_TREE_DELETION_FAILED_ERR;
 		return;
@@ -323,17 +323,17 @@ void AVL_tree::remove(Bits& key) {
 	this -> root = new_root;
 }
 
-Entry AVL_tree::search(Bits& key, bool& found) {
+Entry AVL_Tree::search(Bits& key, bool& found) {
 	return this -> search(this -> root, key, found);
 }
 
-std::vector<Entry> AVL_tree::inorder() {
+std::vector<Entry> AVL_Tree::inorder() {
 	std::vector<Entry> entry_vector;
 	this -> inorder(this -> root, entry_vector);
 	return entry_vector;
 }
 
-void AVL_tree::make_empty(AVL_tree::Node*& root) {
+void AVL_Tree::make_empty(AVL_Tree::Node*& root) {
 	if(!root) {
 		return;
 	}
@@ -345,21 +345,21 @@ void AVL_tree::make_empty(AVL_tree::Node*& root) {
 	root = nullptr;
 } 
 
-void AVL_tree::make_empty() {
+void AVL_Tree::make_empty() {
 	if(this -> root) {
 		this -> make_empty(this -> root);	
 	}
 }
 
-AVL_tree::~AVL_tree() {
+AVL_Tree::~AVL_Tree() {
 	this -> make_empty();
 }
 
-Entry AVL_tree::pop_last() {
+Entry AVL_Tree::pop_last() {
 	return this -> pop_last(this -> root);
 }
 
-Entry AVL_tree::pop_last(AVL_tree::Node*& node) {
+Entry AVL_Tree::pop_last(AVL_Tree::Node*& node) {
 	// if tree is empty return a placeholder
 	if(!node) {
 		std::string string_key(ENTRY_PLACEHOLDER_KEY);
@@ -370,7 +370,7 @@ Entry AVL_tree::pop_last(AVL_tree::Node*& node) {
 	// rightmost node
 	if(!(node -> right)) {
 		Entry result = node -> data;
-		AVL_tree::Node* left_child = node -> left;
+		AVL_Tree::Node* left_child = node -> left;
 		delete node;
 		node = left_child;
 		return result;

@@ -1,7 +1,7 @@
 #include "../include/mem_table.h"
 
 MemTable::MemTable(){
-    avl_tree = AVL_tree();
+    avl_tree = AVL_Tree();
     entry_array_length = 0;
     total_mem_table_size = 0;
 };

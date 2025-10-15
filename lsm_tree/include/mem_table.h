@@ -8,7 +8,7 @@
 
 class MemTable{
     private:
-        AVL_tree avl_tree;
+        AVL_Tree avl_tree;
         int entry_array_length;
         uint64_t total_mem_table_size;
     public:

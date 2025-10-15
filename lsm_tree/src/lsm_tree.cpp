@@ -328,7 +328,7 @@ bool LsmTree::compact_level(level_index_type index) {
             }
 
             // using heap push to a new table
-            Min_heap heap;
+            Min_Heap heap;
 
             for(table_index_type i = 0; i < keynators.size(); ++i) {
                 heap.push(keynators.at(i).get_next_key(), overlapping_key_ranges.at(i).first, overlapping_key_ranges.at(i).second, &keynators.at(i));
@@ -336,7 +336,7 @@ bool LsmTree::compact_level(level_index_type index) {
 
             new_table -> init_writing();
             while(!heap.empty()) {
-                Min_heap::Heap_element top_element = heap.top();
+                Min_Heap::Heap_Element top_element = heap.top();
                 new_table -> write(top_element.key, top_element.keynator -> get_current_data_string());
                 heap.remove_by_key(top_element.key);
             }

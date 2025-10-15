@@ -9,7 +9,7 @@
 #define AVL_TREE_INSERTION_FAILED_ERR "Failed to insert given entry to the tree\n"
 #define AVL_TREE_DELETION_FAILED_ERR "Failed to delete given entry from the tree\n"
 
-class AVL_tree
+class AVL_Tree
 {
     struct Node
     {
@@ -44,9 +44,9 @@ class AVL_tree
     Entry pop_last(Node*& node);
 
     public:
-        AVL_tree(Entry& entry);
-        AVL_tree();
-        ~AVL_tree();
+        AVL_Tree(Entry& entry);
+        AVL_Tree();
+        ~AVL_Tree();
 
         void insert(Entry& entry);
         void remove(Entry& entry);
