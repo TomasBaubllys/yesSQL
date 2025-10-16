@@ -17,6 +17,9 @@
 #define LSM_TREE_SS_TABLE_MAX_LENGTH 35
 
 #define LSM_TREE_EMPTY_SS_TABLE_CONTROLLERS_ERR_MSG "LSM_Tree ss_table_controller vector is empty\n"
+#define LSM_TREE_EMPTY_ENTRY_VECTOR_ERR_MSG "LSM_Tree empty entries vector, could not fill ss table\n"
+
+#define LSM_TREE_LEVEL_0_PATH "data/val/Level_0"
 
 // Hello everybody
 // LsmTree
@@ -72,7 +75,7 @@ class LsmTree{
         void flush_mem_table();
 
         // compact level[index] with level [index + 1]
-        bool compact_level(uint16_t index);
+        bool compact_level(level_index_type index);
     };
 
 #endif

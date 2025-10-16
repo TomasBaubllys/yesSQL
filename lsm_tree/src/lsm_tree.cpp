@@ -35,8 +35,6 @@ Entry LsmTree::get(std::string key){
             }
         }
     }
-
-    std::cout<<"No entry found"<<std::endl;
     return entry;
 };
 
@@ -212,7 +210,7 @@ void LsmTree::flush_mem_table(){
     std::vector<Entry> entries = mem_table.dump_entries();
 
     // move to define
-    std::filesystem::path level0_dir = "data/val/Level_0";
+    std::filesystem::path level0_dir = LSM_TREE_LEVEL_0_PATH;
     if (!std::filesystem::exists(level0_dir)) {
         std::filesystem::create_directories(level0_dir);
     }
@@ -238,7 +236,7 @@ void LsmTree::flush_mem_table(){
     uint16_t record_count = ss_table -> fill_ss_table(entries);
 
     if(record_count == 0){
-        throw std::runtime_error("Empty entries vector, could not fill ss table");
+        throw std::runtime_error(LSM_TREE_EMPTY_ENTRY_VECTOR_ERR_MSG);
     }
 
     if(ss_table_controllers.size() == 0){
