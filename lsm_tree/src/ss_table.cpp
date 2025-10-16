@@ -152,7 +152,7 @@ Entry SS_Table::get(const Bits& key, bool& found) const {
 }
 
 SS_Table::SS_Table(const std::filesystem::path& _data_file, const std::filesystem::path& _index_file, std::filesystem::path& _index_offset_file)
-    : data_file(_data_file), index_file(_index_file), index_offset_file(_index_offset_file), first_index(ENTRY_PLACEHOLDER_KEY), last_index((ENTRY_PLACEHOLDER_VALUE)), record_count(0), data_file_size(0), index_file_size(0), index_offset_file_size(0) {
+    : data_file(_data_file), index_file(_index_file), index_offset_file(_index_offset_file), first_index(ENTRY_PLACEHOLDER_KEY), last_index((ENTRY_PLACEHOLDER_KEY)), record_count(0), data_file_size(0), index_file_size(0), index_offset_file_size(0) {
 
     };
 
@@ -491,28 +491,28 @@ int8_t SS_Table::stop_writing() {
 
     this -> data_ofstream.close();
     if(data_ofstream.is_open()) {
-        ret_value |= 1;
+        ret_value |= DATA_CLOSE_FAILED;
     }
 
     this -> index_ofstream.close();
     if(index_ofstream.is_open()) {
-        ret_value |= 2;
+        ret_value |= INDEX_CLOSE_FAILED;
     }
 
     this -> index_offset_ofstream.close();
     if(index_offset_ofstream.is_open()) {
-        ret_value |= 4;
+        ret_value |= INDEX_CLOSE_FAILED;
     }
 
     return ret_value;
 }
 
 bool SS_Table::overlap(const Bits& first_index, const Bits& last_index) const {
-    if (first_index >= this -> first_index && first_index <= this -> last_index) {
+    if (this -> first_index >= first_index && this -> first_index <= last_index) {
         return true;
     }
 
-    if(last_index <= this -> last_index && last_index >= this -> first_index) {
+    if(this -> last_index <= last_index && this -> last_index >= first_index) {
         return true;
     }
 

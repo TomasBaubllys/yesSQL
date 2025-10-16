@@ -149,5 +149,11 @@ class SS_Table{
         bool overlap(const Bits& first_index, const Bits& last_index) const;
 };
 
+enum SS_Table_Stop_Writting_Error_Code {
+    DATA_CLOSE_FAILED = 1,
+    INDEX_CLOSE_FAILED,
+    INDEX_OFFSET_CLOSE_FAILED
+};
+
 
 #endif // SS_TABLE_H_INCLUDED

@@ -62,11 +62,12 @@ bool LsmTree::set(std::string key, std::string value){
     if(mem_table.is_full()){
         try{
             flush_mem_table();
+            this -> mem_table.make_empty();
 
-            mem_table.~MemTable();
+            // mem_table.~MemTable();
             write_ahead_log.clear_entries();
 
-            mem_table = MemTable();
+            // mem_table = MemTable();
 
         }
         catch(const std::exception& e){
@@ -179,10 +180,11 @@ bool LsmTree::remove(std::string key){
         try{
             flush_mem_table();
 
-            mem_table.~MemTable();
+            mem_table.make_empty();
+            // mem_table.~MemTable();
             write_ahead_log.clear_entries();
 
-            mem_table = MemTable();
+            //mem_table = MemTable();
 
         }
         catch(const std::exception& e){
@@ -279,8 +281,10 @@ bool LsmTree::compact_level(level_index_type index) {
                 for(table_index_type i = 1; i < ss_table_controllers.front().get_ss_tables_count(); ++i) {
                     if(ss_table_controllers.front().at(i) -> overlap(first_index, last_index)) {
                         overlapping_key_ranges.push_back(std::make_pair(0, i));
+                        std::cout << i << std::endl;
                     }    
                 }
+                std::cout << "exited for loop" << std::endl;
             }
 
             // now if the next level exist check for overlapping keys there

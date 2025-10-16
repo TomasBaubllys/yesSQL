@@ -87,4 +87,6 @@ std::vector<Entry> MemTable::dump_entries(){
 
 void MemTable::make_empty() {
     this -> avl_tree.make_empty();
+    this -> entry_array_length = 0;
+    this -> total_mem_table_size = 0;
 }

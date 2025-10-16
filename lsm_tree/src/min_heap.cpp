@@ -1,5 +1,6 @@
 #include "../include/min_heap.h"
-\
+
+// true if the first argument has lower priority
 bool Min_Heap::Compare_heap_element::operator()(Heap_Element& a, Heap_Element&b){
     if(a.key != b.key){
         return a.key > b.key;
@@ -9,9 +10,7 @@ bool Min_Heap::Compare_heap_element::operator()(Heap_Element& a, Heap_Element&b)
     } else{
         return a.file_index < b.file_index;
     }
-
 }
-
 
 // make const later
 Min_Heap::Heap_Element::Heap_Element(Bits k, level_index_type l, table_index_type f_i, SS_Table::Keynator* kntr)
