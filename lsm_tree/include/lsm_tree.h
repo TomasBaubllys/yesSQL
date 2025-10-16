@@ -73,9 +73,6 @@ class LsmTree{
 
         // compact level[index] with level [index + 1]
         bool compact_level(uint16_t index);
-        
-        // compact level0 with level1
-        bool compact_level_0();
-};
+    };
 
 #endif

@@ -3,8 +3,9 @@
 #include <iostream>
 #include <random>
 
-#define ROUND1_ENTRY_COUNT 1000
+#define ROUND1_ENTRY_COUNT 10
 #define ROUND2_ENTRY_COUNT 1000
+
 
 using namespace std;
 
@@ -26,13 +27,38 @@ string random_string(size_t length) {
 }
 
 // Generate a unsorted vector of Entries
-vector<Entry> generate_test_entries(size_t count, size_t key_size = 400, size_t value_size = 1000) {
+/*vector<Entry> generate_test_entries(size_t count, size_t key_size = 400, size_t value_size = 1000) {
     vector<Entry> entries;
     entries.reserve(count);
 
     for (size_t i = 0; i < count; ++i) {
         string key_str = "key_" + to_string(i) + "_" + random_string(key_size);
         string val_str = "value_" + to_string(i) + "_" + random_string(value_size);
+        //cout << key_str.length() << endl;
+        Bits key_bits(key_str);
+        //cout << key_bits.get_string_char().length() << endl;
+        Bits value_bits(val_str);
+        entries.emplace_back(key_bits, value_bits);
+    }
+
+    sort(entries.begin(), entries.end(),
+         [&](const Entry& a, const Entry& b) {
+             return a.get_key() < b.get_key();
+         });
+    
+
+    return entries;
+}
+*/
+
+// Generate a unsorted vector of Entries
+vector<Entry> generate_test_entries(size_t count, size_t n = 0) {
+    vector<Entry> entries;
+    entries.reserve(count);
+
+    for (size_t i = 0; i < count; ++i) {
+        string key_str = "key_" + to_string(i);
+        string val_str = "value_" + to_string(i + n);
         //cout << key_str.length() << endl;
         Bits key_bits(key_str);
         //cout << key_bits.get_string_char().length() << endl;
@@ -48,6 +74,7 @@ vector<Entry> generate_test_entries(size_t count, size_t key_size = 400, size_t 
 
     return entries;
 }
+
 
 
 // test if avl tree is filled correctly
@@ -74,14 +101,11 @@ bool test_mem_table(vector<Entry>& entries, LsmTree& lsm_tree) {
     return true;
 }
 
-bool test_mem_table_flush() {
 
-
-}
 
 int main(int argc, char* argv[]) {
     cout << "Generating random test entries (1)" << endl;
-    vector<Entry> entries1 = generate_test_entries(ROUND1_ENTRY_COUNT, 321, 12321);
+    vector<Entry> entries1 = generate_test_entries(ROUND1_ENTRY_COUNT);
     cout << "Done" << endl;
     cout << "Creating empty lsm tree" << endl;
     LsmTree lsm_tree;
@@ -90,8 +114,8 @@ int main(int argc, char* argv[]) {
 
     // fill mem table
     assert(test_mem_table(entries1, lsm_tree));
-    assert(test_mem_table(entries1, lsm_tree));
-    assert(test_mem_table(entries1, lsm_tree));
+    // keys 0 - 9 --> 0 - 0
+
 
     // assert(false);
 
@@ -100,10 +124,55 @@ int main(int argc, char* argv[]) {
     assert(lsm_tree.compact_level(0));
 
     cout << "Generating random test entries (2)" << endl;
+    vector<Entry> entries2 = generate_test_entries(ROUND1_ENTRY_COUNT, 1);
+    // keys 0 - 9 --> 1 - 10
+    cout << "Done" << endl;
+    
+
+    cout << "Generating random test entries (3)" << endl;
+    vector<Entry> entries3 = generate_test_entries(ROUND1_ENTRY_COUNT, 2);
+    cout << "Done" << endl;
+
+    // keys 0 - 9 --> 2 - 11
+
+
+    assert(test_mem_table(entries2, lsm_tree));
+    assert(test_mem_table(entries3, lsm_tree));
+
+    cout << "Compacting level 0..." << endl;
+    assert(lsm_tree.compact_level(0));
+
+    assert(test_mem_table(entries2, lsm_tree));
+    assert(test_mem_table(entries1, lsm_tree));
+
+    lsm_tree.flush_mem_table();
+
+    //cout << "Compacting level 0..." << endl;
+    assert(lsm_tree.compact_level(0));
+
+    cout << "Looking for all the entries in the lsm tree (1)" << endl;
+    for(const Entry& entry : entries1) {
+        bool found = false;
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+
+
+
+
+
+
+
+
+
+
+    /*cout << "Generating random test entries (2)" << endl;
     vector<Entry> entries2 = generate_test_entries(ROUND2_ENTRY_COUNT, 121, 22991);
     cout << "Done" << endl;
 
-    assert(test_mem_table(entries2, lsm_tree));
+    assert(test_mem_table(entries2, lsm_tree));s
     assert(test_mem_table(entries2, lsm_tree));
     assert(test_mem_table(entries1, lsm_tree));
     assert(test_mem_table(entries2, lsm_tree));
@@ -130,6 +199,24 @@ int main(int argc, char* argv[]) {
         assert(entry_got.get_value() == entry.get_value());
     }
     cout << "Done" << endl;
+
+    cout << "Generating random test entries (3)" << endl;
+    vector<Entry> entries3 = generate_test_entries(ROUND2_ENTRY_COUNT, 121, 22991);
+    cout << "Done" << endl;
+
+
+    assert(test_mem_table(entries3, lsm_tree));
+    assert(test_mem_table(entries, lsm_tree));
+    assert(test_mem_table(entries1, lsm_tree));
+    assert(test_mem_table(entries2, lsm_tree));
+
+    cout << "Compacting level 0..." << endl;
+    assert(lsm_tree.compact_level(0));*/
+
+
+
+
+
 
     // look for all the entries
 
