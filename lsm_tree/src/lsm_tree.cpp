@@ -181,10 +181,7 @@ bool LsmTree::remove(std::string key){
             flush_mem_table();
 
             mem_table.make_empty();
-            // mem_table.~MemTable();
             write_ahead_log.clear_entries();
-
-            //mem_table = MemTable();
 
         }
         catch(const std::exception& e){
