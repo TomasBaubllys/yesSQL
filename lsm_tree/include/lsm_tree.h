@@ -8,6 +8,7 @@
 #include "ss_table_controller.h"
 #include <thread>
 #include <limits>
+#include <algorithm>
 
 // .sst_l[level_index]_[file_type]_[ss_table_count].bin
 #define LSM_TREE_SS_TABLE_FILE_NAME_DATA ".sst_l%u_data_%lu.bin"
@@ -20,6 +21,8 @@
 #define LSM_TREE_EMPTY_ENTRY_VECTOR_ERR_MSG "LSM_Tree empty entries vector, could not fill ss table\n"
 
 #define LSM_TREE_LEVEL_0_PATH "data/val/Level_0"
+
+
 
 // Hello everybody
 // LsmTree
@@ -76,6 +79,9 @@ class LsmTree{
 
         // compact level[index] with level [index + 1]
         bool compact_level(level_index_type index);
+
+        // get fill ratios of all levels. returns a sorted vector of pair <level, ratio>, where biggest ratios are in front
+        std::vector<std::pair<uint16_t, double>> get_fill_ratios();
     };
 
 #endif

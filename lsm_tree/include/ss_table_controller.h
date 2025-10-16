@@ -5,10 +5,16 @@
 #include <memory>
 #include <string>
 #include "ss_table.h"
+#include <cmath>
+
+    #include <iostream>
 
 #define SS_TABLE_CONTROLLER_MAX_VECTOR_SIZE 5
 #define SS_TABLE_CONTROLLER_MAX_SIZE 0xffffffffffffffff
-#define SS_TABLE_CONTROLER_RATIO 100
+#define SS_TABLE_CONTROLLER_RATIO 10
+
+// 1MB LIKE IN MEMTABLE
+#define SS_TABLE_CONTROLLER_LEVEL_SIZE_BASE 1000000
 
 class SS_Table_Controller{
     private:
@@ -18,6 +24,8 @@ class SS_Table_Controller{
         // ideally not fixed for every level (the higher the level, more tables)
         uint64_t max_size;
         uint64_t current_name_counter;
+
+
 
     public:
         SS_Table_Controller(uint16_t ratio, level_index_type current_level);
@@ -45,6 +53,7 @@ class SS_Table_Controller{
 
         bool empty() const; 
 
+        double get_fill_ratio();
         /*
         for()
         std::vector<SS_table> check_overlapping_key_range(Bits firs_index, Bits last_index, SS_Table_Controller ss_controller);

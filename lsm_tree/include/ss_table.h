@@ -28,6 +28,10 @@
 #define SS_TABLE_KEYNATOR_FAILED_OPEN_INDEX_OFFSET_FILE_ERR_MSG "Keynator failed to open index offset file\n"
 #define SS_TABLE_KEYNATOR_FAILED_OPEN_DATA_FILE_ERR_MSG "Keynator failed to open data file\n";
 
+
+#define SS_TABLE_LEVEL_SIZE_BASE 1000000
+
+
 using table_index_type = uint16_t;
 using level_index_type = uint16_t;
 
