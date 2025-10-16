@@ -4,7 +4,7 @@
 #include "avl_tree.h"
 #include "entry.h"
 
-#define MEM_TABLE_BYTES_MAX_SIZE 200
+#define MEM_TABLE_BYTES_MAX_SIZE 500000
 
 class MemTable{
     private:

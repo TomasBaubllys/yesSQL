@@ -336,6 +336,7 @@ uint64_t SS_Table::append(const std::vector<Entry>& entry_vector) {
     return entry_vector.size();
 }
 
+#include <cstring>
 SS_Table::Keynator::Keynator(const std::filesystem::path& index_file, const std::filesystem::path& index_offset_file, const std::filesystem::path& data_file, uint64_t record_count) : index_stream(index_file), index_offset_stream(index_offset_file), data_file(data_file), current_data_offset(0), records_read(0), record_count(record_count) {
     if(index_stream.fail()) {
         throw std::runtime_error(SS_TABLE_KEYNATOR_FAILED_OPEN_INDEX_FILE_ERR_MSG);
