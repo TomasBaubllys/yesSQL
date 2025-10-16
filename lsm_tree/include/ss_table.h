@@ -28,6 +28,9 @@
 #define SS_TABLE_KEYNATOR_FAILED_OPEN_INDEX_OFFSET_FILE_ERR_MSG "Keynator failed to open index offset file\n"
 #define SS_TABLE_KEYNATOR_FAILED_OPEN_DATA_FILE_ERR_MSG "Keynator failed to open data file\n";
 
+using table_index_type = uint16_t;
+using level_index_type = uint16_t;
+
 class SS_Table{
     private:
         const std::filesystem::path data_file;

@@ -353,7 +353,7 @@ bool LsmTree::compact_level(level_index_type index) {
             }
 
             // add the new table to our vector
-            if(ss_table_controllers.size() == index + 1) {
+            if(ss_table_controllers.size() <= index + 1) {
                 ss_table_controllers.emplace_back(SS_TABLE_CONTROLER_RATIO, ss_table_controllers.size());
             }
 

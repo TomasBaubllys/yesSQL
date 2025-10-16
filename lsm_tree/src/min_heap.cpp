@@ -14,7 +14,7 @@ bool Min_Heap::Compare_heap_element::operator()(Heap_Element& a, Heap_Element&b)
 
 
 // make const later
-Min_Heap::Heap_Element::Heap_Element(Bits k, uint16_t l, uint16_t f_i, SS_Table::Keynator* kntr)
+Min_Heap::Heap_Element::Heap_Element(Bits k, level_index_type l, table_index_type f_i, SS_Table::Keynator* kntr)
         : key(k), level(l), file_index(f_i), keynator(kntr){}
 
 
@@ -31,7 +31,7 @@ const Min_Heap::Heap_Element& Min_Heap:: top(){
 }
 
 
-void Min_Heap::push(Bits key, uint16_t level, uint16_t file_index, SS_Table::Keynator* keynator){
+void Min_Heap::push(Bits key, level_index_type level, table_index_type file_index, SS_Table::Keynator* keynator){
     this -> min_heap.emplace(key, level, file_index, keynator);
     return;
 }

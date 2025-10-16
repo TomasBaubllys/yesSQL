@@ -10,10 +10,6 @@
 #define SS_TABLE_CONTROLLER_MAX_SIZE 0xffffffffffffffff
 #define SS_TABLE_CONTROLER_RATIO 100
 
-using table_index_type = uint16_t;
-using level_index_type = uint16_t;
-
-
 class SS_Table_Controller{
     private:
         std::vector<const SS_Table*> sstables;

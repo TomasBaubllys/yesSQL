@@ -155,6 +155,9 @@ int main(int argc, char* argv[]) {
         bool found = false;
         Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
 
+        cout << "GOT KEY: " << entry_got.get_key().get_string_char() << " ORG KEY:" << entry.get_key().get_string_char() << endl;
+        cout << "VALUE GOT: " << entry_got.get_value().get_string_char() << " ORG VALUE: " << entry.get_value().get_string_char() << endl; 
+
         assert(entry_got.get_key() == entry.get_key());
         assert(entry_got.get_value() == entry.get_value());
     }

@@ -42,7 +42,8 @@ class MemTable{
         // get all entries from AVL tree
         std::vector<Entry> dump_entries();
 
-    
+        // clears the internal entries of the mem_table
+        void make_empty();
 };
 
 #endif

@@ -85,3 +85,6 @@ std::vector<Entry> MemTable::dump_entries(){
     return results;
 };
 
+void MemTable::make_empty() {
+    this -> avl_tree.make_empty();
+}
