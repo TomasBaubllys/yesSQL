@@ -2,6 +2,11 @@
 #include <cstdio>
 
 Server::Server(uint32_t port) : port(port) {
+	// create a server_fd AF_INET - ipv4, SOCKET_STREAM - TCP
+	this -> server_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if(this -> server_fd < 0) {
+		// throw error
+	}
 
 }
 
@@ -12,13 +17,13 @@ int8_t Server::start() {
 	uint32_t address_length = sizeof(address);
 	int32_t options = 1;
 
-	const char* msg = "Hello from YSQL server\n";
+	// const char* msg = "Hello from YSQL server\n";
 
 	// create socket
-	if((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+	/*if((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
 		perror("Socket failed\n");
 		return -1;
-	}
+	}*/
 
 	// set socket options
 	if(setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &options, sizeof(options))) {

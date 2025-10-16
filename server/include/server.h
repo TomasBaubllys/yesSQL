@@ -9,14 +9,20 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
+// server must
+// create a tcp port
+// etc...
+
 class Server {
-    private:
+    protected:
         uint32_t port;
+        int32_t server_fd;
+        struct sockaddr_in address;
 
     public:
         Server(uint32_t port);
 
-        int8_t start();
+        virtual int8_t start();
 
 };
 
