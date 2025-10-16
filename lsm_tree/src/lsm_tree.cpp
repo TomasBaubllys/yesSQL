@@ -18,7 +18,7 @@ LsmTree::~LsmTree(){
 Entry LsmTree::get(std::string key){
     Bits key_bits(key);
 
-    bool is_found;
+    bool is_found = false;
 
     Entry entry = mem_table.find(key_bits, is_found);
 
@@ -279,12 +279,8 @@ bool LsmTree::compact_level(level_index_type index) {
             // if we are merging level 0 overlapping keys can be found in the same level
             if(index == 0) {
                 for(table_index_type i = 1; i < ss_table_controllers.front().get_ss_tables_count(); ++i) {
-                    if(ss_table_controllers.front().at(i) -> overlap(first_index, last_index)) {
-                        overlapping_key_ranges.push_back(std::make_pair(0, i));
-                        std::cout << i << std::endl;
-                    }    
+                    overlapping_key_ranges.push_back(std::make_pair(0, i));
                 }
-                std::cout << "exited for loop" << std::endl;
             }
 
             // now if the next level exist check for overlapping keys there
