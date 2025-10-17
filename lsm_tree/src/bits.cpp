@@ -29,10 +29,10 @@ Bits::Bits(std::vector<uint32_t>& bitstream) {
 };
 
 
-Bits::Bits(std::string bitstream) {
-	this -> arr.reserve(bitstream.length());
-	for(bit_arr_size_type i = 0; i < bitstream.length(); ++i) {
-		this -> arr.push_back(static_cast<uint8_t>(bitstream[i]));
+Bits::Bits(std::string bytestream) {
+	this -> arr.reserve(bytestream.length());
+	for(bit_arr_size_type i = 0; i < bytestream.length(); ++i) {
+		this -> arr.push_back(static_cast<uint8_t>(bytestream[i]));
 	}
 };
 
@@ -97,7 +97,7 @@ std::vector<uint32_t> Bits::get_int_vector() const {
 	
 }   
 
-void Bits::update_bits(std::vector<uint8_t>& new_bits) {
+void Bits::update_bits(std::vector<uint8_t> new_bits) {
 	if(new_bits.size() != this -> arr.size()) {
 		throw std::length_error(BIT_LEN_UPDATE_ERR);
 
