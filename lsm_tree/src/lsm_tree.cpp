@@ -363,8 +363,7 @@ bool LSM_Tree::compact_level(level_index_type index) {
     return true;
 }
 
-
-std::vector<std::pair<uint16_t, double>> LsmTree::get_fill_ratios(){
+std::vector<std::pair<uint16_t, double>> Lsm_Tree::get_fill_ratios(){
     std::vector<std::pair<uint16_t, double>> ratios;
 
     for(uint16_t i = 0; i < this -> ss_table_controllers.size(); ++i){
