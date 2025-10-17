@@ -336,7 +336,6 @@ uint64_t SS_Table::append(const std::vector<Entry>& entry_vector) {
     return entry_vector.size();
 }
 
-#include <cstring>
 SS_Table::Keynator::Keynator(const std::filesystem::path& index_file, const std::filesystem::path& index_offset_file, const std::filesystem::path& data_file, uint64_t record_count) : index_stream(index_file), index_offset_stream(index_offset_file), data_file(data_file), current_data_offset(0), records_read(0), record_count(record_count) {
     if(index_stream.fail()) {
         throw std::runtime_error(SS_TABLE_KEYNATOR_FAILED_OPEN_INDEX_FILE_ERR_MSG);
@@ -393,7 +392,7 @@ Bits SS_Table::Keynator::get_next_key() {
 }
 
 std::string SS_Table::Keynator::get_current_data_string() {
-    std::ifstream data_stream(this -> data_file);
+    std::ifstream data_stream(this -> data_file, std::ios::binary);
     if(data_stream.fail()) {
         throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
     }
@@ -423,17 +422,17 @@ SS_Table::Keynator SS_Table::get_keynator() const {
 }
 
 int8_t SS_Table::init_writing() {
-    this -> data_ofstream.open(this -> data_file);
+    this -> data_ofstream.open(this -> data_file, std::ios::binary);
     if(this -> data_ofstream.fail()) {
         throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
     }
 
-    this -> index_ofstream.open(this -> index_file);
+    this -> index_ofstream.open(this -> index_file, std::ios::binary);
     if(this -> index_ofstream.fail()) {
         throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
     }
 
-    this -> index_offset_ofstream.open(this -> index_offset_file);
+    this -> index_offset_ofstream.open(this -> index_offset_file, std::ios::binary);
     if(this ->index_offset_ofstream.fail()) {
         throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
     }
@@ -510,4 +509,49 @@ int8_t SS_Table::stop_writing() {
 
 bool SS_Table::overlap(const Bits& first_index, const Bits& last_index) const {
     return !(last_index < this -> first_index || first_index > this -> last_index);
+}
+
+
+std::vector<Bits> SS_Table::get_all_keys() {
+    std::vector<Bits> keys;
+    keys.reserve(this -> record_count);
+
+    std::ifstream index_ifstream(this -> index_file, std::ios::binary);
+    if(index_ifstream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+    }
+
+    std::ifstream offset_ifstream(this -> index_offset_file, std::ios::binary);
+    if(offset_ifstream.fail()){
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
+    }
+
+    uint64_t current_key_offset = 0;
+
+    while(offset_ifstream.read(reinterpret_cast<char*>(&current_key_offset), sizeof(current_key_offset))) {
+        index_ifstream.seekg(current_key_offset, index_ifstream.beg);
+        if(index_ifstream.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+        }
+
+        key_len_type current_key_length = 0;
+        index_ifstream.read(reinterpret_cast<char*>(&current_key_length), sizeof(current_key_length));
+        if(index_ifstream.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+        }
+
+        std::string current_key(current_key_length, '\0');
+        index_ifstream.read(&current_key[0], current_key_length);
+        if(index_ifstream.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+        }
+
+        keys.emplace_back(current_key);
+    }
+
+    if(!offset_ifstream.eof()) {
+        throw std::runtime_error(SS_TABLE_PARTIAL_READ_ERR_MSG);
+    }
+
+    return keys;
 }

@@ -28,6 +28,8 @@
 #define SS_TABLE_KEYNATOR_FAILED_OPEN_INDEX_OFFSET_FILE_ERR_MSG "Keynator failed to open index offset file\n"
 #define SS_TABLE_KEYNATOR_FAILED_OPEN_DATA_FILE_ERR_MSG "Keynator failed to open data file\n";
 
+#define SS_TABLE_PARTIAL_READ_ERR_MSG "SS_Table partial read occured\n"
+
 
 #define SS_TABLE_LEVEL_SIZE_BASE 1000000
 
@@ -147,10 +149,16 @@ class SS_Table{
         // if first bit is set - data file closing failed
         // if second bit is set - index file closing failed
         // if third bit is set - index offset file closing failed
+        // @return 0 - if success  > 0 if failed to close the files 
         int8_t stop_writing();
 
         // @brief returns true if provided indexes (keys) overlap with this tables indexes
         bool overlap(const Bits& first_index, const Bits& last_index) const;
+
+        // THROWS
+        // @brief returns all the keys contained in a table
+        std::vector<Bits> get_all_keys();
+
 };
 
 enum SS_Table_Stop_Writting_Error_Code {
