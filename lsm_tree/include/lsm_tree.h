@@ -7,7 +7,7 @@
 #include "mem_table.h"
 #include "ss_table_controller.h"
 #include <thread>
-#include <limits>>
+#include <limits>
 #include <algorithm>
 #include <sys/resource.h>
 #include "../include/min_heap.h"

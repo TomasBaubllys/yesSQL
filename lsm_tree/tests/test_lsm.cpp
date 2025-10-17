@@ -78,12 +78,12 @@ vector<Entry> generate_test_entries(size_t count, size_t key_size = 400, size_t 
 
 
 // test if avl tree is filled correctly
-bool test_mem_table(vector<Entry>& entries, LsmTree& lsm_tree) {
+bool test_mem_table(vector<Entry>& entries, LSM_Tree& lsm_tree) {
     cout << "Adding random entries to the lsm tree" << endl;
     for(const Entry& entry : entries) {
         // bruuh???
         //cout << "here" << endl;
-        lsm_tree.set(entry.get_key().get_string_char(), entry.get_value().get_string_char());
+        lsm_tree.set(entry.get_key().get_string(), entry.get_value().get_string());
     }
     cout << "Done" << endl;
 
@@ -91,7 +91,7 @@ bool test_mem_table(vector<Entry>& entries, LsmTree& lsm_tree) {
     cout << "Looking for all the entries in the lsm tree" << endl;
     for(const Entry& entry : entries) {
         bool found = false;
-        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string()));
 
         assert(entry_got.get_key() == entry.get_key());
         assert(entry_got.get_value() == entry.get_value());
@@ -108,7 +108,7 @@ int main(int argc, char* argv[]) {
     vector<Entry> entries1 = generate_test_entries(ROUND1_ENTRY_COUNT, 321, 12321);
     cout << "Done" << endl;
     cout << "Creating empty lsm tree" << endl;
-    LsmTree lsm_tree;
+    LSM_Tree lsm_tree;
     cout << "Done" << endl;
     
 
@@ -136,7 +136,7 @@ int main(int argc, char* argv[]) {
     cout << "Looking for all the entries in the lsm tree (1)" << endl;
     for(const Entry& entry : entries1) {
         bool found = false;
-        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string()));
 
         assert(entry_got.get_key() == entry.get_key());
         assert(entry_got.get_value() == entry.get_value());
@@ -145,7 +145,7 @@ int main(int argc, char* argv[]) {
     cout << "Looking for all the entries in the lsm tree (2)" << endl;
     for(const Entry& entry : entries2) {
         bool found = false;
-        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string()));
 
         assert(entry_got.get_key() == entry.get_key());
         assert(entry_got.get_value() == entry.get_value());
