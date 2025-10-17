@@ -1,8 +1,3 @@
-/*
-
-Last updated 9/18/2025
-*/
-
 #ifndef YSQL_BITS_H_INCLUDED
 #define YSQL_BITS_H_INCLUDED
 
@@ -14,6 +9,7 @@ Last updated 9/18/2025
 #include <vector>
 #include <cstdint>
 #include <stdexcept>
+
 
 using bit_arr_size_type = std::vector<uint8_t>::size_type;
 

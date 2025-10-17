@@ -7,15 +7,15 @@
 #include <cstring>
 
 
-LsmTree::LsmTree(){
+LSM_Tree::LSM_Tree(){
     write_ahead_log = Wal();
     mem_table = MemTable();
 };
 
-LsmTree::~LsmTree(){
+LSM_Tree::~LSM_Tree(){
 };
 
-Entry LsmTree::get(std::string key){
+Entry LSM_Tree::get(std::string key){
     Bits key_bits(key);
 
     bool is_found = false;
@@ -38,7 +38,7 @@ Entry LsmTree::get(std::string key){
     return entry;
 };
 
-bool LsmTree::set(std::string key, std::string value){
+bool LSM_Tree::set(std::string key, std::string value){
     Bits key_bits(key);
     Bits value_bits(value);
 
@@ -78,7 +78,7 @@ bool LsmTree::set(std::string key, std::string value){
 
 };
 
-std::vector<std::string> LsmTree::get_keys(){
+std::vector<std::string> LSM_Tree::get_keys(){
     std::vector<Entry> entries = mem_table.dump_entries();
     std::vector<std::string> keys;
     keys.reserve(entries.size());
@@ -91,7 +91,7 @@ std::vector<std::string> LsmTree::get_keys(){
     return keys;
 };
 
-std::vector<std::string> LsmTree::get_keys(std::string prefix){
+std::vector<std::string> LSM_Tree::get_keys(std::string prefix){
     uint32_t string_start_position = 0;
 
     std::vector<Entry> entries = mem_table.dump_entries();
@@ -109,7 +109,7 @@ std::vector<std::string> LsmTree::get_keys(std::string prefix){
     return keys;
 };
 
-std::vector<Entry> LsmTree::get_ff(std::string _key){
+std::vector<Entry> LSM_Tree::get_ff(std::string _key){
     int32_t ff_marker = -1;
 
     std::vector<std::string> keys = get_keys();
@@ -133,7 +133,7 @@ std::vector<Entry> LsmTree::get_ff(std::string _key){
 
 };
 
-std::vector<Entry> LsmTree::get_fb(std::string _key){
+std::vector<Entry> LSM_Tree::get_fb(std::string _key){
     int fb_marker = -1;
 
     std::vector<std::string> keys = get_keys();
@@ -155,7 +155,7 @@ std::vector<Entry> LsmTree::get_fb(std::string _key){
     return std::vector<Entry>(all_entries.begin(), all_entries.begin() + fb_marker);
 };
 
-bool LsmTree::remove(std::string key){
+bool LSM_Tree::remove(std::string key){
     try{
         Entry entry = get(key);
 
@@ -191,7 +191,7 @@ bool LsmTree::remove(std::string key){
 };
 
 
-// LsmTree
+// LSM_Tree
 // To do:
 // SSTable rasymas is MemTable
 // SSTable skaitymas
@@ -206,7 +206,7 @@ bool LsmTree::remove(std::string key){
 // REMOVE <key>
 
 // data compression??
-void LsmTree::flush_mem_table(){
+void LSM_Tree::flush_mem_table(){
     std::vector<Entry> entries = mem_table.dump_entries();
 
     // move to define
@@ -249,7 +249,7 @@ void LsmTree::flush_mem_table(){
     return;
  }
 
-bool LsmTree::compact_level(level_index_type index) {
+bool LSM_Tree::compact_level(level_index_type index) {
     // check for overflow
     if(index + 1 < index) {
         return false;

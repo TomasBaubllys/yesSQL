@@ -1,5 +1,5 @@
-#ifndef YSQL_LSMTREE_H_INCLUDED
-#define YSQL_LSMTREE_H_INCLUDED
+#ifndef YSQL_LSM_Tree_H_INCLUDED
+#define YSQL_LSM_Tree_H_INCLUDED
 
 #include "bits.h"
 #include "entry.h"
@@ -22,7 +22,7 @@
 #define LSM_TREE_LEVEL_0_PATH "data/val/Level_0"
 
 // Hello everybody
-// LsmTree
+// LSM_Tree
 // To do:
 // SSTable rasymas is MemTable
 // SSTable skaitymas
@@ -36,7 +36,7 @@
 // GETFF ir GETFB turi leisti puslapiuoti, t.y. gauti po n porų ir fektyviai tęsti toliau
 // REMOVE <key>
 
-class LsmTree{
+class LSM_Tree{
     private:
         Wal write_ahead_log;
         MemTable mem_table;
@@ -45,10 +45,10 @@ class LsmTree{
         uint16_t ratio;
     public:
         // default constructor initializes mem_table 
-        LsmTree();
+        LSM_Tree();
 
         // destructor deallocates mem_table
-        ~LsmTree();
+        ~LSM_Tree();
 
         // returns an Entry object with provided key
         Entry get(std::string key);
