@@ -163,10 +163,10 @@ class SS_Table{
         std::vector<Bits> get_all_keys() const;
 
         //THROWS
-        std::vector<Bits> get_keys_larger_than(const Bits& key) const;
+        std::vector<Bits> get_keys_larger_or_equal(const Bits& key) const;
 
         //THROWS
-        std::vector<Bits> get_keys_smaller_than(const Bits& key) const;
+        std::vector<Bits> get_keys_smaller_or_equal(const Bits& key) const;
 
 };
 

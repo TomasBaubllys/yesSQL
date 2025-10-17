@@ -50,6 +50,30 @@ vector<Entry> generate_test_entries(size_t count, size_t key_size = 400, size_t 
     return entries;
 }
 
+// Generate a unsorted vector of Entries
+vector<Entry> generate_test_entries2(size_t count, size_t key_size = 400, size_t value_size = 1000) {
+    vector<Entry> entries;
+    entries.reserve(count);
+
+    for (size_t i = 0; i < count; ++i) {
+        string key_str = "MAMAMAMAMAMAMAMAMAMAMAMAMAMAMkey_" + to_string(i) + "_" + random_string(key_size);
+        string val_str = "PAPAPAPAPAPAPAPAPAPAPAPAPAPAPAPAPAPAPAPAPAPvalue_" + to_string(i) + "_" + random_string(value_size);
+        //cout << key_str.length() << endl;
+        Bits key_bits(key_str);
+        //cout << key_bits.get_string_char().length() << endl;
+        Bits value_bits(val_str);
+        entries.emplace_back(key_bits, value_bits);
+    }
+
+    sort(entries.begin(), entries.end(),
+         [&](const Entry& a, const Entry& b) {
+             return a.get_key() < b.get_key();
+         });
+    
+
+    return entries;
+}
+
 
 // Generate a unsorted vector of Entries
 /*vector<Entry> generate_test_entries(size_t count, size_t n = 0) {
@@ -124,6 +148,10 @@ int main(int argc, char* argv[]) {
     vector<Entry> entries2 = generate_test_entries(ROUND2_ENTRY_COUNT, 121, 22991);
     cout << "Done" << endl;
 
+    cout << "Generating random test entries (3)" << endl;
+    vector<Entry> entries3 = generate_test_entries2(ROUND2_ENTRY_COUNT, 600, 22991);
+    cout << "Done" << endl;
+
     assert(test_mem_table(entries2, lsm_tree));
     assert(test_mem_table(entries2, lsm_tree));
     assert(test_mem_table(entries1, lsm_tree));
@@ -132,6 +160,12 @@ int main(int argc, char* argv[]) {
     assert(test_mem_table(entries1, lsm_tree));
     assert(test_mem_table(entries2, lsm_tree));
     assert(test_mem_table(entries2, lsm_tree));
+
+    lsm_tree.flush_mem_table();
+
+    // assert(test_mem_table(entries3, lsm_tree));
+    assert(test_mem_table(entries3, lsm_tree));
+    assert(test_mem_table(entries3, lsm_tree));
 
     cout << "Looking for all the entries in the lsm tree (1)" << endl;
     for(const Entry& entry : entries1) {
@@ -144,6 +178,16 @@ int main(int argc, char* argv[]) {
 
     cout << "Looking for all the entries in the lsm tree (2)" << endl;
     for(const Entry& entry : entries2) {
+        bool found = false;
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string()));
+
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+    cout << "Done" << endl;
+
+    cout << "Looking for all the entries in the lsm tree (3)" << endl;
+    for(const Entry& entry : entries3) {
         bool found = false;
         Entry entry_got(lsm_tree.get(entry.get_key().get_string()));
 

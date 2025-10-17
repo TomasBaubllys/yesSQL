@@ -556,7 +556,7 @@ std::vector<Bits> SS_Table::get_all_keys() const {
     return keys;
 }
 
-std::vector<Bits> SS_Table::get_keys_larger_than(const Bits& target_key) const {
+std::vector<Bits> SS_Table::get_keys_larger_or_equal(const Bits& target_key) const {
     std::vector<Bits> keys;
     if(target_key > this -> last_index) {
         return keys;
@@ -659,7 +659,7 @@ std::vector<Bits> SS_Table::get_keys_larger_than(const Bits& target_key) const {
     return keys;
 }
 
-std::vector<Bits> SS_Table::get_keys_smaller_than(const Bits& target_key) const {
+std::vector<Bits> SS_Table::get_keys_smaller_or_equal(const Bits& target_key) const {
     std::vector<Bits> keys;
     if(target_key < this -> first_index) {
         return keys;
