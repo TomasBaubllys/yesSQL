@@ -240,7 +240,7 @@ void LSM_Tree::flush_mem_table(){
     }
 
     if(ss_table_controllers.size() == 0){
-        ss_table_controllers.emplace_back(SS_TABLE_CONTROLER_RATIO, ss_table_controllers.size());
+        ss_table_controllers.emplace_back(SS_TABLE_CONTROLLER_RATIO, ss_table_controllers.size());
     }
 
     // ss table controller level 0 add a table
@@ -349,7 +349,7 @@ bool LSM_Tree::compact_level(level_index_type index) {
 
             // add the new table to our vector
             if(ss_table_controllers.size() <= index + 1) {
-                ss_table_controllers.emplace_back(SS_TABLE_CONTROLER_RATIO, ss_table_controllers.size());
+                ss_table_controllers.emplace_back(SS_TABLE_CONTROLLER_RATIO, ss_table_controllers.size());
             }
 
             ss_table_controllers.at(index + 1).add_sstable(new_table);
@@ -362,3 +362,21 @@ bool LSM_Tree::compact_level(level_index_type index) {
 
     return true;
 }
+
+
+std::vector<std::pair<uint16_t, double>> LsmTree::get_fill_ratios(){
+    std::vector<std::pair<uint16_t, double>> ratios;
+
+    for(uint16_t i = 0; i < this -> ss_table_controllers.size(); ++i){
+        ratios.push_back(std::make_pair(i, ss_table_controllers.at(i).get_fill_ratio()));
+    }
+
+    // sort in a way that the biggest ratios are last
+    std::sort(ratios.begin(), ratios.end(),
+        [](const auto& a, const auto& b){
+            return a.second > b.second;
+        });
+
+    return ratios;
+}
+

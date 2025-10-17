@@ -25,9 +25,16 @@ Entry SS_Table_Controller::get(const Bits& key, bool& found) const{
 SS_Table_Controller:: SS_Table_Controller(uint16_t ratio, level_index_type current_level): current_name_counter(0){
         this -> level = current_level;
         sstables.reserve(SS_TABLE_CONTROLLER_MAX_VECTOR_SIZE);
-        // to do later: use ratio to calculate size for every level
-        max_size = SS_TABLE_CONTROLLER_MAX_SIZE;
-   
+
+        // 0 LEVEL -> 10^1 * 1MB = 10MB
+        // 1 LEVEL -> 10^2 * 1MB = 100MB
+        // 2 LEVEL -> 10^3 * 1MB = 1000MB
+        // ...
+        // 
+        max_size = static_cast<uint64_t>(std::pow(ratio, level + 1)) * SS_TABLE_CONTROLLER_LEVEL_SIZE_BASE;
+        
+        std::cout << level << " : " << max_size << std::endl;
+
 };
 
 SS_Table_Controller:: ~SS_Table_Controller(){
@@ -36,10 +43,10 @@ SS_Table_Controller:: ~SS_Table_Controller(){
 
 uint64_t SS_Table_Controller:: calculate_size_bytes(){
     uint64_t size = 0;
-
     // for now only data files
     for(const SS_Table*& sst : sstables){
         size += std::filesystem::file_size(sst -> data_path());
+        //size += std::filesystem::file_size(sst -> index_path());
     }
 
     return size;
@@ -84,4 +91,11 @@ const SS_Table*& SS_Table_Controller::at(table_index_type index) {
 
 const SS_Table*& SS_Table_Controller::front() {
     return this -> sstables.front();
+}
+
+double SS_Table_Controller::get_fill_ratio(){
+    if(max_size == 0){
+        return 0.0;
+    }
+    return static_cast<double>((calculate_size_bytes()) /  static_cast<double>(max_size));
 }

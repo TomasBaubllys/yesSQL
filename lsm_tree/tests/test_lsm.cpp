@@ -136,6 +136,13 @@ int main(int argc, char* argv[]) {
 
     assert(lsm_tree.compact_level(1));
 
+    assert(test_mem_table(entries1, lsm_tree));
+    assert(test_mem_table(entries2, lsm_tree));
+
+    assert(lsm_tree.compact_level(0));
+
+    assert(test_mem_table(entries2, lsm_tree));
+
     cout << "Looking for all the entries in the lsm tree (1)" << endl;
     for(const Entry& entry : entries1) {
         bool found = false;
@@ -155,6 +162,11 @@ int main(int argc, char* argv[]) {
     }
     cout << "Done" << endl;
 
+    std::vector<std::pair<uint16_t, double>> ratios = lsm_tree.get_fill_ratios();
+
+    for(uint16_t i = 0; i < ratios.size(); ++i){
+        std::cout << "Level "  << ratios[i].first << " Ratio: " << ratios[i].second * 100 << "%" << std::endl;
+    }
     // look for all the entries
 
 }
