@@ -32,9 +32,6 @@ SS_Table_Controller:: SS_Table_Controller(uint16_t ratio, level_index_type curre
         // ...
         // 
         max_size = static_cast<uint64_t>(std::pow(ratio, level + 1)) * SS_TABLE_CONTROLLER_LEVEL_SIZE_BASE;
-        
-        std::cout << level << " : " << max_size << std::endl;
-
 };
 
 SS_Table_Controller:: ~SS_Table_Controller(){

@@ -119,9 +119,6 @@ int main(int argc, char* argv[]) {
 
     // assert(false);
 
-    // merge level 0
-    cout << "Compacting level 0..." << endl;
-    assert(lsm_tree.compact_level(0));
 
     cout << "Generating random test entries (2)" << endl;
     vector<Entry> entries2 = generate_test_entries(ROUND2_ENTRY_COUNT, 121, 22991);
@@ -132,15 +129,8 @@ int main(int argc, char* argv[]) {
     assert(test_mem_table(entries1, lsm_tree));
     assert(test_mem_table(entries2, lsm_tree));
 
-    assert(lsm_tree.compact_level(0));
-
-    assert(lsm_tree.compact_level(1));
-
     assert(test_mem_table(entries1, lsm_tree));
     assert(test_mem_table(entries2, lsm_tree));
-
-    assert(lsm_tree.compact_level(0));
-
     assert(test_mem_table(entries2, lsm_tree));
 
     cout << "Looking for all the entries in the lsm tree (1)" << endl;

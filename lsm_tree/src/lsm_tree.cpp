@@ -7,9 +7,11 @@
 #include <cstring>
 
 
+
 LsmTree::LsmTree(){
     write_ahead_log = Wal();
     mem_table = MemTable();
+    max_files_count = get_max_file_limit();
 };
 
 LsmTree::~LsmTree(){
@@ -207,6 +209,28 @@ bool LsmTree::remove(std::string key){
 
 // data compression??
 void LsmTree::flush_mem_table(){
+
+    // check for compaction
+    if(!ss_table_controllers.empty()){
+        // check if level 0 has not reached a limit of file count 
+        if((ss_table_controllers.front().get_ss_tables_count() * 3) > (this -> max_files_count / 2)){
+            std::cout << "compacting level 0 bc too many files.. " << std::endl;
+            if(!this -> compact_level(0)){
+                throw std::runtime_error(LSM_TREE_FAILED_COMPACTION_ERR_MSG);
+            }
+        }
+    }
+
+    // compact level that is the most filled
+    std::pair<uint16_t, double> max_pair = this -> get_max_fill_ratio();
+    if(max_pair.second >= 1.0){
+        std::cout << "compacting level " << max_pair.first << " highest ratio.." << std::endl;
+
+        if(!this -> compact_level(max_pair.first)){
+            throw std::runtime_error(LSM_TREE_FAILED_COMPACTION_ERR_MSG);
+        }
+    }
+
     std::vector<Entry> entries = mem_table.dump_entries();
 
     // move to define
@@ -214,8 +238,6 @@ void LsmTree::flush_mem_table(){
     if (!std::filesystem::exists(level0_dir)) {
         std::filesystem::create_directories(level0_dir);
     }
-
-    // TODO LATER if sm_id > MAX_SS_TABLES_PER_LEVEL --> merge
 
     uint64_t current_name_index = ss_table_controllers.empty()? 0 : ss_table_controllers.front().get_current_name_counter();
     std::string filename_data(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
@@ -375,8 +397,35 @@ std::vector<std::pair<uint16_t, double>> LsmTree::get_fill_ratios(){
     std::sort(ratios.begin(), ratios.end(),
         [](const auto& a, const auto& b){
             return a.second > b.second;
-        });
+    });
 
     return ratios;
 }
 
+std::pair<uint16_t, double> LsmTree::get_max_fill_ratio(){
+    if(ss_table_controllers.empty()){
+        return std::make_pair(0, 0.0);
+    }
+
+    std::pair<uint16_t, double> max_pair = std::make_pair(0, ss_table_controllers.front().get_fill_ratio());
+
+    for(uint16_t i = 1; i < this -> ss_table_controllers.size(); ++i){
+        double ratio = ss_table_controllers.at(i).get_fill_ratio();
+        if(ratio > max_pair.second){
+            max_pair = std::make_pair(i, ratio);
+        }
+    }
+
+    return max_pair;
+}
+
+
+uint64_t LsmTree::get_max_file_limit(){
+    struct rlimit limit;
+    if(getrlimit(RLIMIT_NOFILE, &limit) == 0){
+        return limit.rlim_cur;
+    }
+    else{
+        throw std::runtime_error(LSM_TREE_GETRLIMIT_ERR_MSG);
+    }
+}
