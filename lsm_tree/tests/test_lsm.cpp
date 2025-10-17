@@ -495,15 +495,15 @@ vector<Entry> generate_test_entries(size_t start_index, size_t count, size_t val
 }
 
 // Test helper (unchanged)
-bool test_mem_table(vector<Entry>& entries, LsmTree& lsm_tree) {
+bool test_mem_table(vector<Entry>& entries, LSM_Tree& lsm_tree) {
     cout << "Adding entries to LSM tree..." << endl;
     for (const Entry& entry : entries) {
-        lsm_tree.set(entry.get_key().get_string_char(), entry.get_value().get_string_char());
+        lsm_tree.set(entry.get_key().get_string(), entry.get_value().get_string());
     }
 
     cout << "Verifying entries..." << endl;
     for (const Entry& entry : entries) {
-        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string()));
         assert(entry_got.get_key() == entry.get_key());
         assert(entry_got.get_value() == entry.get_value());
     }
@@ -525,7 +525,7 @@ int main() {
     vector<Entry> entriesJ = generate_test_entries(9000, ENTRY_COUNT);     // keys 9000–9999
 
     cout << "Creating LSM tree..." << endl;
-    LsmTree lsm_tree;
+    LSM_Tree lsm_tree;
 
     // Run tests with guaranteed non-overlapping keys
     assert(test_mem_table(entriesA, lsm_tree));
@@ -549,7 +549,7 @@ int main() {
     for (size_t idx = 0; idx < all.size(); ++idx) {
         cout << "Checking entries set " << idx + 1 << endl;
         for (const Entry& entry : *all[idx]) {
-            Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+            Entry entry_got(lsm_tree.get(entry.get_key().get_string()));
             assert(entry_got.get_key() == entry.get_key());
             assert(entry_got.get_value() == entry.get_value());
         }

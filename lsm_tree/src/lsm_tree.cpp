@@ -273,6 +273,10 @@ bool LSM_Tree::compact_level(level_index_type index) {
         throw std::runtime_error(LSM_TREE_EMPTY_SS_TABLE_CONTROLLERS_ERR_MSG);
     }
 
+    if(index >= ss_table_controllers.size()) {
+        return false;
+    }
+
     try {
         while(!ss_table_controllers.at(index).empty()) {
             // pair to save level index, and table index
