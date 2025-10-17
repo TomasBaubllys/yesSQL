@@ -742,6 +742,10 @@ std::vector<Bits> SS_Table::get_keys_smaller_than(const Bits& target_key) const 
     index_ifstream.seekg(0, index_ifstream.beg);
     for(uint64_t i = 0; i < binary_search_left; ++i) {
         offset_ifstream.read(reinterpret_cast<char*>(&current_key_offset), sizeof(current_key_offset));
+        if(offset_ifstream.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
+        }
+
         index_ifstream.seekg(current_key_offset, index_ifstream.beg);
         if(index_ifstream.fail()) {
             throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
