@@ -1,5 +1,6 @@
 #include "../include/crc32.h"
 
+
 uint32_t crc32(Bits& bits_to_hash){
     std::string data = bits_to_hash.get_string_char();
 
@@ -17,6 +18,7 @@ uint32_t crc32(Bits& bits_to_hash){
     }
     return crc ^ 0xFFFFFFFF;
 };
+
 
 uint32_t crc32(std::string& string_to_hash){
 
