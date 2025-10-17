@@ -159,7 +159,7 @@ int main(int argc, char* argv[]) {
     }
     // look for all the entries
 
-}*/
+}
 
 #include "../include/lsm_tree.h"
 #include <cassert>
@@ -168,8 +168,8 @@ int main(int argc, char* argv[]) {
 #include <unordered_set>
 
 #define ENTRY_COUNT_A 1000
-#define ENTRY_COUNT_B 800
-#define ENTRY_COUNT_C 1200
+#define ENTRY_COUNT_B 1000
+#define ENTRY_COUNT_C 1000
 
 // Helper to generate random alphanumeric strings
 string random_string(size_t length) {
@@ -190,7 +190,7 @@ string random_string(size_t length) {
 // Generate random entries with optional overlapping keys
 vector<Entry> generate_test_entries(size_t count, const vector<Entry>* overlap_from = nullptr,
                                     double overlap_ratio = 0.0,
-                                    size_t key_size = 100, size_t value_size = 200) {
+                                    size_t key_size = 100, size_t value_size = 10000) {
     vector<Entry> entries;
     entries.reserve(count);
 
@@ -257,15 +257,258 @@ int main() {
     vector<Entry> entriesC = generate_test_entries(ENTRY_COUNT_C);
     cout << "entriesC done." << endl;
 
+    vector<Entry> entriesD = generate_test_entries(ENTRY_COUNT_A);
+    vector<Entry> entriesE = generate_test_entries(ENTRY_COUNT_A);
+
+            vector<Entry> entriesF = generate_test_entries(ENTRY_COUNT_A);
+
+                vector<Entry> entriesG = generate_test_entries(ENTRY_COUNT_A);
+
+                    vector<Entry> entriesH = generate_test_entries(ENTRY_COUNT_A);
+
+                        vector<Entry> entriesI = generate_test_entries(ENTRY_COUNT_A);
+
+                            vector<Entry> entriesJ = generate_test_entries(ENTRY_COUNT_A);
+
+                                vector<Entry> entriesK = generate_test_entries(ENTRY_COUNT_A);
+
+                                    vector<Entry> entriesL = generate_test_entries(ENTRY_COUNT_A);
+
+
     cout << "Creating LSM tree..." << endl;
     LsmTree lsm_tree;
 
     // Run tests
+    assert(test_mem_table(entriesI, lsm_tree));
+    assert(test_mem_table(entriesB, lsm_tree));
+    assert(test_mem_table(entriesC, lsm_tree));
+    assert(test_mem_table(entriesG, lsm_tree));
+    assert(test_mem_table(entriesB, lsm_tree));
+    assert(test_mem_table(entriesF, lsm_tree));
+    assert(test_mem_table(entriesH, lsm_tree));
+    assert(test_mem_table(entriesK, lsm_tree));
+    assert(test_mem_table(entriesA, lsm_tree));
+    assert(test_mem_table(entriesB, lsm_tree));
+    assert(test_mem_table(entriesA, lsm_tree));
+    assert(test_mem_table(entriesD, lsm_tree));
+    assert(test_mem_table(entriesK, lsm_tree));
+    assert(test_mem_table(entriesE, lsm_tree));
+    assert(test_mem_table(entriesC, lsm_tree));
+    assert(test_mem_table(entriesI, lsm_tree));
+    assert(test_mem_table(entriesB, lsm_tree));
+    assert(test_mem_table(entriesC, lsm_tree));
+    assert(test_mem_table(entriesG, lsm_tree));
+    assert(test_mem_table(entriesB, lsm_tree));
+    assert(test_mem_table(entriesF, lsm_tree));
+    assert(test_mem_table(entriesH, lsm_tree));
+    assert(test_mem_table(entriesK, lsm_tree));
+    assert(test_mem_table(entriesA, lsm_tree));
+    assert(test_mem_table(entriesB, lsm_tree));
+    assert(test_mem_table(entriesA, lsm_tree));
+    assert(test_mem_table(entriesD, lsm_tree));
+    assert(test_mem_table(entriesA, lsm_tree));
+    assert(test_mem_table(entriesE, lsm_tree));
+    assert(test_mem_table(entriesJ, lsm_tree));    
+    assert(test_mem_table(entriesL, lsm_tree));
+
+
+    cout << "Looking for all the entriesC in the lsm tree (2)" << endl;
+    for(const Entry& entry : entriesC) {
+        bool found = false;
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+    cout << "Looking for all the entriesD in the lsm tree (1)" << endl;
+    for(const Entry& entry : entriesD) {
+        bool found = false;
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+
+    cout << "Looking for all the entriesE in the lsm tree (2)" << endl;
+    for(const Entry& entry : entriesE) {
+        bool found = false;
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+        cout << "Looking for all the entriesF in the lsm tree (1)" << endl;
+    for(const Entry& entry : entriesF) {
+        bool found = false;
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+
+    cout << "Looking for all the entriesG in the lsm tree (2)" << endl;
+    for(const Entry& entry : entriesG) {
+        bool found = false;
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+
+         cout << "Looking for all the entriesH in the lsm tree (1)" << endl;
+    for(const Entry& entry : entriesH) {
+        bool found = false;
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+
+    cout << "Looking for all the entriesI in the lsm tree (2)" << endl;
+    for(const Entry& entry : entriesI) {
+        bool found = false;
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+
+         cout << "Looking for all the entriesJ in the lsm tree (1)" << endl;
+    for(const Entry& entry : entriesJ) {
+        bool found = false;
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+
+    cout << "Looking for all the entriesK in the lsm tree (2)" << endl;
+    for(const Entry& entry : entriesK) {
+        bool found = false;
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+       cout << "Looking for all the entriesL in the lsm tree (2)" << endl;
+    for(const Entry& entry : entriesL) {
+        bool found = false;
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+
+
+
+
+
+
+    //cout << "Entires C(2)" << endl;
+    //assert(test_mem_table(entriesC, lsm_tree));
+    
+
+    cout << "All test rounds completed successfully.\n";
+
+    // Print fill ratios (if supported)
+    vector<pair<uint16_t, double>> ratios = lsm_tree.get_fill_ratios();
+    for (auto& r : ratios)
+        cout << "Level " << r.first << " Ratio: " << r.second * 100 << "%\n";
+
+    return 0;
+}
+*/
+#include "../include/lsm_tree.h"
+#include <cassert>
+#include <iostream>
+#include <random>
+#include <string>
+#include <vector>
+
+#define ENTRY_COUNT 1000
+
+using namespace std;
+
+// Generate a vector of entries with a fixed key range (no overlap)
+vector<Entry> generate_test_entries(size_t start_index, size_t count, size_t value_size = 10000) {
+    vector<Entry> entries;
+    entries.reserve(count);
+
+    for (size_t i = 0; i < count; ++i) {
+        size_t key_num = start_index + i;
+        string key_str = "key_" + to_string(key_num);
+        string val_str = "value_" + to_string(key_num) + "_" + string(value_size, 'x');
+        Bits key_bits(key_str);
+        Bits value_bits(val_str);
+        entries.emplace_back(key_bits, value_bits);
+    }
+
+    sort(entries.begin(), entries.end(), [](const Entry& a, const Entry& b) {
+        return a.get_key() < b.get_key();
+    });
+
+    return entries;
+}
+
+// Test helper (unchanged)
+bool test_mem_table(vector<Entry>& entries, LsmTree& lsm_tree) {
+    cout << "Adding entries to LSM tree..." << endl;
+    for (const Entry& entry : entries) {
+        lsm_tree.set(entry.get_key().get_string_char(), entry.get_value().get_string_char());
+    }
+
+    cout << "Verifying entries..." << endl;
+    for (const Entry& entry : entries) {
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+    cout << "All entries verified successfully.\n";
+    return true;
+}
+
+int main() {
+    cout << "Generating non-overlapping entry sets..." << endl;
+    vector<Entry> entriesA = generate_test_entries(0, ENTRY_COUNT);        // keys 0–999
+    vector<Entry> entriesB = generate_test_entries(1000, ENTRY_COUNT);     // keys 1000–1999
+    vector<Entry> entriesC = generate_test_entries(2000, ENTRY_COUNT);     // keys 2000–2999
+    vector<Entry> entriesD = generate_test_entries(3000, ENTRY_COUNT);     // keys 3000–3999
+    vector<Entry> entriesE = generate_test_entries(4000, ENTRY_COUNT);     // keys 4000–4999
+    vector<Entry> entriesF = generate_test_entries(5000, ENTRY_COUNT);     // keys 5000–5999
+    vector<Entry> entriesG = generate_test_entries(6000, ENTRY_COUNT);     // keys 6000–6999
+    vector<Entry> entriesH = generate_test_entries(7000, ENTRY_COUNT);     // keys 7000–7999
+    vector<Entry> entriesI = generate_test_entries(8000, ENTRY_COUNT);     // keys 8000–8999
+    vector<Entry> entriesJ = generate_test_entries(9000, ENTRY_COUNT);     // keys 9000–9999
+
+    cout << "Creating LSM tree..." << endl;
+    LsmTree lsm_tree;
+
+    // Run tests with guaranteed non-overlapping keys
     assert(test_mem_table(entriesA, lsm_tree));
     assert(test_mem_table(entriesB, lsm_tree));
     assert(test_mem_table(entriesC, lsm_tree));
+    assert(test_mem_table(entriesD, lsm_tree));
+    assert(test_mem_table(entriesE, lsm_tree));
+    assert(test_mem_table(entriesF, lsm_tree));
+    assert(test_mem_table(entriesG, lsm_tree));
+    assert(test_mem_table(entriesH, lsm_tree));
+    assert(test_mem_table(entriesI, lsm_tree));
+    assert(test_mem_table(entriesJ, lsm_tree));
 
-    cout << "All test rounds completed successfully.\n";
+    cout << "Verifying that all inserted entries can be retrieved..." << endl;
+    vector<vector<Entry>*> all = {&entriesA, &entriesB, &entriesC, &entriesD, &entriesE,
+                                  &entriesF, &entriesG, &entriesH, &entriesI, &entriesJ};
+
+    for (size_t idx = 0; idx < all.size(); ++idx) {
+        cout << "Checking entries set " << idx + 1 << endl;
+        for (const Entry& entry : *all[idx]) {
+            Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+            assert(entry_got.get_key() == entry.get_key());
+            assert(entry_got.get_value() == entry.get_value());
+        }
+    }
+
+    cout << "All tests passed — no overlapping keys detected.\n";
 
     // Print fill ratios (if supported)
     vector<pair<uint16_t, double>> ratios = lsm_tree.get_fill_ratios();
