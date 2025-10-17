@@ -11,7 +11,7 @@ using namespace std;
 
 // generates a vector of random entries
 // Helper to generate random alphanumeric strings
-string random_string(size_t length) {
+/*string random_string(size_t length) {
     static const string charset =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     static random_device rd;
@@ -52,7 +52,7 @@ vector<Entry> generate_test_entries(size_t count, size_t key_size = 400, size_t 
 
 
 // Generate a unsorted vector of Entries
-/*vector<Entry> generate_test_entries(size_t count, size_t n = 0) {
+vector<Entry> generate_test_entries(size_t count, size_t n = 0) {
     vector<Entry> entries;
     entries.reserve(count);
 
@@ -73,7 +73,7 @@ vector<Entry> generate_test_entries(size_t count, size_t key_size = 400, size_t 
     
 
     return entries;
-}*/
+}
 
 
 
@@ -159,4 +159,118 @@ int main(int argc, char* argv[]) {
     }
     // look for all the entries
 
+}*/
+
+#include "../include/lsm_tree.h"
+#include <cassert>
+#include <iostream>
+#include <random>
+#include <unordered_set>
+
+#define ENTRY_COUNT_A 1000
+#define ENTRY_COUNT_B 800
+#define ENTRY_COUNT_C 1200
+
+// Helper to generate random alphanumeric strings
+string random_string(size_t length) {
+    static const string charset =
+        "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    static random_device rd;
+    static mt19937 gen(rd());
+    static uniform_int_distribution<size_t> dist(0, charset.size() - 1);
+
+    string result;
+    result.reserve(length);
+    for (size_t i = 0; i < length; ++i) {
+        result.push_back(charset[dist(gen)]);
+    }
+    return result;
+}
+
+// Generate random entries with optional overlapping keys
+vector<Entry> generate_test_entries(size_t count, const vector<Entry>* overlap_from = nullptr,
+                                    double overlap_ratio = 0.0,
+                                    size_t key_size = 100, size_t value_size = 200) {
+    vector<Entry> entries;
+    entries.reserve(count);
+
+    unordered_set<string> used_keys;
+
+    // If overlapping, take a portion of keys from the given vector
+    size_t overlap_count = 0;
+    if (overlap_from && overlap_ratio > 0.0) {
+        overlap_count = static_cast<size_t>(count * overlap_ratio);
+        overlap_count = min(overlap_count, overlap_from->size());
+        for (size_t i = 0; i < overlap_count; ++i) {
+            const Entry& src = (*overlap_from)[i];
+            string val_str = "updated_value_" + to_string(i) + "_" + random_string(value_size);
+            Bits key_bits(src.get_key().get_string_char());
+            Bits value_bits(val_str);
+            entries.emplace_back(key_bits, value_bits);
+            used_keys.insert(src.get_key().get_string_char());
+        }
+    }
+
+    // Add new, non-overlapping random entries
+    while (entries.size() < count) {
+        string key_str = "key_" + random_string(key_size);
+        if (used_keys.count(key_str)) continue;
+        used_keys.insert(key_str);
+        string val_str = "value_" + random_string(value_size);
+        entries.emplace_back(Bits(key_str), Bits(val_str));
+    }
+
+    sort(entries.begin(), entries.end(), [](const Entry& a, const Entry& b) {
+        return a.get_key() < b.get_key();
+    });
+
+    return entries;
+}
+
+// Test helper (unchanged)
+bool test_mem_table(vector<Entry>& entries, LsmTree& lsm_tree) {
+    cout << "Adding entries to LSM tree..." << endl;
+    for (const Entry& entry : entries) {
+        lsm_tree.set(entry.get_key().get_string_char(), entry.get_value().get_string_char());
+    }
+
+    cout << "Verifying entries..." << endl;
+    for (const Entry& entry : entries) {
+        Entry entry_got(lsm_tree.get(entry.get_key().get_string_char()));
+        assert(entry_got.get_key() == entry.get_key());
+        assert(entry_got.get_value() == entry.get_value());
+    }
+    cout << "All entries verified successfully.\n";
+    return true;
+}
+
+int main() {
+    cout << "Generating entriesA (unique)..." << endl;
+    vector<Entry> entriesA = generate_test_entries(ENTRY_COUNT_A);
+    cout << "entriesA done." << endl;
+
+    cout << "Generating entriesB (50% overlapping with A)..." << endl;
+    vector<Entry> entriesB = generate_test_entries(ENTRY_COUNT_B, &entriesA, 0.5);
+    cout << "entriesB done." << endl;
+
+    cout << "Generating entriesC (completely disjoint)..." << endl;
+    vector<Entry> entriesC = generate_test_entries(ENTRY_COUNT_C);
+    cout << "entriesC done." << endl;
+
+    cout << "Creating LSM tree..." << endl;
+    LsmTree lsm_tree;
+
+    // Run tests
+    assert(test_mem_table(entriesA, lsm_tree));
+    assert(test_mem_table(entriesB, lsm_tree));
+    assert(test_mem_table(entriesC, lsm_tree));
+
+    cout << "All test rounds completed successfully.\n";
+
+    // Print fill ratios (if supported)
+    vector<pair<uint16_t, double>> ratios = lsm_tree.get_fill_ratios();
+    for (auto& r : ratios)
+        cout << "Level " << r.first << " Ratio: " << r.second * 100 << "%\n";
+
+    return 0;
 }
