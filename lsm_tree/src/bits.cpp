@@ -58,7 +58,7 @@ std::vector<char> Bits::get_char_vector() const {
 	return ch_arr;
 }
 
-std::string Bits::get_string_char() const {
+std::string Bits::get_string() const {
 	std::string str;
 	
 	for(bit_arr_size_type i = 0; i < this -> arr.size(); ++i) {
@@ -68,7 +68,7 @@ std::string Bits::get_string_char() const {
 	return str;
 }
 
-std::vector<uint32_t> Bits::get_int_array() const {
+std::vector<uint32_t> Bits::get_int_vector() const {
 	uint8_t padding_size = this -> arr.size() % 4;
 	uint32_t int_vec_size = this -> arr.size() / 4;
 
@@ -107,7 +107,7 @@ void Bits::update_bits(std::vector<uint8_t>& new_bits) {
 }
 
 int8_t Bits::compare_to_str(const std::string& other) const {
-	std::string internal_str = this -> get_string_char();
+	std::string internal_str = this -> get_string();
 
 	if(internal_str.length() > other.length()) {
 		return 1;

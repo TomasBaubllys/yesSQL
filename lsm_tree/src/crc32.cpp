@@ -2,7 +2,7 @@
 
 
 uint32_t crc32(Bits& bits_to_hash){
-    std::string data = bits_to_hash.get_string_char();
+    std::string data = bits_to_hash.get_string();
 
     uint32_t crc = 0xFFFFFFFF;
     

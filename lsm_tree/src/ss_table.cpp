@@ -103,7 +103,7 @@ Entry SS_Table::get(const Bits& key, bool& found) const {
         // compare the key
         int8_t compare = key.compare_to_str(key_str);
 
-        // std::cout << "Comparing: " << key_string << " and " << key.get_string_char() << " Compare value: " << int(compare) << std::endl;
+        // std::cout << "Comparing: " << key_string << " and " << key.get_string() << " Compare value: " << int(compare) << std::endl;
 
         // match found
         if(compare == 0) {
@@ -449,7 +449,7 @@ int8_t SS_Table::write(const Bits& key, const std::string& data_string) {
     uint64_t data_offset = this -> data_ofstream.tellp();
     uint64_t key_offset = this -> index_ofstream.tellp();
     uint64_t data_length = data_string.length();
-    std::string key_string = key.get_string_char();
+    std::string key_string = key.get_string();
     key_len_type key_length = key.size();
 
     index_offset_ofstream.write(reinterpret_cast<char*>(&key_offset), sizeof(key_offset));

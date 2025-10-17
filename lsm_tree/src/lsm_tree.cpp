@@ -84,7 +84,7 @@ std::vector<std::string> LSM_Tree::get_keys(){
     keys.reserve(entries.size());
 
     for(const Entry& entry : entries){
-        keys.emplace_back(entry.get_key().get_string_char());
+        keys.emplace_back(entry.get_key().get_string());
     }
     // add adding keys from ss tables and checking if overlap
 
@@ -99,7 +99,7 @@ std::vector<std::string> LSM_Tree::get_keys(std::string prefix){
     
 
     for(const Entry& entry : entries){
-        std::string key = entry.get_key().get_string_char();
+        std::string key = entry.get_key().get_string();
         if(key.rfind("prefix", string_start_position)){
             keys.push_back(key);
         }

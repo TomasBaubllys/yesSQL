@@ -10,11 +10,12 @@
 #include <cstdint>
 #include <stdexcept>
 
-
+// localisation for constant size_type between systems
 using bit_arr_size_type = std::vector<uint8_t>::size_type;
 
 class Bits {
 	private:
+		//Content Bytes
 		std::vector<uint8_t> arr;
 	public:
 		// constructors, no default constructor exists
@@ -28,7 +29,6 @@ class Bits {
 	
 		Bits(const Bits& org);
 			
-		// desctructor
 		~Bits(); 
 
 		// returns the size of the saved bit array
@@ -38,13 +38,10 @@ class Bits {
 		std::vector<char> get_char_vector() const;
 
 		// returns the bits as a string
-		std::string get_string_char() const;
-
-		// returns bits as a string containing only 0 and 1s
-		// std::string get_string_bits();
+		std::string get_string() const;
 
 		// returns the bits as and integer vector, if bits dont fill the last integer it will be padded with 0 bits to be interpreted as little endian
-		std::vector<uint32_t> get_int_array() const;
+		std::vector<uint32_t> get_int_vector() const;
 		
 		// compares to bit objects bit by bit
 		inline bool operator==(const Bits& other) const {
