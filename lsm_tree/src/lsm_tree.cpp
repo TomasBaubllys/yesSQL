@@ -73,6 +73,7 @@ bool LSM_Tree::set(std::string key, std::string value){
 };
 
 std::vector<std::string> LSM_Tree::get_keys(){
+    // use a set to avoid same keys
     std::vector<Entry> entries = mem_table.dump_entries();
     std::vector<std::string> keys;
     keys.reserve(entries.size());
@@ -81,6 +82,9 @@ std::vector<std::string> LSM_Tree::get_keys(){
         keys.emplace_back(entry.get_key().get_string());
     }
     // add adding keys from ss tables and checking if overlap
+    for(const SS_Table_Controller& ss_table_controller : ss_table_controllers) {
+        
+    }
 
     return keys;
 };

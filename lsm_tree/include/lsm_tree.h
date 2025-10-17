@@ -16,6 +16,7 @@
 #include <fstream>
 #include <iostream>
 #include <cstring>
+#include <set>
 
 // .sst_l[level_index]_[file_type]_[ss_table_count].bin
 #define LSM_TREE_SS_TABLE_FILE_NAME_DATA ".sst_l%u_data_%lu.bin"
