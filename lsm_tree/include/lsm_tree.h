@@ -7,8 +7,15 @@
 #include "mem_table.h"
 #include "ss_table_controller.h"
 #include <thread>
-#include <limits>
+#include <limits>>
 #include <algorithm>
+#include <sys/resource.h>
+#include "../include/min_heap.h"
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <cstring>
 
 // .sst_l[level_index]_[file_type]_[ss_table_count].bin
 #define LSM_TREE_SS_TABLE_FILE_NAME_DATA ".sst_l%u_data_%lu.bin"
@@ -19,6 +26,8 @@
 
 #define LSM_TREE_EMPTY_SS_TABLE_CONTROLLERS_ERR_MSG "LSM_Tree ss_table_controller vector is empty\n"
 #define LSM_TREE_EMPTY_ENTRY_VECTOR_ERR_MSG "LSM_Tree empty entries vector, could not fill ss table\n"
+#define LSM_TREE_GETRLIMIT_ERR_MSG "Failed getrlimit() call\n"
+#define LSM_TREE_FAILED_COMPACTION_ERR_MSG "Failed to compact levels\n"
 
 #define LSM_TREE_LEVEL_0_PATH "data/val/Level_0"
 
@@ -46,6 +55,11 @@ class LSM_Tree{
         // one contrller per each level
         std::vector<SS_Table_Controller> ss_table_controllers;
         uint16_t ratio;
+        uint64_t max_files_count;
+
+        // returns Max open files per process
+        uint64_t get_max_file_limit();
+
     public:
         // default constructor initializes mem_table 
         LSM_Tree();
@@ -82,6 +96,11 @@ class LSM_Tree{
 
         // get fill ratios of all levels. returns a sorted vector of pair <level, ratio>, where biggest ratios are in front
         std::vector<std::pair<uint16_t, double>> get_fill_ratios();
-    };
+
+        // returns a pair <level, ratio> of the highest fill ratio on whole LSM tree
+        std::pair<uint16_t, double> get_max_fill_ratio();
+
+        // 
+};
 
 #endif
