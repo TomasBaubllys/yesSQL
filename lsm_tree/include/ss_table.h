@@ -29,10 +29,13 @@
 #define SS_TABLE_KEYNATOR_FAILED_OPEN_DATA_FILE_ERR_MSG "Keynator failed to open data file\n";
 
 #define SS_TABLE_PARTIAL_READ_ERR_MSG "SS_Table partial read occured\n"
+#define SS_TABLE_KEYS_LARGER_THAN_FAILED_ERR_MSG "SS_Table failed to find keys larger\n"
+#define SS_TABLE_KEYS_SMALLER_THAN_FAILED_ERR_MSG "SS_Table failed to find keys smaller\n"
 
+#define SS_TABLE_INDEX_SEEK0_FAILED_ERR_MSG "SS_Table failed to seek to the index file beggining\n"
+#define SS_TABLE_INDEX_OFFSET_SEEK0_FAILED_ERR_MSG "SS_Table failed to seek to the index offset file beggining\n"
 
 #define SS_TABLE_LEVEL_SIZE_BASE 1000000
-
 
 using table_index_type = uint16_t;
 using level_index_type = uint16_t;
