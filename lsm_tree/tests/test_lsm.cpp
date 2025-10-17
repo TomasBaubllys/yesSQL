@@ -494,6 +494,9 @@ int main() {
     assert(test_mem_table(entriesH, lsm_tree));
     assert(test_mem_table(entriesI, lsm_tree));
     assert(test_mem_table(entriesJ, lsm_tree));
+    assert(test_mem_table(entriesA, lsm_tree));
+    assert(test_mem_table(entriesB, lsm_tree));
+    assert(test_mem_table(entriesC, lsm_tree));
 
     cout << "Verifying that all inserted entries can be retrieved..." << endl;
     vector<vector<Entry>*> all = {&entriesA, &entriesB, &entriesC, &entriesD, &entriesE,

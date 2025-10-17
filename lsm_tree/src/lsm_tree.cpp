@@ -212,13 +212,16 @@ void LsmTree::flush_mem_table(){
 
     // check for compaction
     if(!ss_table_controllers.empty()){
-        // check if level 0 has not reached a limit of file count 
-        if((ss_table_controllers.front().get_ss_tables_count() * 3) > (this -> max_files_count / 2)){
-            std::cout << "compacting level 0 bc too many files.. " << std::endl;
-            if(!this -> compact_level(0)){
-                throw std::runtime_error(LSM_TREE_FAILED_COMPACTION_ERR_MSG);
+        // check if levels has not reached a limit of file count 
+        for(uint16_t i = 0; i < ss_table_controllers.size(); ++i){
+            if((ss_table_controllers.at(i).get_ss_tables_count() * 3) > (this -> max_files_count / 2)){
+                std::cout << "compacting level 0 bc too many files.. " << std::endl;
+                if(!this -> compact_level(0)){
+                    throw std::runtime_error(LSM_TREE_FAILED_COMPACTION_ERR_MSG);
+                }
             }
         }
+        
     }
 
     // compact level that is the most filled
