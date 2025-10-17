@@ -206,7 +206,6 @@ void LSM_Tree::flush_mem_table(){
     if(!ss_table_controllers.empty()){
         // check if level 0 has not reached a limit of file count 
         if((ss_table_controllers.front().get_ss_tables_count() * 3) > (this -> max_files_count / 2)){
-            std::cout << "compacting level 0 bc too many files.. " << std::endl;
             if(!this -> compact_level(0)){
                 throw std::runtime_error(LSM_TREE_FAILED_COMPACTION_ERR_MSG);
             }
@@ -216,8 +215,6 @@ void LSM_Tree::flush_mem_table(){
     // compact level that is the most filled
     std::pair<uint16_t, double> max_pair = this -> get_max_fill_ratio();
     if(max_pair.second >= 1.0){
-        std::cout << "compacting level " << max_pair.first << " highest ratio.." << std::endl;
-
         if(!this -> compact_level(max_pair.first)){
             throw std::runtime_error(LSM_TREE_FAILED_COMPACTION_ERR_MSG);
         }
