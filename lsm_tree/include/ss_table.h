@@ -157,7 +157,13 @@ class SS_Table{
 
         // THROWS
         // @brief returns all the keys contained in a table
-        std::vector<Bits> get_all_keys();
+        std::vector<Bits> get_all_keys() const;
+
+        //THROWS
+        std::vector<Bits> get_keys_larger_than(const Bits& key) const;
+
+        //THROWS
+        std::vector<Bits> get_keys_smaller_than(const Bits& key) const;
 
 };
 
