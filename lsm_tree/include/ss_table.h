@@ -6,7 +6,6 @@
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
-#include <set>
 
 #define SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG "SS_Table failed to open data file\n"
 #define SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG "SS_Table failed to open index file\n"
@@ -161,13 +160,13 @@ class SS_Table{
 
         // THROWS
         // @brief returns all the keys contained in a table
-        std::set<Bits> get_all_keys() const;
+        std::vector<Bits> get_all_keys() const;
 
         //THROWS
-        std::set<Bits> get_keys_larger_or_equal(const Bits& key) const;
+        std::vector<Bits> get_keys_larger_or_equal(const Bits& key) const;
 
         //THROWS
-        std::set<Bits> get_keys_smaller_or_equal(const Bits& key) const;
+        std::vector<Bits> get_keys_smaller_or_equal(const Bits& key) const;
 
 };
 

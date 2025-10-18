@@ -512,9 +512,9 @@ bool SS_Table::overlap(const Bits& first_index, const Bits& last_index) const {
 }
 
 
-std::set<Bits> SS_Table::get_all_keys() const {
-    std::set<Bits> keys;
-
+std::vector<Bits> SS_Table::get_all_keys() const {
+    std::vector<Bits> keys;
+    keys.reserve(this -> record_count);
     std::ifstream index_ifstream(this -> index_file, std::ios::binary);
     if(index_ifstream.fail()) {
         throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
@@ -545,7 +545,7 @@ std::set<Bits> SS_Table::get_all_keys() const {
             throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
         }
 
-        keys.insert(current_key);
+        keys.emplace_back(current_key);
     }
 
     if(!offset_ifstream.eof()) {
@@ -555,8 +555,8 @@ std::set<Bits> SS_Table::get_all_keys() const {
     return keys;
 }
 
-std::set<Bits> SS_Table::get_keys_larger_or_equal(const Bits& target_key) const {
-    std::set<Bits> keys;
+std::vector<Bits> SS_Table::get_keys_larger_or_equal(const Bits& target_key) const {
+    std::vector<Bits> keys;
     if(target_key > this -> last_index) {
         return keys;
     }
@@ -564,6 +564,8 @@ std::set<Bits> SS_Table::get_keys_larger_or_equal(const Bits& target_key) const 
     if(target_key <= this -> first_index) {
         return this -> get_all_keys();
     }
+
+    keys.reserve(this -> record_count);
 
     std::ifstream index_ifstream(this -> index_file, std::ios::binary);
     if(index_ifstream.fail()) {
@@ -648,7 +650,7 @@ std::set<Bits> SS_Table::get_keys_larger_or_equal(const Bits& target_key) const 
             throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
         }
 
-        keys.insert(current_key);
+        keys.emplace_back(current_key);
     }
 
     if(!offset_ifstream.eof()) {
@@ -658,8 +660,8 @@ std::set<Bits> SS_Table::get_keys_larger_or_equal(const Bits& target_key) const 
     return keys;
 }
 
-std::set<Bits> SS_Table::get_keys_smaller_or_equal(const Bits& target_key) const {
-    std::set<Bits> keys;
+std::vector<Bits> SS_Table::get_keys_smaller_or_equal(const Bits& target_key) const {
+    std::vector<Bits> keys;
     if(target_key < this -> first_index) {
         return keys;
     }
@@ -667,6 +669,8 @@ std::set<Bits> SS_Table::get_keys_smaller_or_equal(const Bits& target_key) const
     if(this -> last_index <= target_key) {
         return this -> get_all_keys();
     }
+
+    keys.reserve(this -> record_count);
 
     std::ifstream index_ifstream(this -> index_file, std::ios::binary);
     if(index_ifstream.fail()) {
@@ -762,7 +766,7 @@ std::set<Bits> SS_Table::get_keys_smaller_or_equal(const Bits& target_key) const
             throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
         }
 
-        keys.insert(current_key);
+        keys.emplace_back(current_key);
     }
 
     return keys;
