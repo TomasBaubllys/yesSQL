@@ -512,8 +512,8 @@ bool SS_Table::overlap(const Bits& first_index, const Bits& last_index) const {
 }
 
 
-std::vector<std::string> SS_Table::get_all_keys() const {
-    std::vector<std::string> keys;
+std::vector<Bits> SS_Table::get_all_keys() const {
+    std::vector<Bits> keys;
     keys.reserve(this -> record_count);
     std::ifstream index_ifstream(this -> index_file, std::ios::binary);
     if(index_ifstream.fail()) {
@@ -545,7 +545,7 @@ std::vector<std::string> SS_Table::get_all_keys() const {
             throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
         }
 
-        keys.push_back(current_key);
+        keys.emplace_back(current_key);
     }
 
     if(!offset_ifstream.eof()) {
@@ -555,8 +555,8 @@ std::vector<std::string> SS_Table::get_all_keys() const {
     return keys;
 }
 
-std::vector<std::string> SS_Table::get_keys_larger_or_equal(const Bits& target_key) const {
-    std::vector<std::string> keys;
+std::vector<Bits> SS_Table::get_keys_larger_or_equal(const Bits& target_key) const {
+    std::vector<Bits> keys;
     if(target_key > this -> last_index) {
         return keys;
     }
@@ -650,7 +650,7 @@ std::vector<std::string> SS_Table::get_keys_larger_or_equal(const Bits& target_k
             throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
         }
 
-        keys.push_back(current_key);
+        keys.emplace_back(current_key);
     }
 
     if(!offset_ifstream.eof()) {
@@ -660,8 +660,8 @@ std::vector<std::string> SS_Table::get_keys_larger_or_equal(const Bits& target_k
     return keys;
 }
 
-std::vector<std::string> SS_Table::get_keys_smaller_or_equal(const Bits& target_key) const {
-    std::vector<std::string> keys;
+std::vector<Bits> SS_Table::get_keys_smaller_or_equal(const Bits& target_key) const {
+    std::vector<Bits> keys;
     if(target_key < this -> first_index) {
         return keys;
     }
@@ -766,7 +766,7 @@ std::vector<std::string> SS_Table::get_keys_smaller_or_equal(const Bits& target_
             throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
         }
 
-        keys.push_back(current_key);
+        keys.emplace_back(current_key);
     }
 
     return keys;
