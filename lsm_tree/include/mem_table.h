@@ -39,6 +39,8 @@ class MemTable{
         // returns true if total_mem_table_size has exceeded MEM_TABLE_BYTES_MAX_SIZE
         bool is_full();
 
+        std::vector<Bits> get_keys();
+
         // get all entries from AVL tree
         std::vector<Entry> dump_entries();
 

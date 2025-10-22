@@ -72,85 +72,128 @@ bool LSM_Tree::set(std::string key, std::string value){
 
 };
 
-std::vector<std::string> LSM_Tree::get_keys(){
-    // use a set to avoid same keys
+std::set<Bits> LSM_Tree::get_keys(){
     std::vector<Entry> entries = mem_table.dump_entries();
-    std::vector<std::string> keys;
-    keys.reserve(entries.size());
+    std::set<Bits> keys;
 
     for(const Entry& entry : entries){
-        keys.emplace_back(entry.get_key().get_string());
+        keys.emplace(entry.get_key());
     }
-    // add adding keys from ss tables and checking if overlap
-    for(const SS_Table_Controller& ss_table_controller : ss_table_controllers) {
-        
+
+    for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
+        uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
+
+        for(uint16_t i = 0; i < sstable_count; ++i){
+            std::vector<Bits> sstable_keys = ss_table_controller.at(i)->get_all_keys();
+            for(const Bits& key : sstable_keys){
+                keys.emplace(key);
+            }
+        }
     }
 
     return keys;
 };
 
-std::vector<std::string> LSM_Tree::get_keys(std::string prefix){
-    uint32_t string_start_position = 0;
+std::set<Bits> LSM_Tree::get_keys(std::string prefix){
+    const uint32_t string_start_position = 0;
 
     std::vector<Entry> entries = mem_table.dump_entries();
-    std::vector<std::string> keys;
-    
+    std::set<Bits> keys;
 
     for(const Entry& entry : entries){
-        std::string key = entry.get_key().get_string();
-        if(key.rfind("prefix", string_start_position)){
-            keys.push_back(key);
+        Bits key = entry.get_key();
+
+        keys.emplace(entry.get_key());
+
+        if(key.get_string().rfind("prefix", string_start_position)){
+            keys.emplace(key);
         }
     }
-    // add adding keys from ss tables and checking if overlap
+
+    for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
+        uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
+
+        for(uint16_t i = 0; i < sstable_count; ++i){
+            std::vector<Bits> sstable_keys = ss_table_controller.at(i)->get_all_keys();
+            for(const Bits& key : sstable_keys){
+                if(key.get_string().rfind("prefix", string_start_position)){
+                    keys.emplace(key);
+                }
+            }
+        }
+    }
 
     return keys;
 };
 
-std::vector<Entry> LSM_Tree::get_ff(std::string _key){
-    int32_t ff_marker = -1;
+std::set<Entry> LSM_Tree::get_ff(std::string _key){
+    std::set<Entry> ff_entries;
+    Bits key_bits = Bits(_key);
 
-    std::vector<std::string> keys = get_keys();
+    std::vector<Entry> mem_table_entries = mem_table.dump_entries();
 
-    for(uint32_t i = 0; i < keys.size(); ++i){
-        if(keys.at(i) == _key){
-            ff_marker = i;
-            break;
+
+    if(!mem_table_entries.empty() && !(mem_table_entries.back().get_key() < key_bits)){
+        for(const Entry& mem_table_entry : mem_table_entries){
+            if(mem_table_entry.get_key() >= key_bits){
+                ff_entries.emplace(mem_table_entry);
+            }
         }
     }
-    if (ff_marker == -1){
-        // no magical strings
-        std::cerr<<"No key was found";
-    }
-
-    std::vector<Entry> all_entries = mem_table.dump_entries();
-
-    // add adding keys from ss tables and checking if overlap
     
-    return std::vector<Entry>(all_entries.begin() + ff_marker, all_entries.end());
+    for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
+        uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
 
+        for(uint16_t i = 0; i < sstable_count; ++i){
+            const SS_Table* ss_table = ss_table_controller.at(i);
+
+            std::vector<Bits> found_ff_keys = ss_table->get_keys_larger_or_equal(key_bits);
+
+            for(const Bits& ss_table_key : found_ff_keys){
+                bool is_entry_found = false;
+
+                Entry ss_table_found_entry = ss_table->get(ss_table_key, is_entry_found);
+
+                if(is_entry_found){ff_entries.emplace(ss_table_found_entry);}
+            }
+        }
+    }
+    return ff_entries;
 };
 
-std::vector<Entry> LSM_Tree::get_fb(std::string _key){
-    int fb_marker = -1;
+std::set<Entry> LSM_Tree::get_fb(std::string _key){
+    std::set<Entry> fb_entries;
+    Bits key_bits = Bits(_key);
 
-    std::vector<std::string> keys = get_keys();
+    std::vector<Entry> mem_table_entries = mem_table.dump_entries();
 
-    for(uint32_t i = 0; i < keys.size(); ++i){
-        if(keys.at(i) == _key){
-            fb_marker = i;
-            break;
+
+    if(!mem_table_entries.empty() && !(mem_table_entries.front().get_key() > key_bits)){
+        for(const Entry& mem_table_entry : mem_table_entries){
+            if(mem_table_entry.get_key() <= key_bits){
+                fb_entries.emplace(mem_table_entry);
+            }
         }
     }
-    if (fb_marker == -1){
-        std::cerr<<"No key was found";
-    }
-
-    std::vector<Entry> all_entries = mem_table.dump_entries();
-
-    // add adding keys from ss tables and checking if overlap
     
-    return std::vector<Entry>(all_entries.begin(), all_entries.begin() + fb_marker);
+    for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
+        uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
+
+        for(uint16_t i = 0; i < sstable_count; ++i){
+            const SS_Table* ss_table = ss_table_controller.at(i);
+
+            std::vector<Bits> found_fb_keys = ss_table->get_keys_smaller_or_equal(key_bits);
+
+            for(const Bits& ss_table_key : found_fb_keys){
+                bool is_entry_found = false;
+
+                Entry ss_table_found_entry = ss_table->get(ss_table_key, is_entry_found);
+
+                if(is_entry_found){fb_entries.emplace(ss_table_found_entry);}
+            }
+        }
+    }
+    return fb_entries;
 };
 
 bool LSM_Tree::remove(std::string key){
@@ -430,8 +473,6 @@ uint64_t LSM_Tree::get_max_file_limit(){
         }
     #endif
     #ifdef _WIN32
-        int max_io_files = 2048;
-        _setmaxstdio(max_io_files);
         int limit = _getmaxstdio();
         if(limit == -1){
             throw std::runtime_error(LSM_TREE_GETRLIMIT_ERR_MSG);

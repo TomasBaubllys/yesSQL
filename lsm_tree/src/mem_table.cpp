@@ -78,6 +78,16 @@ bool MemTable::is_full(){
     return false;
 };
 
+std::vector<Bits> MemTable::get_keys(){
+    std::vector<Bits> keys;
+
+    for(Entry entry : avl_tree.inorder()){
+        keys.emplace_back(entry.get_key());
+    }
+
+    return keys;
+};
+
 std::vector<Entry> MemTable::dump_entries(){
     std::vector<Entry> results;
     results = avl_tree.inorder();
