@@ -420,11 +420,22 @@ std::pair<uint16_t, double> LSM_Tree::get_max_fill_ratio(){
 
 
 uint64_t LSM_Tree::get_max_file_limit(){
-    struct rlimit limit;
-    if(getrlimit(RLIMIT_NOFILE, &limit) == 0){
-        return limit.rlim_cur;
-    }
-    else{
-        throw std::runtime_error(LSM_TREE_GETRLIMIT_ERR_MSG);
-    }
+    #ifdef __linux__
+        struct rlimit limit;
+        if(getrlimit(RLIMIT_NOFILE, &limit) == 0){
+            return limit.rlim_cur;
+        }
+        else{
+            throw std::runtime_error(LSM_TREE_GETRLIMIT_ERR_MSG);
+        }
+    #endif
+    #ifdef _WIN32
+        int max_io_files = 2048;
+        _setmaxstdio(max_io_files);
+        int limit = _getmaxstdio();
+        if(limit == -1){
+            throw std::runtime_error(LSM_TREE_GETRLIMIT_ERR_MSG);
+        }
+        return static_cast<uint64_t>(limit);
+    #endif
 }

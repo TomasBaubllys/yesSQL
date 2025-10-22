@@ -1,6 +1,10 @@
 #ifndef YSQL_LSM_Tree_H_INCLUDED
 #define YSQL_LSM_Tree_H_INCLUDED
 
+#ifdef __linux__
+    #include <sys/resource.h>
+#endif
+
 #include "bits.h"
 #include "entry.h"
 #include "wal.h"
@@ -9,7 +13,7 @@
 #include <thread>
 #include <limits>
 #include <algorithm>
-#include <sys/resource.h>
+
 #include "../include/min_heap.h"
 #include <cstdint>
 #include <filesystem>
