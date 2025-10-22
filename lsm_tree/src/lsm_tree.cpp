@@ -430,8 +430,8 @@ uint64_t LSM_Tree::get_max_file_limit(){
         }
     #endif
     #ifdef _WIN32
-        int max_io_files = 2048;
-        _setmaxstdio(max_io_files);
+        // int max_io_files = 2048;
+        // _setmaxstdio(max_io_files);
         int limit = _getmaxstdio();
         if(limit == -1){
             throw std::runtime_error(LSM_TREE_GETRLIMIT_ERR_MSG);
