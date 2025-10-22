@@ -87,27 +87,27 @@ class Entry {
     void update_value(Bits _value);
 
     // comparison operators 
-    inline bool operator==(const Entry& other) {
+    inline bool operator==(const Entry& other) const{
 			return this -> key == other.key;
 		};
 
-		inline bool operator>(const Entry& other) {
+		inline bool operator>(const Entry& other) const{
 			return this -> key > other.key;
 		};
 
-		inline bool operator<(const Entry& other) {
+		inline bool operator<(const Entry& other) const{
 			return this -> key < other.key;
 		};	
 
-		inline bool operator!=(const Entry& other) {
+		inline bool operator!=(const Entry& other) const{
 			return this -> key != other.key;
 		};	
 
-		inline bool operator<=(const Entry& other) {
+		inline bool operator<=(const Entry& other) const{
 			return this -> key <= other.key;
 		};
 
-		inline bool operator>=(const Entry& other) {
+		inline bool operator>=(const Entry& other) const{
 			return this -> key >= other.key;
     };
 
