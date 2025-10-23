@@ -12,11 +12,11 @@ class Min_Heap{
 
         struct Heap_Element{
             Bits key;
-            uint16_t level;
-            uint16_t file_index;
+            level_index_type level;
+            table_index_type file_index;
             SS_Table::Keynator* keynator;
 
-            Heap_Element(Bits key, uint16_t level, uint16_t file_index, SS_Table::Keynator* keynator);
+            Heap_Element(Bits key, level_index_type level, table_index_type file_index, SS_Table::Keynator* keynator);
         };
 
     private:
@@ -34,8 +34,7 @@ class Min_Heap{
 
         const Heap_Element& top();
 
-        void push(Bits key, uint16_t level, uint16_t file_index, SS_Table::Keynator* keynator);
-
+        void push(Bits key, level_index_type level, table_index_type file_index, SS_Table::Keynator* keynatorlevel_index_type);
         void pop();
 
         // for when we need to pop all of the elements with the same key

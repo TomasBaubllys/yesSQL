@@ -29,10 +29,10 @@ Bits::Bits(std::vector<uint32_t>& bitstream) {
 };
 
 
-Bits::Bits(std::string bitstream) {
-	this -> arr.reserve(bitstream.length());
-	for(bit_arr_size_type i = 0; i < bitstream.length(); ++i) {
-		this -> arr.push_back(static_cast<uint8_t>(bitstream[i]));
+Bits::Bits(std::string bytestream) {
+	this -> arr.reserve(bytestream.length());
+	for(bit_arr_size_type i = 0; i < bytestream.length(); ++i) {
+		this -> arr.push_back(static_cast<uint8_t>(bytestream[i]));
 	}
 };
 
@@ -58,7 +58,7 @@ std::vector<char> Bits::get_char_vector() const {
 	return ch_arr;
 }
 
-std::string Bits::get_string_char() const {
+std::string Bits::get_string() const {
 	std::string str;
 	
 	for(bit_arr_size_type i = 0; i < this -> arr.size(); ++i) {
@@ -68,7 +68,7 @@ std::string Bits::get_string_char() const {
 	return str;
 }
 
-std::vector<uint32_t> Bits::get_int_array() const {
+std::vector<uint32_t> Bits::get_int_vector() const {
 	uint8_t padding_size = this -> arr.size() % 4;
 	uint32_t int_vec_size = this -> arr.size() / 4;
 
@@ -97,7 +97,7 @@ std::vector<uint32_t> Bits::get_int_array() const {
 	
 }   
 
-void Bits::update_bits(std::vector<uint8_t>& new_bits) {
+void Bits::update_bits(std::vector<uint8_t> new_bits) {
 	if(new_bits.size() != this -> arr.size()) {
 		throw std::length_error(BIT_LEN_UPDATE_ERR);
 
@@ -107,7 +107,7 @@ void Bits::update_bits(std::vector<uint8_t>& new_bits) {
 }
 
 int8_t Bits::compare_to_str(const std::string& other) const {
-	std::string internal_str = this -> get_string_char();
+	std::string internal_str = this -> get_string();
 
 	if(internal_str.length() > other.length()) {
 		return 1;

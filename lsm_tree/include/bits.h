@@ -1,8 +1,3 @@
-/*
-
-Last updated 9/18/2025
-*/
-
 #ifndef YSQL_BITS_H_INCLUDED
 #define YSQL_BITS_H_INCLUDED
 
@@ -15,46 +10,65 @@ Last updated 9/18/2025
 #include <cstdint>
 #include <stdexcept>
 
+// localisation for constant size_type between different systems
 using bit_arr_size_type = std::vector<uint8_t>::size_type;
 
 class Bits {
 	private:
+		//Content Bytes
 		std::vector<uint8_t> arr;
 	public:
-		// constructors, no default constructor exists
-		Bits(std::vector<uint8_t>& bitstream);
-	
-		Bits(std::vector<char>& bitstream);
-	
-		Bits(std::vector<uint32_t>& bitstream);
 		
-		Bits(std::string bitstream);
-	
+		// NO DEFAULT CONSTRUCTOR
+		// Constructors
+		// -------------------------------------
+		Bits(std::vector<uint8_t>& bitstream);
+		Bits(std::vector<char>& bitstream);
+		//@note converts uint32_t to uint8_t
+		Bits(std::vector<uint32_t>& bitstream);
+		Bits(std::string bytestream);
+		// Copy constructor
 		Bits(const Bits& org);
+		// -------------------------------------
 			
-		// desctructor
 		~Bits(); 
 
-		// returns the size of the saved bit array
+		// METHODS
+		// -------------------------------------
+		//@returns the size of the saved bit array
 		bit_arr_size_type size() const;
-		
-		// returns the bits as a character vector
+		//@brief casts saved uint8_t values as char
+		//@returns saved bits as character std::vector
 		std::vector<char> get_char_vector() const;
-
-		// returns the bits as a string
-		std::string get_string_char() const;
-
-		// returns bits as a string containing only 0 and 1s
-		// std::string get_string_bits();
-
-		// returns the bits as and integer vector, if bits dont fill the last integer it will be padded with 0 bits to be interpreted as little endian
-		std::vector<uint32_t> get_int_array() const;
+		//@brief casts saved uint8_t values as char and appends to string
+		//@returns saved bits as string
+		std::string get_string() const;
+		//@returns std::vector<unsigned int>
+		//@note if bits dont fill the last integer it will be padded with 0 bits to be interpreted as little endian 
+		std::vector<uint32_t> get_int_vector() const;
+		//@brief compares Bits object to std::string
+		//@returns 0 if equal, 1 if Bits is greater, -1 if string is greater
+		int8_t compare_to_str(const std::string& other) const;
+		//THROWS
+		//@brief copies input vector<unit8_t> to stored bits
+		//throws std::length_error if input vector.size() is not equal to stored bits arr.size() 
+		//@note new_bits must be the same length as stored bits array length
+		void update_bits(std::vector<uint8_t> new_bits);
+		// -------------------------------------
 		
-		// compares to bit objects bit by bit
+		// OPERATORS
+		// -------------------------------------
+		//@brief uses std::vector == operator
 		inline bool operator==(const Bits& other) const {
 			return this -> arr == other.arr;
 		}
-
+		//@brief uses std::vector != operator
+		inline bool operator!=(const Bits& other) const {
+			return this -> arr != other.arr;
+		}		
+		//@brief compares std::vector.size() between Bits
+		//@returns true if this.arr.size() > other.arr.size()
+		//@note if size of Bits arr is equal, compares values
 		inline bool operator>(const Bits& other) const {
 			if(this -> arr.size() > other.arr.size()) {
 				return true;
@@ -65,7 +79,9 @@ class Bits {
 
 			return this -> arr > other.arr;
 		}	
-
+		//@brief compares std::vector.size() between Bits
+		//@returns true if this.arr.size() < other.arr.size()
+		//@note if size of Bits arr is equal, compares values
 		inline bool operator<(const Bits& other) const {
 			if(this -> arr.size() > other.arr.size()) {
 				return false;
@@ -77,11 +93,9 @@ class Bits {
 
 			return this -> arr < other.arr;
 		}		
-
-		inline bool operator!=(const Bits& other) const {
-			return this -> arr != other.arr;
-		}		
-
+		//@brief compares std::vector.size() between Bits
+		//@returns true if this.arr.size() < other.arr.size()
+		//@note if size of Bits arr is equal, compares values using std::vector <= operator
 		inline bool operator<=(const Bits& other) const {
 			if(this -> arr.size() > other.arr.size()) {
 				return false;
@@ -92,7 +106,9 @@ class Bits {
 
 			return this -> arr <= other.arr;
 		}	
-
+		//@brief compares std::vector.size() between Bits
+		//@returns true if this.arr.size() > other.arr.size()
+		//@note if size of Bits arr is equal, compares values using std::vector >= operator
 		inline bool operator>=(const Bits& other) const {
 			if(this -> arr.size() > other.arr.size()) {
 				return true;
@@ -104,12 +120,7 @@ class Bits {
 			return this -> arr >= other.arr;
 
 		}
-
-		// returns 0 if equal, 1 if Bits is greater, -1 if string is greater
-		int8_t compare_to_str(const std::string& other) const;
-
-		// update the bitstream !throws!
-		void update_bits(std::vector<uint8_t>& new_bits);
+		// -------------------------------------
 };
 
 #endif

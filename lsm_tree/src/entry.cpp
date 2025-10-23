@@ -3,8 +3,8 @@
 #include <stdexcept>
 
 void Entry::calculate_checksum(){
-    std::string key_string = key.get_string_char();
-    std::string value_string = value.get_string_char();
+    std::string key_string = key.get_string();
+    std::string value_string = value.get_string();
     
     std::string string_to_hash = key_string;
     string_to_hash += value_string;
@@ -110,9 +110,9 @@ std::ostringstream Entry::get_ostream_bytes(){
     ostream_bytes.write(reinterpret_cast<const char*>(&entry_length), sizeof(entry_length));
     ostream_bytes.write(reinterpret_cast<const char*>(&tombstone_flag), sizeof(tombstone_flag));
     ostream_bytes.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
-    ostream_bytes.write(key.get_string_char().data(), key_size);
+    ostream_bytes.write(key.get_string().data(), key_size);
     ostream_bytes.write(reinterpret_cast<const char*>(&value_size), sizeof(value_size));
-    ostream_bytes.write(value.get_string_char().data(), value_size);
+    ostream_bytes.write(value.get_string().data(), value_size);
     ostream_bytes.write(reinterpret_cast<const char*>(&checksum), sizeof(checksum));
     
 
@@ -122,7 +122,7 @@ std::ostringstream Entry::get_ostream_bytes(){
 std::string Entry::get_string_data_bytes() const {
 
     value_len_type value_len = this -> value.size();
-    std::string value_str = this -> value.get_string_char();
+    std::string value_str = this -> value.get_string();
 
     // key_len_type key_size = this -> key.size();
     // value_len_type value_size = this -> value.size();
@@ -155,7 +155,7 @@ std::string Entry::get_string_data_bytes() const {
 
 std::string Entry::get_string_key_bytes() const {
     key_len_type key_size = this -> key.size();
-    std::string key_str = this -> key.get_string_char();
+    std::string key_str = this -> key.get_string();
     std::string raw_bytes(key_size, '\0');
 
     char* ptr = raw_bytes.data();
@@ -246,8 +246,8 @@ Entry::Entry(std::string& file_entry_key, std::string& file_entry_data) : key(EN
 
 
 bool Entry::check_checksum() {
-    std::string string_to_hash = this -> key.get_string_char();
-    string_to_hash += this -> value.get_string_char();
+    std::string string_to_hash = this -> key.get_string();
+    string_to_hash += this -> value.get_string();
     uint32_t new_checksum = crc32(string_to_hash);
 
     return this -> checksum == new_checksum;

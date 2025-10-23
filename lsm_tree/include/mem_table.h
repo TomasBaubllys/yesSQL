@@ -4,7 +4,7 @@
 #include "avl_tree.h"
 #include "entry.h"
 
-#define MEM_TABLE_BYTES_MAX_SIZE 1000000
+#define MEM_TABLE_BYTES_MAX_SIZE 1000000 // 1mb, (rocksDB uses 64mb)
 
 class MemTable{
     private:
@@ -39,10 +39,13 @@ class MemTable{
         // returns true if total_mem_table_size has exceeded MEM_TABLE_BYTES_MAX_SIZE
         bool is_full();
 
+        std::vector<Bits> get_keys();
+
         // get all entries from AVL tree
         std::vector<Entry> dump_entries();
 
-    
+        // clears the internal entries of the mem_table
+        void make_empty();
 };
 
 #endif
