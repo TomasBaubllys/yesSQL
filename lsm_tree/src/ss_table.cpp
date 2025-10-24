@@ -511,7 +511,6 @@ bool SS_Table::overlap(const Bits& first_index, const Bits& last_index) const {
     return !(last_index < this -> first_index || first_index > this -> last_index);
 }
 
-
 std::vector<Bits> SS_Table::get_keys_smaller_or_equal(const Bits& target_key) const {
     return this -> get_keys_smaller_or_equal(target_key, SS_TABLE_ALL_KEYS);
 }
