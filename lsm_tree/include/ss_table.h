@@ -163,19 +163,19 @@ class SS_Table{
         std::vector<Bits> get_all_keys() const;
 
         //THROWS
-        std::vector<Bits> get_keys_larger_or_equal(const Bits& key) const;
+        std::vector<Bits> get_keys_larger_or_equal(const Bits& target_key) const;
 
         //THROWS
-        std::vector<Bits> get_keys_smaller_or_equal(const Bits& key) const;
+        std::vector<Bits> get_keys_smaller_or_equal(const Bits& target_key) const;
 
         // THROWS
         std::vector<Bits> get_all_keys_alive() const;
 
         //THROWS
-        std::vector<Bits> get_keys_larger_or_equal_alive(const Bits& key) const;
+        std::vector<Bits> get_keys_larger_or_equal_alive(const Bits& target_key) const;
 
         //THROWS
-        std::vector<Bits> get_keys_smaller_or_equal_alive(const Bits& key) const;
+        std::vector<Bits> get_keys_smaller_or_equal_alive(const Bits& target_key) const;
 
 };
 
