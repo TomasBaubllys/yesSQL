@@ -168,6 +168,15 @@ class SS_Table{
         //THROWS
         std::vector<Bits> get_keys_smaller_or_equal(const Bits& key) const;
 
+        // THROWS
+        std::vector<Bits> get_all_keys_alive() const;
+
+        //THROWS
+        std::vector<Bits> get_keys_larger_or_equal_alive(const Bits& key) const;
+
+        //THROWS
+        std::vector<Bits> get_keys_smaller_or_equal_alive(const Bits& key) const;
+
 };
 
 enum SS_Table_Stop_Writting_Error_Code {

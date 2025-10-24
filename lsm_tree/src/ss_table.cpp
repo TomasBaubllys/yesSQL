@@ -771,3 +771,86 @@ std::vector<Bits> SS_Table::get_keys_smaller_or_equal(const Bits& target_key) co
 
     return keys;
 }
+
+std::vector<Bits> SS_Table::get_all_keys_alive() const {
+    std::vector<Bits> keys;
+    
+    keys.reserve(this -> record_count);
+    std::ifstream index_ifstream(this -> index_file, std::ios::binary);
+    if(index_ifstream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+    }
+
+    std::ifstream offset_ifstream(this -> index_offset_file, std::ios::binary);
+    if(offset_ifstream.fail()){
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
+    }
+
+    std::ifstream data_ifstream(this -> data_file, std::ios::binary);
+    if(data_ifstream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
+    }
+
+    uint64_t current_key_offset = 0;
+
+    while(offset_ifstream.read(reinterpret_cast<char*>(&current_key_offset), sizeof(current_key_offset))) {
+        index_ifstream.seekg(current_key_offset, index_ifstream.beg);
+        if(index_ifstream.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+        }
+
+        key_len_type current_key_length = 0;
+        index_ifstream.read(reinterpret_cast<char*>(&current_key_length), sizeof(current_key_length));
+        if(index_ifstream.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+        }
+
+        std::string current_key(current_key_length, '\0');
+        index_ifstream.read(&current_key[0], current_key_length);
+        if(index_ifstream.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+        }
+
+        // read the data offset
+        uint64_t current_data_offset = 0;
+        index_ifstream.read(reinterpret_cast<char*>(&current_data_offset), sizeof(current_data_offset));
+        if(index_ifstream.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+        }
+
+        data_ifstream.seekg(current_data_offset, data_ifstream.beg);
+        if(data_ifstream.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+        }
+        // read the data itself 
+        uint64_t current_data_size = 0;
+        data_ifstream.read(reinterpret_cast<char*>(&current_data_size), sizeof(current_data_size));
+        if(data_ifstream.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+        }
+
+        std::string current_data(current_data_size, '\0');
+        data_ifstream.read(&current_data[0], current_data_size);
+        if(data_ifstream.fail()) {
+            throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+        }
+        // check the tombstone flag
+        Entry current_entry(current_data, current_key);
+        if(!current_entry.is_deleted()) {
+            keys.emplace_back(current_key);
+        }
+    }
+
+    if(!offset_ifstream.eof()) {
+        throw std::runtime_error(SS_TABLE_PARTIAL_READ_ERR_MSG);
+    }
+    return keys;
+}
+
+std::vector<Bits> SS_Table::get_keys_larger_or_equal_alive(const Bits& key) const {
+
+}
+
+std::vector<Bits> SS_Table::get_keys_smaller_or_equal_alive(const Bits& key) const {
+
+}
