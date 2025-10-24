@@ -65,6 +65,16 @@ class SS_Table{
         // the stringstream can be used directly to construct an entry after reading the key
         std::string read_stream_at_offset(uint64_t& offset) const;
 
+        // THROWS
+        // returns the key index of the key that is <= than the target key
+        // if ifstreams are not open, opens them
+        uint64_t binary_search_smaller_or_equal(std::ifstream& index_ifstream, std::ifstream& offset_ifstream, const Bits& target_key) const;
+
+         // THROWS
+        // returns the key index of the key that is >= than the target key
+        // if ifstreams are not open, opens them
+        uint64_t binary_search_larger_or_equal(std::ifstream& index_ifstream, std::ifstream& offset_ifstream, const Bits& target_key) const;
+
     public:
         std::filesystem::path data_path() const;
         std::filesystem::path index_path() const;
