@@ -40,6 +40,19 @@
 using table_index_type = uint16_t;
 using level_index_type = uint16_t;
 
+enum SS_Table_Stop_Writting_Error_Code {
+    DATA_CLOSE_FAILED = 1,
+    INDEX_CLOSE_FAILED,
+    INDEX_OFFSET_CLOSE_FAILED
+};
+
+#define SS_TABLE_BINARY_SEARCH_UNKNOWN_TYPE_ERR_MSG "Unknown argument for SS_Table binary search\n"
+
+enum SS_Table_Binary_Search_Type {
+    SS_TABLE_LARGER_OR_EQUAL,
+    SS_TABLE_SMALLER_OR_EQUAL
+};
+
 class SS_Table{
     private:
         const std::filesystem::path data_file;
@@ -66,14 +79,9 @@ class SS_Table{
         std::string read_stream_at_offset(uint64_t& offset) const;
 
         // THROWS
-        // returns the key index of the key that is <= than the target key
+        // returns the key index of the key that is larger or smaller than the key depending on the type than the target key
         // if ifstreams are not open, opens them
-        uint64_t binary_search_smaller_or_equal(std::ifstream& index_ifstream, std::ifstream& offset_ifstream, const Bits& target_key) const;
-
-         // THROWS
-        // returns the key index of the key that is >= than the target key
-        // if ifstreams are not open, opens them
-        uint64_t binary_search_larger_or_equal(std::ifstream& index_ifstream, std::ifstream& offset_ifstream, const Bits& target_key) const;
+        uint64_t binary_search_nearest(std::ifstream& index_ifstream, std::ifstream& offset_ifstream, const Bits& target_key, SS_Table_Binary_Search_Type search_type) const;
 
     public:
         std::filesystem::path data_path() const;
@@ -187,12 +195,6 @@ class SS_Table{
         //THROWS
         std::vector<Bits> get_keys_smaller_or_equal_alive(const Bits& target_key) const;
 
-};
-
-enum SS_Table_Stop_Writting_Error_Code {
-    DATA_CLOSE_FAILED = 1,
-    INDEX_CLOSE_FAILED,
-    INDEX_OFFSET_CLOSE_FAILED
 };
 
 

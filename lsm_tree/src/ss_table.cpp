@@ -577,7 +577,7 @@ std::vector<Bits> SS_Table::get_keys_larger_or_equal(const Bits& target_key) con
         throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
     }
 
-    uint64_t larger_equal_index = this -> binary_search_larger_or_equal(index_ifstream, offset_ifstream, target_key);
+    uint64_t larger_equal_index = this -> binary_search_nearest(index_ifstream, offset_ifstream, target_key, SS_TABLE_LARGER_OR_EQUAL);
 
     // left == record_count -> not found HARD ERROR MEANS LAST_INDEX WAS BAD
     if(larger_equal_index == this -> record_count) {
@@ -640,7 +640,7 @@ std::vector<Bits> SS_Table::get_keys_smaller_or_equal(const Bits& target_key) co
         throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
     }
 
-    uint64_t smaller_equal_index = this -> binary_search_smaller_or_equal(index_ifstream, offset_ifstream, target_key);
+    uint64_t smaller_equal_index = this -> binary_search_nearest(index_ifstream, offset_ifstream, target_key, SS_TABLE_SMALLER_OR_EQUAL);
 
     // read all the keys from start to current offset and write to vector
     // left is > target
@@ -786,7 +786,7 @@ std::vector<Bits> SS_Table::get_keys_larger_or_equal_alive(const Bits& target_ke
         throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
     }
 
-    uint64_t larger_equal_index = this -> binary_search_larger_or_equal(index_ifstream, offset_ifstream, target_key);
+    uint64_t larger_equal_index = this -> binary_search_nearest(index_ifstream, offset_ifstream, target_key, SS_TABLE_LARGER_OR_EQUAL);
 
     // left == record_count -> not found HARD ERROR MEANS LAST_INDEX WAS BAD
     if(larger_equal_index == this -> record_count) {
@@ -880,7 +880,7 @@ std::vector<Bits> SS_Table::get_keys_smaller_or_equal_alive(const Bits& target_k
         throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
     }
 
-    uint64_t smaller_equal_index = this -> binary_search_smaller_or_equal(index_ifstream, offset_ifstream, target_key);
+    uint64_t smaller_equal_index = this -> binary_search_nearest(index_ifstream, offset_ifstream, target_key, SS_TABLE_SMALLER_OR_EQUAL);
 
     // read all the keys from start to current offset and write to vector
     // left is > target
@@ -965,70 +965,7 @@ std::vector<Bits> SS_Table::get_keys_smaller_or_equal_alive(const Bits& target_k
     return keys;
 }
 
-uint64_t SS_Table::binary_search_smaller_or_equal(std::ifstream& index_ifstream, std::ifstream& offset_ifstream, const Bits& target_key) const {
-    if(!index_ifstream.is_open()) {
-        index_ifstream.open(this -> index_file, std::ios::binary);
-
-        if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
-        }
-    }
-
-    if(!offset_ifstream.is_open()) {
-        offset_ifstream.open(this -> index_offset_file, std::ios::binary);
-
-        if(offset_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
-        }
-    }
-
-    uint64_t binary_search_left = 0;
-    uint64_t binary_search_right = this -> record_count;
-    // binary search to find the first key equal or smaller than
-    // read all the keys from there and return as a vector
-    while(binary_search_left < binary_search_right) {
-        uint64_t binary_search_middle = (binary_search_left + binary_search_right) / 2;
-        offset_ifstream.seekg(binary_search_middle * sizeof(uint64_t), std::ios::beg);
-        if(offset_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
-        }
-
-        uint64_t search_key_offset = 0;
-        offset_ifstream.read(reinterpret_cast<char*>(&search_key_offset), sizeof(search_key_offset));
-        if(offset_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
-        }
-
-        index_ifstream.seekg(search_key_offset, index_ifstream.beg);
-        if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
-        }
-
-        key_len_type key_length = 0;
-        index_ifstream.read(reinterpret_cast<char*>(&key_length), sizeof(key_length));
-        if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
-        }
-
-        std::string current_key_string(key_length, '\0');
-        index_ifstream.read(&current_key_string[0], key_length);
-        if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
-        }
-
-        Bits current_key(current_key_string);
-        if(current_key <= target_key) {
-            binary_search_left = binary_search_middle + 1;
-        }
-        else {
-            binary_search_right = binary_search_middle;
-        }
-    }
-
-    return binary_search_left;
-}
-
-uint64_t SS_Table::binary_search_larger_or_equal(std::ifstream& index_ifstream, std::ifstream& offset_ifstream, const Bits& target_key) const {
+uint64_t SS_Table::binary_search_nearest(std::ifstream& index_ifstream, std::ifstream& offset_ifstream, const Bits& target_key, SS_Table_Binary_Search_Type search_type) const {
     if(!index_ifstream.is_open()) {
         index_ifstream.open(this -> index_file, std::ios::binary);
 
@@ -1080,11 +1017,26 @@ uint64_t SS_Table::binary_search_larger_or_equal(std::ifstream& index_ifstream, 
         }
 
         Bits current_key(current_key_string);
-        if(current_key < target_key) {
-            binary_search_left = binary_search_middle + 1;
-        }
-        else {
-            binary_search_right = binary_search_middle;
+        switch(search_type) {
+            case SS_TABLE_LARGER_OR_EQUAL:
+                if(current_key < target_key) {
+                    binary_search_left = binary_search_middle + 1;
+                }
+                else {
+                    binary_search_right = binary_search_middle;
+                }
+                break;
+            case SS_TABLE_SMALLER_OR_EQUAL:
+                if(current_key <= target_key) {
+                    binary_search_left = binary_search_middle + 1;
+                }
+                else {
+                    binary_search_right = binary_search_middle;
+                }
+                break;
+            default:
+                throw std::runtime_error(SS_TABLE_BINARY_SEARCH_UNKNOWN_TYPE_ERR_MSG);
+                break;
         }
     }
 
