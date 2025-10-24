@@ -53,6 +53,11 @@ enum SS_Table_Binary_Search_Type {
     SS_TABLE_SMALLER_OR_EQUAL
 };
 
+enum SS_Table_Entry_State {
+    SS_TABLE_ENTRY_DEAD,
+    SS_TABLE_ENTRY_ALIVE
+};
+
 class SS_Table{
     private:
         const std::filesystem::path data_file;
