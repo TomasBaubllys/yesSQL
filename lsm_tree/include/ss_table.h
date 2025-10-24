@@ -48,14 +48,14 @@ enum SS_Table_Stop_Writting_Error_Code {
 
 #define SS_TABLE_BINARY_SEARCH_UNKNOWN_TYPE_ERR_MSG "Unknown argument for SS_Table binary search\n"
 
-enum SS_Table_Binary_Search_Type {
+enum SS_Table_Binary_Search_Type : uint8_t {
     SS_TABLE_LARGER_OR_EQUAL,
     SS_TABLE_SMALLER_OR_EQUAL
 };
 
-enum SS_Table_Entry_State {
-    SS_TABLE_ENTRY_DEAD,
-    SS_TABLE_ENTRY_ALIVE
+enum SS_Table_Key_Filter : uint8_t {
+    SS_TABLE_ALL_KEYS,
+    SS_TABLE_ALIVE_KEYS
 };
 
 class SS_Table{
@@ -87,6 +87,14 @@ class SS_Table{
         // returns the key index of the key that is larger or smaller than the key depending on the type than the target key
         // if ifstreams are not open, opens them
         uint64_t binary_search_nearest(std::ifstream& index_ifstream, std::ifstream& offset_ifstream, const Bits& target_key, SS_Table_Binary_Search_Type search_type) const;
+
+        std::vector<Bits> get_keys_larger_or_equal(const Bits& target_key, SS_Table_Key_Filter key_filter) const;
+
+        //THROWS
+        std::vector<Bits> get_keys_smaller_or_equal(const Bits& target_key, SS_Table_Key_Filter key_filter) const;
+
+        std::vector<Bits> get_all_keys(SS_Table_Key_Filter key_filter) const;
+
 
     public:
         std::filesystem::path data_path() const;
