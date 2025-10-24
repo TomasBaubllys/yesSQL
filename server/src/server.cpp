@@ -8,14 +8,22 @@ Server::Server(uint32_t port) : port(port) {
 		// throw error
 	}
 
+	// set server options to reuse addresses if a crash happens
+	int32_t options = 1;
+
+	if(setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &options, sizeof(options))) {
+		perror("setsockopt");
+	}
+
+
 }
 
 int8_t Server::start() {
-	int32_t server_fd;
+	// int32_t server_fd;
 	int32_t new_socket;
 	struct sockaddr_in address;
 	uint32_t address_length = sizeof(address);
-	int32_t options = 1;
+	// int32_t options = 1;
 
 	// const char* msg = "Hello from YSQL server\n";
 
@@ -26,10 +34,6 @@ int8_t Server::start() {
 	}*/
 
 	// set socket options
-	if(setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &options, sizeof(options))) {
-		perror("setsockopt");
-		return -1;
-	}
 
 	// bind address to port
 	address.sin_family = AF_INET;
