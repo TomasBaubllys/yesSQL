@@ -27,107 +27,130 @@
 #define ENTRY_TOMBSTONE_OFF 0
 #define ENTRY_TOMBSTONE_ON 1
 
+// localisation for constant size_type between different systems
 using key_len_type = uint16_t;
 using value_len_type = uint32_t;
 
 class Entry {
-  private:
-    uint64_t entry_length;
-    uint8_t tombstone_flag;
-    Bits key;
-    Bits value;
-    uint32_t checksum;
+	private:
+		uint64_t entry_length;
+		uint8_t tombstone_flag;
+		Bits key;
+		Bits value;
+		uint32_t checksum;
 
-    // uses cr32 hashing to calculate the ckecsum by concatenating the string conversions of key and value 
-    void calculate_checksum();
+		//@brief uses crc32 hashing to calculate the checksum by concatenating the string conversions of key and value
+		//@note updates the checksum member variable
+		void calculate_checksum();
 
-    // calculates the length of the entry in Bytes
-    void calculate_entry_length();
+		//@brief calculates the length of the entry in Bytes
+		//@note includes sizes of: entry_length, tombstone_flag, key_size, key data, value_size, value data, and checksum
+		void calculate_entry_length();
 
-  public:
+	public:
+		
+		// NO DEFAULT CONSTRUCTOR
+		// Constructors
+		// -------------------------------------
 
-    // constructor, no default constructor exists
-    // THROWS
-    Entry (Bits _key, Bits _value);
+		//THROWS
+		//@brief constructs Entry from Bits key and value
+		//@throws std::length_error if _key.size() > ENTRY_MAX_KEY_LEN
+		//@throws std::length_error if _value.size() > ENTRY_MAX_VALUE_LEN
+		//@note automatically calculates checksum and entry_length, sets tombstone_flag to 0
+		Entry(Bits _key, Bits _value);
+		// Copy constructor
+		Entry(const Entry& other);
+		//THROWS
+		//@brief constructs Entry from stringstream containing serialized entry data
+		//@throws std::runtime_error if any field fails to read from stream
+		//@note reads in order: entry_length, tombstone_flag, key_size, key data, value_size, value data, checksum
+		Entry(std::stringstream& file_entry);
+		//THROWS
+		//@brief constructs Entry from separate key and data strings
+		//@throws std::runtime_error if file_entry_key is empty
+		//@throws std::runtime_error if file_entry_data is too short for expected fields
+		//@note data string contains: tombstone_flag, value_size, value data, checksum (excludes key data)
+		Entry(std::string& file_entry_key, std::string& file_entry_data);
+		// -------------------------------------
+			
+		~Entry();
 
-    // copy constructor
-    Entry(const Entry& other);
+		// METHODS
+		// -------------------------------------
 
-    // THROWS
-    Entry(std::stringstream& file_entry);
+		//@returns the size of the entry length in Bytes
+		uint64_t get_entry_length();
+		//@returns true if the entry is marked for deletion (tombstone_flag is set)
+		bool is_deleted();
+		//@returns key as Bits class
+		Bits get_key() const;
+		//@returns value as Bits class
+		Bits get_value() const;
+		//@returns checksum as uint32_t
+		uint32_t get_checksum();
+		//@brief inverts current tombstone_flag value
+		//@note toggles between ENTRY_TOMBSTONE_ON and ENTRY_TOMBSTONE_OFF
+		void set_tombstone();
+		//@brief sets tombstone_flag to _tombstone_flag value
+		//@note converts bool to ENTRY_TOMBSTONE_ON (true) or ENTRY_TOMBSTONE_OFF (false)
+		void set_tombstone(bool _tombstone_flag);
+		//@brief sets new value and recalculates checksum and entry_length
+		void update_value(Bits _value);
+		//@returns true if checksum is still valid, false if data corruption appeared
+		//@note recalculates checksum from current key and value, compares with stored checksum
+		bool check_checksum();
+		//@returns the length of the saved key as key_len_type (uint16_t)
+		key_len_type get_key_length() const;
+		//@brief serializes complete entry to ostringstream
+		//@returns ostringstream containing: entry_length, tombstone_flag, key_size, key data, value_size, value data, checksum
+		std::ostringstream get_ostream_bytes();
+		//@brief serializes entry data without key to string using memcpy
+		//@returns string containing: tombstone_flag, value_size, value data, checksum
+		//@note excludes entry_length and key fields
+		std::string get_string_data_bytes() const;
+		//@brief serializes key bytes only to string using memcpy
+		//@returns string containing raw key data
+		std::string get_string_key_bytes() const;
+		// -------------------------------------
 
-    // THROWS
-    Entry(std::string& file_entry_key, std::string& file_entry_data);
+		// OPERATORS
+		// -------------------------------------
 
-    // desctructor
-    ~Entry();
-
-    // returns the size of the entry length in Bytes
-    uint64_t get_entry_length();
-
-    // returns true if the entry is marked for deletion
-    bool is_deleted();
-
-    // returns key as Bits class
-    Bits get_key() const;
-    
-    // returns value as Bits class
-    Bits get_value() const;
-
-    // returns checksum as Bytes
-    uint32_t get_checksum();
-
-    // function inverts current tombstone_flag value
-    void set_tombstone();
-
-    // function sets tombstone_flag to is_deleted value
-    void set_tombstone(bool _tombstone_flag);
-
-    // sets new value and calculates new checksum
-    void update_value(Bits _value);
-
-    // comparison operators 
-    inline bool operator==(const Entry& other) const{
+		//@brief compares Entry objects using key
+		//@note uses Bits == operator
+		inline bool operator==(const Entry& other) const {
 			return this -> key == other.key;
-		};
-
-		inline bool operator>(const Entry& other) const{
-			return this -> key > other.key;
-		};
-
-		inline bool operator<(const Entry& other) const{
-			return this -> key < other.key;
-		};	
-
-		inline bool operator!=(const Entry& other) const{
+		}
+		//@brief compares Entry objects using key
+		//@note uses Bits != operator
+		inline bool operator!=(const Entry& other) const {
 			return this -> key != other.key;
-		};	
-
-		inline bool operator<=(const Entry& other) const{
+		}
+		//@brief compares Entry objects using key
+		//@note uses Bits > operator
+		inline bool operator>(const Entry& other) const {
+			return this -> key > other.key;
+		}
+		//@brief compares Entry objects using key
+		//@note uses Bits < operator
+		inline bool operator<(const Entry& other) const {
+			return this -> key < other.key;
+		}
+		//@brief compares Entry objects using key
+		//@note uses Bits <= operator
+		inline bool operator<=(const Entry& other) const {
 			return this -> key <= other.key;
-		};
-
-		inline bool operator>=(const Entry& other) const{
+		}
+		//@brief compares Entry objects using key
+		//@note uses Bits >= operator
+		inline bool operator>=(const Entry& other) const {
 			return this -> key >= other.key;
-    };
-
-    // copy operator
-    Entry operator=(const Entry& other);
-
-    //function to dump bytes
-    std::ostringstream get_ostream_bytes();
-
-    // function to dump bytes except key
-    std::string get_string_data_bytes() const;
-
-    // function to dump key bytes only
-    std::string get_string_key_bytes() const;
-
-    // returns true if checksum is still valid, false if data corruption appeared
-    bool check_checksum();
-
-    // returns the length of the saved key
-    key_len_type get_key_length() const;
+		}
+		//@brief copy assignment operator
+		//@returns reference to this Entry
+		Entry operator=(const Entry& other);
+		// -------------------------------------
 };
 
 #endif
