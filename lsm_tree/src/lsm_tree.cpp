@@ -38,16 +38,12 @@ bool LSM_Tree::set(std::string key, std::string value){
 
     Entry entry(key_bits, value_bits);
 
-    mem_table.insert_entry(entry);
     try{
-        std::thread thread_1(&Wal::append_entry,&write_ahead_log, entry.get_ostream_bytes());
-        std::thread thread_2(&Mem_Table::insert_entry, &mem_table, entry);
-
-        thread_1.join();
-        thread_2.join();
-
+        write_ahead_log.append_entry(entry.get_ostream_bytes());
+        mem_table.insert_entry(entry);
     }
-    catch(std::exception& e){
+    catch(const std::exception& e){
+        std::cerr<< e.what() <<std::endl;
         return false;
     }
 
@@ -55,12 +51,7 @@ bool LSM_Tree::set(std::string key, std::string value){
         try{
             flush_mem_table();
             this -> mem_table.make_empty();
-
-            // mem_table.~Mem_Table();
             write_ahead_log.clear_entries();
-
-            // mem_table = Mem_Table();
-
         }
         catch(const std::exception& e){
             std::cerr << e.what() << std::endl;
@@ -197,33 +188,29 @@ std::set<Entry> LSM_Tree::get_fb(std::string _key){
 };
 
 bool LSM_Tree::remove(std::string key){
+
     try{
         Entry entry = get(key);
 
         if(!entry.is_deleted()){
             entry.set_tombstone(true);
         }
-        
-        std::thread thread_1(&Wal::append_entry, &write_ahead_log, entry.get_ostream_bytes());
-        std::thread thread_2(&Mem_Table::insert_entry, &mem_table, entry);
-
-        thread_1.join();
-        thread_2.join();
+        write_ahead_log.append_entry(entry.get_ostream_bytes());
+        mem_table.insert_entry(entry);
     }
-    catch(std::exception& e){
+    catch(const std::exception& e){
+        std::cerr<< e.what() <<std::endl;
         return false;
     }
-
 
     if(mem_table.is_full()){
         try{
             flush_mem_table();
-
             mem_table.make_empty();
             write_ahead_log.clear_entries();
-
         }
         catch(const std::exception& e){
+            std::cerr<< e.what() <<std::endl;
             return false;
         }        
     }
@@ -234,11 +221,11 @@ bool LSM_Tree::remove(std::string key){
 
 // LSM_Tree
 // To do:
-// SSTable rasymas is Mem_Table
+// SSTable rasymas is MemTable
 // SSTable skaitymas
 // GET <key>
 // SET <key> <value>
-// Multithread SET method to write into WAL and Mem_Table at the same time
+// Multithread SET method to write into WAL and MemTable at the same time
 // GETKEYS - grąžina visus raktus
 // GETKEYS <prefix> - grąžina visus raktus su duota pradžia
 // GETFF <key> - gauti raktų reikšmių poras nuo key
