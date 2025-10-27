@@ -2,7 +2,7 @@
 
 LSM_Tree::LSM_Tree(){
     write_ahead_log = Wal();
-    mem_table = MemTable();
+    mem_table = Mem_Table();
     max_files_count = get_max_file_limit();
 };
 
@@ -41,7 +41,7 @@ bool LSM_Tree::set(std::string key, std::string value){
     mem_table.insert_entry(entry);
     try{
         std::thread thread_1(&Wal::append_entry,&write_ahead_log, entry.get_ostream_bytes());
-        std::thread thread_2(&MemTable::insert_entry, &mem_table, entry);
+        std::thread thread_2(&Mem_Table::insert_entry, &mem_table, entry);
 
         thread_1.join();
         thread_2.join();
@@ -56,10 +56,10 @@ bool LSM_Tree::set(std::string key, std::string value){
             flush_mem_table();
             this -> mem_table.make_empty();
 
-            // mem_table.~MemTable();
+            // mem_table.~Mem_Table();
             write_ahead_log.clear_entries();
 
-            // mem_table = MemTable();
+            // mem_table = Mem_Table();
 
         }
         catch(const std::exception& e){
@@ -205,7 +205,7 @@ bool LSM_Tree::remove(std::string key){
         }
         
         std::thread thread_1(&Wal::append_entry, &write_ahead_log, entry.get_ostream_bytes());
-        std::thread thread_2(&MemTable::insert_entry, &mem_table, entry);
+        std::thread thread_2(&Mem_Table::insert_entry, &mem_table, entry);
 
         thread_1.join();
         thread_2.join();
@@ -234,11 +234,11 @@ bool LSM_Tree::remove(std::string key){
 
 // LSM_Tree
 // To do:
-// SSTable rasymas is MemTable
+// SSTable rasymas is Mem_Table
 // SSTable skaitymas
 // GET <key>
 // SET <key> <value>
-// Multithread SET method to write into WAL and MemTable at the same time
+// Multithread SET method to write into WAL and Mem_Table at the same time
 // GETKEYS - grąžina visus raktus
 // GETKEYS <prefix> - grąžina visus raktus su duota pradžia
 // GETFF <key> - gauti raktų reikšmių poras nuo key
