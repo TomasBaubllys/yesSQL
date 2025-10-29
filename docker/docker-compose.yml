@@ -1,0 +1,131 @@
+
+services:
+  main_server:
+    image: main_server
+    container_name: main_server
+    build:
+      context: .
+      dockerfile: docker/main_server/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_NAME=Main_Server
+    depends_on:
+      - partition_server1
+      - partition_server2
+      - partition_server3
+      - partition_server4
+      - partition_server5
+      - partition_server6
+      - partition_server7
+      - partition_server8
+    networks:
+      - internal_net
+
+  partition_server1:
+    image: partition_server
+    container_name: partition_server1
+    build:
+      context: .
+      dockerfile: docker/partition_server/Dockerfile
+    expose:
+      - "9001"
+    environment:
+      - SERVER_NAME=Partition_Server1
+    networks:
+      - internal_net
+
+  partition_server2:
+    image: partition_server
+    container_name: partition_server2
+    build:
+      context: .
+      dockerfile: docker/partition_server/Dockerfile
+    expose:
+      - "9002"
+    environment:
+      - SERVER_NAME=Partition_Server2
+    networks:
+      - internal_net
+
+  partition_server3:
+    image: partition_server
+    container_name: partition_server3
+    build:
+      context: .
+      dockerfile: docker/partition_server/Dockerfile
+    expose:
+      - "9003"
+    environment:
+      - SERVER_NAME=Partition_Server3
+    networks:
+      - internal_net
+
+  partition_server4:
+    image: partition_server
+    container_name: partition_server4
+    build:
+      context: .
+      dockerfile: docker/partition_server/Dockerfile
+    expose:
+      - "9004"
+    environment:
+      - SERVER_NAME=Partition_Server4
+    networks:
+      - internal_net
+
+  partition_server5:
+    image: partition_server
+    container_name: partition_server5
+    build:
+      context: .
+      dockerfile: docker/partition_server/Dockerfile
+    expose:
+      - "9005"
+    environment:
+      - SERVER_NAME=Partition_Server5
+    networks:
+      - internal_net
+
+  partition_server6:
+    image: partition_server
+    container_name: partition_server6
+    build:
+      context: .
+      dockerfile: docker/partition_server/Dockerfile
+    expose:
+      - "9006"
+    environment:
+      - SERVER_NAME=Partition_Server6
+    networks:
+      - internal_net
+
+  partition_server7:
+    image: partition_server
+    container_name: partition_server7
+    build:
+      context: .
+      dockerfile: docker/partition_server/Dockerfile
+    expose:
+      - "9007"
+    environment:
+      - SERVER_NAME=Partition_Server7
+    networks:
+      - internal_net
+
+  partition_server8:
+    image: partition_server
+    container_name: partition_server8
+    build:
+      context: .
+      dockerfile: docker/partition_server/Dockerfile
+    expose:
+      - "9008"
+    environment:
+      - SERVER_NAME=Partition_Server8
+    networks:
+      - internal_net
+
+networks:
+  internal_net:
+    driver: bridge

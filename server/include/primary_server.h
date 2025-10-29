@@ -3,6 +3,8 @@
 
 #include "server.h"
 
+#define PARTITION_COUNT 8
+
 // primary server must:
 // periodically send request to all partitions to figure out if they are all alive
 // rerout requests based on which partition we want to send to
