@@ -2,7 +2,7 @@
 
 LSM_Tree::LSM_Tree(){
     write_ahead_log = Wal();
-    mem_table = MemTable();
+    mem_table = Mem_Table();
     max_files_count = get_max_file_limit();
 };
 
@@ -38,16 +38,12 @@ bool LSM_Tree::set(std::string key, std::string value){
 
     Entry entry(key_bits, value_bits);
 
-    mem_table.insert_entry(entry);
     try{
-        std::thread thread_1(&Wal::append_entry,&write_ahead_log, entry.get_ostream_bytes());
-        std::thread thread_2(&MemTable::insert_entry, &mem_table, entry);
-
-        thread_1.join();
-        thread_2.join();
-
+        write_ahead_log.append_entry(entry.get_ostream_bytes());
+        mem_table.insert_entry(entry);
     }
-    catch(std::exception& e){
+    catch(const std::exception& e){
+        std::cerr<< e.what() <<std::endl;
         return false;
     }
 
@@ -55,12 +51,7 @@ bool LSM_Tree::set(std::string key, std::string value){
         try{
             flush_mem_table();
             this -> mem_table.make_empty();
-
-            // mem_table.~MemTable();
             write_ahead_log.clear_entries();
-
-            // mem_table = MemTable();
-
         }
         catch(const std::exception& e){
             std::cerr << e.what() << std::endl;
@@ -197,33 +188,29 @@ std::set<Entry> LSM_Tree::get_fb(std::string _key){
 };
 
 bool LSM_Tree::remove(std::string key){
+
     try{
         Entry entry = get(key);
 
         if(!entry.is_deleted()){
             entry.set_tombstone(true);
         }
-        
-        std::thread thread_1(&Wal::append_entry, &write_ahead_log, entry.get_ostream_bytes());
-        std::thread thread_2(&MemTable::insert_entry, &mem_table, entry);
-
-        thread_1.join();
-        thread_2.join();
+        write_ahead_log.append_entry(entry.get_ostream_bytes());
+        mem_table.insert_entry(entry);
     }
-    catch(std::exception& e){
+    catch(const std::exception& e){
+        std::cerr<< e.what() <<std::endl;
         return false;
     }
-
 
     if(mem_table.is_full()){
         try{
             flush_mem_table();
-
             mem_table.make_empty();
             write_ahead_log.clear_entries();
-
         }
         catch(const std::exception& e){
+            std::cerr<< e.what() <<std::endl;
             return false;
         }        
     }

@@ -43,5 +43,6 @@ void Wal::append_entry(std::ostringstream entry){
 };
 
 void Wal::clear_entries(){
+    entry_count = 0;
     std::ofstream wal_file(wal_file_location, std::ios::binary | std::ios::trunc);
 };

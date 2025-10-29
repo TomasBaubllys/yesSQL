@@ -3,8 +3,6 @@
 
 #include "bits.h"
 
-// returns a crc32 hash of Bits converted to string
-
 // @brief uses crc32 algorithm to hash bits_to_hash Bits converted to std::string
 // @returns 8 bytes of hashed bits_to_hash
 uint32_t crc32(Bits& bits_to_hash);

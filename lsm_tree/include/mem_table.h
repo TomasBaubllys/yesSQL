@@ -6,17 +6,17 @@
 
 #define MEM_TABLE_BYTES_MAX_SIZE 1000000 // 1mb, (rocksDB uses 64mb)
 
-class MemTable{
+class Mem_Table{
     private:
         AVL_Tree avl_tree;
         int entry_array_length;
         uint64_t total_mem_table_size;
     public:
         // default constructor
-        MemTable();
+        Mem_Table();
 
         // destructor, clears avl tree
-        ~MemTable();
+        ~Mem_Table();
 
         // returns the current size of the avl tree
         int get_entry_array_length();

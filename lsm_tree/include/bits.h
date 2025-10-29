@@ -1,14 +1,14 @@
 #ifndef YSQL_BITS_H_INCLUDED
 #define YSQL_BITS_H_INCLUDED
 
-#define BIT_LEN_UPDATE_ERR "Bit stream lengths do not match!"
-
 #include <string>
 #include <algorithm>
 #include <cmath>
 #include <vector>
 #include <cstdint>
 #include <stdexcept>
+
+#define BIT_LEN_UPDATE_ERR "Bit stream lengths do not match!"
 
 // localisation for constant size_type between different systems
 using bit_arr_size_type = std::vector<uint8_t>::size_type;
@@ -22,6 +22,7 @@ class Bits {
 		// NO DEFAULT CONSTRUCTOR
 		// Constructors
 		// -------------------------------------
+
 		Bits(std::vector<uint8_t>& bitstream);
 		Bits(std::vector<char>& bitstream);
 		//@note converts uint32_t to uint8_t
@@ -35,6 +36,7 @@ class Bits {
 
 		// METHODS
 		// -------------------------------------
+
 		//@returns the size of the saved bit array
 		bit_arr_size_type size() const;
 		//@brief casts saved uint8_t values as char
@@ -58,6 +60,7 @@ class Bits {
 		
 		// OPERATORS
 		// -------------------------------------
+
 		//@brief uses std::vector == operator
 		inline bool operator==(const Bits& other) const {
 			return this -> arr == other.arr;
