@@ -56,7 +56,7 @@
 class LSM_Tree{
     private:
         Wal write_ahead_log;
-        MemTable mem_table;
+        Mem_Table mem_table;
         // one contrller per each level
         std::vector<SS_Table_Controller> ss_table_controllers;
         uint16_t ratio;
