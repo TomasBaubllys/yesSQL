@@ -24,6 +24,6 @@ WORKDIR /app
 # Copy only the compiled binary
 COPY --from=builder /app/main_server .
 
-EXPOSE 8080
+# EXPOSE 8080
 
-CMD ["./main_server"]
+ENTRYPOINT ["./main_server"]

@@ -1,6 +1,6 @@
 #include "../include/primary_server.h"
 
-Primary_Server::Primary_Server(uint32_t port) : Server(port) {
+Primary_Server::Primary_Server(uint16_t port) : Server(port) {
 
 }
 

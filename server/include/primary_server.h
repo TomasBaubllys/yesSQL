@@ -15,7 +15,7 @@ class Primary_Server : public Server {
     private:
 
     public:
-        Primary_Server(uint32_t port);
+        Primary_Server(uint16_t port);
         int8_t start() override;
 };
 

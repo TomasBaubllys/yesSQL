@@ -5,9 +5,10 @@ services:
     container_name: main_server
     build:
       context: .
-      dockerfile: docker/main_server/Dockerfile
+      dockerfile: main_server/Dockerfile
     ports:
       - "8080:8080"
+    command: ["0", "8080"]
     environment:
       - SERVER_NAME=Main_Server
     depends_on:
@@ -25,9 +26,10 @@ services:
   partition_server1:
     image: partition_server
     container_name: partition_server1
+    command: ["1", "9001"]
     build:
       context: .
-      dockerfile: docker/partition_server/Dockerfile
+      dockerfile: partition_server/Dockerfile
     expose:
       - "9001"
     environment:
@@ -36,11 +38,12 @@ services:
       - internal_net
 
   partition_server2:
+    command: ["1", "9002"]
     image: partition_server
     container_name: partition_server2
     build:
       context: .
-      dockerfile: docker/partition_server/Dockerfile
+      dockerfile: partition_server/Dockerfile
     expose:
       - "9002"
     environment:
@@ -51,9 +54,10 @@ services:
   partition_server3:
     image: partition_server
     container_name: partition_server3
+    command: ["1", "9003"]
     build:
       context: .
-      dockerfile: docker/partition_server/Dockerfile
+      dockerfile: partition_server/Dockerfile
     expose:
       - "9003"
     environment:
@@ -64,9 +68,10 @@ services:
   partition_server4:
     image: partition_server
     container_name: partition_server4
+    command: ["1", "9004"]
     build:
       context: .
-      dockerfile: docker/partition_server/Dockerfile
+      dockerfile: partition_server/Dockerfile
     expose:
       - "9004"
     environment:
@@ -77,9 +82,10 @@ services:
   partition_server5:
     image: partition_server
     container_name: partition_server5
+    command: ["1", "9005"]
     build:
       context: .
-      dockerfile: docker/partition_server/Dockerfile
+      dockerfile: partition_server/Dockerfile
     expose:
       - "9005"
     environment:
@@ -90,9 +96,10 @@ services:
   partition_server6:
     image: partition_server
     container_name: partition_server6
+    command: ["1", "9006"]
     build:
       context: .
-      dockerfile: docker/partition_server/Dockerfile
+      dockerfile: partition_server/Dockerfile
     expose:
       - "9006"
     environment:
@@ -103,9 +110,10 @@ services:
   partition_server7:
     image: partition_server
     container_name: partition_server7
+    command: ["1", "9007"]
     build:
       context: .
-      dockerfile: docker/partition_server/Dockerfile
+      dockerfile: partition_server/Dockerfile
     expose:
       - "9007"
     environment:
@@ -116,9 +124,10 @@ services:
   partition_server8:
     image: partition_server
     container_name: partition_server8
+    command: ["1", "9008"]
     build:
       context: .
-      dockerfile: docker/partition_server/Dockerfile
+      dockerfile: partition_server/Dockerfile
     expose:
       - "9008"
     environment:

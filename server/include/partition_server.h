@@ -7,7 +7,7 @@ class Partition_Server : public Server {
     private:
 
     public:
-        Partition_Server(uint32_t port);
+        Partition_Server(uint16_t port);
 
         int8_t start() override;
 };

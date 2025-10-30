@@ -15,12 +15,12 @@
 
 class Server {
     protected:
-        uint32_t port;
+        uint16_t port;
         int32_t server_fd;
         struct sockaddr_in address;
 
     public:
-        Server(uint32_t port);
+        Server(uint16_t port);
 
         virtual int8_t start();
 

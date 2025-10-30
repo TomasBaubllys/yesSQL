@@ -1,7 +1,7 @@
 #include "../include/server.h"
 #include <cstdio>
 
-Server::Server(uint32_t port) : port(port) {
+Server::Server(uint16_t port) : port(port) {
 	// create a server_fd AF_INET - ipv4, SOCKET_STREAM - TCP
 	this -> server_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(this -> server_fd < 0) {
