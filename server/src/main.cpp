@@ -41,22 +41,27 @@ int main(int argc, char* argv[]) {
         return -1;
     }*/
 
-    switch(server_type) {
-        case PRIMARY_SERVER: {
-            Primary_Server primary_server(port);
-            return primary_server.start();
-            break;
+    try {
+        switch(server_type) {
+            case PRIMARY_SERVER: {
+                Primary_Server primary_server(port);
+                return primary_server.start();
+                break;
+            }
+            case PARTITION_SERVER: {
+                Partition_Server partition_server(port);
+                return partition_server.start();
+                break;
+            }
+            default: {
+                std::cerr << BAD_SERVER_TYPE_MSG;
+                return -1;
+                break;
+            }
         }
-        case PARTITION_SERVER: {
-            Partition_Server partition_server(port);
-            return partition_server.start();
-            break;
-        }
-        default: {
-            std::cerr << BAD_SERVER_TYPE_MSG;
-            return -1;
-            break;
-        }
+    }
+    catch(const std::exception& e) {
+        std::cerr << e.what() << std::endl;
     }
 
     return 0;

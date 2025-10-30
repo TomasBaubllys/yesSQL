@@ -17,6 +17,13 @@
 #define PRIMARY_SERVER_PARTITION_CHECK_INTERVAL 10
 #define PRIMARY_SERVER_HELLO_MSG "Hello from yesSQL server"
 
+#define PRIMARY_SERVER_FAILED_HOSTNAME_RESOLVE "Failed to resolve: "
+
+// comment/uncomment this line for debug
+#define PRIMARY_SERVER_DEBUG
+
+// comment/uncomment this line for partition monitoring
+#define PRIMARY_SERVER_PARTITION_MONITORING
 
 // primary server must:
 // periodically send request to all partitions to figure out if they are all alive

@@ -8,6 +8,18 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <stdexcept>
+#include <cstdio>
+#include <string>
+
+#define SERVER_LISTENING_ON_PORT_MSG "Listening on port: "
+
+#define SERVER_BIND_FAILED_ERR_MSG "bind() failed\n"
+#define SERVER_SET_SOCK_OPT_FAILED_ERR_MSG "setsockopt() failed\n"
+
+#define SERVER_SOCKET_FAILED_ERR_MSG "socket() failed\n"
+
+#define SERVER_ERRNO_STR_PREFIX "errno: "
 
 // server must
 // create a tcp port
@@ -20,6 +32,7 @@ class Server {
         struct sockaddr_in address;
 
     public:
+        // THROWS
         Server(uint16_t port);
 
         virtual int8_t start();

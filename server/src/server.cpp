@@ -1,32 +1,36 @@
 #include "../include/server.h"
-#include <cstdio>
 
 Server::Server(uint16_t port) : port(port) {
 	// create a server_fd AF_INET - ipv4, SOCKET_STREAM - TCP
 	this -> server_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(this -> server_fd < 0) {
-		// throw error
+		throw std::runtime_error(SERVER_SOCKET_FAILED_ERR_MSG);
 	}
 
 	// set server options to reuse addresses if a crash happens
 	int32_t options = 1;
 
 	if(setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &options, sizeof(options))) {
-		perror("setsockopt");
+		std::string setsockopt_failed_str(SERVER_SET_SOCK_OPT_FAILED_ERR_MSG);
+		setsockopt_failed_str += SERVER_ERRNO_STR_PREFIX;
+		setsockopt_failed_str += std::to_string(errno);
+		throw std::runtime_error(setsockopt_failed_str);
 	}
   
 	this -> address.sin_family = AF_INET;
-	this ->  address.sin_addr.s_addr = INADDR_ANY;
+	this -> address.sin_addr.s_addr = INADDR_ANY;
 	this -> address.sin_port = htons(port);
   
 	if(bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
-		std::cerr << "Bind failed" << errno << std::endl;
-    exit(-1);
+		std::string bind_failed_str(SERVER_BIND_FAILED_ERR_MSG);
+		bind_failed_str += SERVER_ERRNO_STR_PREFIX;
+		bind_failed_str += std::to_string(errno);
+    	throw std::runtime_error(SERVER_BIND_FAILED_ERR_MSG);
   }
 }
 
 int8_t Server::start() {
-	uint32_t new_socket;
+	/*uint32_t new_socket;
 	uint32_t address_length = sizeof(this -> address);
 	const char* msg = "Hello from YSQL server\n";
 	if(listen(server_fd, 3) < 0) {
@@ -56,6 +60,6 @@ int8_t Server::start() {
 		// Close client socket
 		close(new_socket);
 	}
-
+	*/
 	return 0;
 }

@@ -24,9 +24,13 @@ int8_t Primary_Server::start() {
         return -1;
     }
 
-    this -> start_partition_monitor_thread();
+    #ifdef PRIMARY_SERVER_PARTITION_MONITORING
+        this -> start_partition_monitor_thread();
+    #endif // PRIMARY_SERVER_PARTITION_MONITORING
 
-    std::cout << "Listening on port " << port << "..." << std::endl;
+    #ifdef PRIMARY_SERVER_DEBUG
+        std::cout << SERVER_LISTENING_ON_PORT_MSG << port << "..." << std::endl;
+    #endif // PRIMARY_SERVER_DEBUG
 
     while (true) {
         // Accept one client
@@ -39,11 +43,13 @@ int8_t Primary_Server::start() {
         // Print client info
         char client_ip[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &(address.sin_addr), client_ip, INET_ADDRSTRLEN);
-        std::cout << "Client connected from " << client_ip << ":" << ntohs(address.sin_port) << std::endl;
+
+        #ifdef PRIMARY_SERVER_DEBUG
+            std::cout << "Client connected from " << client_ip << ":" << ntohs(address.sin_port) << std::endl;
+        #endif // PRIMARY_SERVER_DEBUG 
 
         // Send message
         send(new_socket, msg, strlen(msg), 0);
-        std::cout << "Hello message sent!" << std::endl;
 
         // Close client socket
         close(new_socket);
@@ -84,8 +90,6 @@ std::vector<bool> Primary_Server::get_partitions_status() const {
 }
 
 bool Primary_Server::try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec) const {
-    // std::cout << "Trying " << hostname << ":" << port << std::endl;
-    // std::cout.flush();
     int32_t sock = socket(AF_INET, SOCK_STREAM, 0);
     if(sock < 0) {
         return false;
@@ -93,30 +97,20 @@ bool Primary_Server::try_connect(const std::string& hostname, uint16_t port, uin
 
     struct hostent* server = gethostbyname(hostname.c_str());
     if(!server) {
-        std::cerr << "Could not resolve " << hostname << std::endl;
+        std::cerr << PRIMARY_SERVER_FAILED_HOSTNAME_RESOLVE << hostname << std::endl;
         close(sock);
         return false;
     }
-
-    // Convert first address in h_addr_list to human-readable IP
-    // char* ip = inet_ntoa(*(struct in_addr*)server->h_addr_list[0]);
-    // std::cout << "Resolved " << hostname << " -> " << ip << std::endl;
 
     struct sockaddr_in serv_addr{};
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
     std::memcpy(&serv_addr.sin_addr.s_addr, server -> h_addr, server -> h_length);
 
-    // struct timeval timeout{};
-    // timeout.tv_sec = timeout_sec;
-    // setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-    // setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
-
-    // std::cout << "Connecting to: " << hostname << std::endl;
     bool success = (connect(sock, (struct sockaddr*)& serv_addr, sizeof(serv_addr)) == 0);
-    // std::cerr << "errno = " << errno << std::endl;
 
     close(sock);
+
     return success;
 }
 
