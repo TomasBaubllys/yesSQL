@@ -1,31 +1,30 @@
 #include "../include/primary_server.h"
-#include <asm-generic/socket.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <thread>
 
 Primary_Server::Primary_Server(uint16_t port) : Server(port) {
 
 }
 
+void Primary_Server::start_partition_monitor_thread() const {
+    std::thread status_thread([this]() {
+        while(true) {
+            this -> display_partitions_status();
+            std::this_thread::sleep_for(std::chrono::seconds(PRIMARY_SERVER_PARTITION_CHECK_INTERVAL));
+        }
+    });
+    status_thread.detach();
+}
+
 int8_t Primary_Server::start() {
     uint32_t new_socket;
     uint32_t address_length = sizeof(this -> address);
-    const char* msg = "Hello from YSQL server\n";
+    const char* msg = PRIMARY_SERVER_HELLO_MSG;
+
     if(listen(server_fd, 3) < 0) {
         perror("listen");
         return -1;
     }
 
-    std::thread status_thread([this]() {
-        while(true) {
-            this ->display_partitions_status();
-            std::this_thread::sleep_for(std::chrono::seconds(5));
-        }
-        std::cout << "HELLOW" << std::endl;
-    });
-    status_thread.detach();
+    this -> start_partition_monitor_thread();
 
     std::cout << "Listening on port " << port << "..." << std::endl;
 
@@ -56,8 +55,9 @@ int8_t Primary_Server::start() {
 
 void Primary_Server::display_partitions_status() const {
     std::vector<bool> status = this -> get_partitions_status();
+
     for(uint32_t i = 0; i < status.size(); ++i) {
-        std::cout << "Partition: " << i << (status.at(i)? "Alive" : "Dead") << std::endl;
+        std::cout << "Partition: " << i << " " << (status.at(i)? PARTITION_ALIVE_MSG : PARTITION_DEAD_MSG) << std::endl;
     }
 }
 
@@ -105,7 +105,7 @@ bool Primary_Server::try_connect(const std::string& hostname, uint16_t port, uin
     struct sockaddr_in serv_addr{};
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
-    std::memcpy(&serv_addr.sin_addr.s_addr, server -> h_addr_list[0], server -> h_length);
+    std::memcpy(&serv_addr.sin_addr.s_addr, server -> h_addr, server -> h_length);
 
     // struct timeval timeout{};
     // timeout.tv_sec = timeout_sec;
