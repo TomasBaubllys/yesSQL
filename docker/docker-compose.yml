@@ -4,8 +4,8 @@ services:
     image: main_server
     container_name: main_server
     build:
-      context: .
-      dockerfile: main_server/Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     ports:
       - "8080:8080"
     command: ["0", "8080"]
@@ -24,12 +24,12 @@ services:
       - internal_net
 
   partition_server1:
-    image: partition_server
+    image: partition_server1
     container_name: partition_server1
     command: ["1", "9001"]
     build:
-      context: .
-      dockerfile: partition_server/Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     expose:
       - "9001"
     environment:
@@ -39,11 +39,11 @@ services:
 
   partition_server2:
     command: ["1", "9002"]
-    image: partition_server
+    image: partition_server2
     container_name: partition_server2
     build:
-      context: .
-      dockerfile: partition_server/Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     expose:
       - "9002"
     environment:
@@ -52,12 +52,12 @@ services:
       - internal_net
 
   partition_server3:
-    image: partition_server
+    image: partition_server3
     container_name: partition_server3
     command: ["1", "9003"]
     build:
-      context: .
-      dockerfile: partition_server/Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     expose:
       - "9003"
     environment:
@@ -66,12 +66,12 @@ services:
       - internal_net
 
   partition_server4:
-    image: partition_server
+    image: partition_server4
     container_name: partition_server4
     command: ["1", "9004"]
     build:
-      context: .
-      dockerfile: partition_server/Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     expose:
       - "9004"
     environment:
@@ -80,12 +80,12 @@ services:
       - internal_net
 
   partition_server5:
-    image: partition_server
+    image: partition_server5
     container_name: partition_server5
     command: ["1", "9005"]
     build:
-      context: .
-      dockerfile: partition_server/Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     expose:
       - "9005"
     environment:
@@ -94,12 +94,12 @@ services:
       - internal_net
 
   partition_server6:
-    image: partition_server
+    image: partition_server6
     container_name: partition_server6
     command: ["1", "9006"]
     build:
-      context: .
-      dockerfile: partition_server/Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     expose:
       - "9006"
     environment:
@@ -108,12 +108,12 @@ services:
       - internal_net
 
   partition_server7:
-    image: partition_server
+    image: partition_server7
     container_name: partition_server7
     command: ["1", "9007"]
     build:
-      context: .
-      dockerfile: partition_server/Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     expose:
       - "9007"
     environment:
@@ -122,12 +122,12 @@ services:
       - internal_net
 
   partition_server8:
-    image: partition_server
+    image: parititon_server8
     container_name: partition_server8
     command: ["1", "9008"]
     build:
-      context: .
-      dockerfile: partition_server/Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     expose:
       - "9008"
     environment:
