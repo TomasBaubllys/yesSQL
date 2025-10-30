@@ -4,6 +4,44 @@ LSM_Tree::LSM_Tree(){
     write_ahead_log = Wal();
     mem_table = Mem_Table();
     max_files_count = get_max_file_limit();
+
+    // check if there are folders in data/val
+    // if yes, create that many sstable controllers as folders (levels), and add each sstable to to the controllers 4
+    // if crashes, we need to get back dataaa
+
+    std::vector<std::filesystem::path> subdirectories;
+    int index = 0;
+
+    while(1){
+        std::string level_n_dir(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
+        snprintf(&level_n_dir[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_LEVEL_DIR, index);
+        level_n_dir.resize(strlen(level_n_dir.c_str()));
+        if (!std::filesystem::exists(level_n_dir)) {
+            break;
+        }
+        else{
+            std::cout << index << std::endl;
+            subdirectories.push_back(level_n_dir);
+            ++index;
+        }
+    }
+
+    for(uint8_t i = 0; i < subdirectories.size(); ++i){
+        SS_Table_Controller ss_table_controller(SS_TABLE_CONTROLLER_RATIO, i);
+        this -> ss_table_controllers.push_back(ss_table_controller);
+
+        // private struct in LSM_tree class
+        // struct SS_Table_Files{
+        //  std::string dataFile
+        //  std::string indexFile
+        //  std::string offsetFIle
+        //}
+        // std::vector<SS_Table_Files> ss_table_files = discover_sstables(subdirectories.at(i), i)
+        // int kazkas = fill_ss_tables(std::vector<SS_Table_Files>, ss_tablr_controller)
+    }
+
+   
+
 };
 
 LSM_Tree::~LSM_Tree(){
