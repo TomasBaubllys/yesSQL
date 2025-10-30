@@ -15,12 +15,12 @@ Server::Server(uint16_t port) : port(port) {
 		perror("setsockopt");
 	}
   
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = htons(port);
+	this -> address.sin_family = AF_INET;
+	this ->  address.sin_addr.s_addr = INADDR_ANY;
+	this -> address.sin_port = htons(port);
   
 	if(bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
-		perror("bind failed");
+		std::cerr << "Bind failed" << errno << std::endl;
     exit(-1);
   }
 }

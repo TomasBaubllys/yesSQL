@@ -41,21 +41,23 @@ int main(int argc, char* argv[]) {
         return -1;
     }*/
 
-    Server* server;
     switch(server_type) {
-        case PRIMARY_SERVER:
-            server = new Primary_Server(port);
+        case PRIMARY_SERVER: {
+            Primary_Server primary_server(port);
+            return primary_server.start();
             break;
-        case PARTITION_SERVER:
-            server = new Partition_Server(port);
+        }
+        case PARTITION_SERVER: {
+            Partition_Server partition_server(port);
+            return partition_server.start();
             break;
-        default:
+        }
+        default: {
             std::cerr << BAD_SERVER_TYPE_MSG;
             return -1;
             break;
+        }
     }
 
-    server -> start();
-    delete server;
     return 0;
 }

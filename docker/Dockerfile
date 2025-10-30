@@ -14,7 +14,7 @@ WORKDIR /app
 COPY server/ /app/
 
 # Compile
-RUN g++ -std=c++20 -O2 -o server src/server.cpp src/main.cpp src/partition_server.cpp src/primary_server.cpp
+RUN g++ -std=c++20 -pthread -O2 -o server src/server.cpp src/main.cpp src/partition_server.cpp src/primary_server.cpp
 
 # Final stage
 FROM debian:bullseye-slim
