@@ -36,10 +36,10 @@ int main(int argc, char* argv[]) {
     // check the port if its valid
     uint16_t port = atoi(argv[2]);
 
-    if(port < MIN_PORT_NUMBER){
+    /*if(port < MIN_PORT_NUMBER){
         std::cerr << BAD_PORT_NUMBER_MSG << ALLOWED_PORT_RANGE_MSG;
         return -1;
-    }
+    }*/
 
     Server* server;
     switch(server_type) {
