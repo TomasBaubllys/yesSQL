@@ -6,6 +6,59 @@ Mem_Table::Mem_Table(){
     total_mem_table_size = 0;
 };
 
+Mem_Table::Mem_Table(Wal& wal){
+    avl_tree = AVL_Tree();
+    entry_array_length = 0;
+    total_mem_table_size = 0;
+
+    std::string wal_path = wal.get_wal_file_location();
+
+    std::ostringstream buffer;
+    {
+        std::ifstream input(wal_path, std::ios::binary);
+        if (!input.is_open()) {
+            throw std::runtime_error("Failed to open WAL file: " + wal_path);
+        }
+        buffer << input.rdbuf();
+    }
+
+    std::istringstream in(buffer.str());
+    in.seekg(0, std::ios::beg);
+
+    uint64_t entry_length = 0;
+    while (in.read(reinterpret_cast<char*>(&entry_length), sizeof(entry_length))) {
+
+        if (entry_length <= sizeof(entry_length)) {
+            throw std::runtime_error("Invalid entry length in WAL file.");
+        }
+
+        // Read remaining entry bytes (already know total size)
+        std::string entry_bytes(entry_length - sizeof(entry_length), '\0');
+        if (!in.read(entry_bytes.data(), entry_bytes.size())) {
+            throw std::runtime_error("Unexpected EOF while reading entry data.");
+        }
+
+        // Reconstruct full serialized entry (prepend length field)
+        std::string full_entry;
+        full_entry.reserve(entry_length);
+        full_entry.append(reinterpret_cast<char*>(&entry_length), sizeof(entry_length));
+        full_entry.append(entry_bytes);
+
+        std::stringstream entry_stream(full_entry);
+
+        try {
+            Entry entry(entry_stream);
+
+            avl_tree.insert(entry.get_key(), entry.get_value());
+            entry_array_length++;
+            total_mem_table_size += entry.get_entry_length();
+
+        } catch (const std::exception& e) {
+            throw std::runtime_error(std::string("Error reading WAL entry: ") + e.what());
+        }
+    }
+};
+
 Mem_Table::~Mem_Table(){
     //destroy AVL
 };
@@ -61,6 +114,10 @@ bool Mem_Table::remove_entry(Entry& entry){
         return false;
     }
     
+};
+
+bool Mem_Table::reconstruct_from_Wal(){
+
 };
 
 Entry Mem_Table::find(Bits key, bool& found){
