@@ -11,7 +11,7 @@ Primary_Server::Primary_Server(uint16_t port) : Server(port) {
         throw std::runtime_error(PRIMARY_SERVER_PARTITION_COUNT_ZERO_ERR_MSG);
     }
 
-    uint32_t partition_range_len = std::numeric_limits<uint32_t>::max() / this -> partition_count;
+    this -> partition_range_length = std::numeric_limits<uint32_t>::max() / this -> partition_count;
 
     this -> partitions.reserve(partition_count);
 
@@ -19,8 +19,8 @@ Primary_Server::Primary_Server(uint16_t port) : Server(port) {
         Partition_Entry partition_entry;
         partition_entry.partition_name = PARTITION_SERVER_NAME_PREFIX + std::to_string(i + 1);
         
-        partition_entry.range.beg = partition_range_len * i;
-        partition_entry.range.end = partition_range_len * (i + 1);
+        partition_entry.range.beg = this -> partition_range_length * i;
+        partition_entry.range.end = this ->  partition_range_length * (i + 1);
 
         // for the last partition is everything until the max index
         if(i == this -> partition_count - 1) {
@@ -146,6 +146,14 @@ uint32_t Primary_Server::key_prefix_to_uint32(const std::string& key) const {
     return uint32_prefix_key;
 }
 
+Partition_Entry Primary_Server::get_partition_for_key(const std::string& key) const {
+    uint32_t uint32_key_prefix = this -> key_prefix_to_uint32(key);
 
+    uint32_t partition_index = static_cast<uint32_t>(uint32_key_prefix / this -> partition_range_length);
 
+    if(partition_index >= this -> partitions.size()) {
+        --partition_index;
+    }
 
+    return this -> partitions.at(partition_index);
+}

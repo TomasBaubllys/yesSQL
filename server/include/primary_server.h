@@ -48,6 +48,8 @@ class Primary_Server : public Server {
     private:
         uint32_t partition_count;
 
+        uint32_t partition_range_length;
+
         std::vector<Partition_Entry> partitions;
 
         std::vector<bool> get_partitions_status() const;
@@ -59,6 +61,8 @@ class Primary_Server : public Server {
         void start_partition_monitor_thread() const;
 
         uint32_t key_prefix_to_uint32(const std::string& key) const;
+
+        Partition_Entry get_partition_for_key(const std::string& key) const;
 
     public:
         Primary_Server(uint16_t port);
