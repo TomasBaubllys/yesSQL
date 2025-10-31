@@ -19,9 +19,11 @@ int8_t Primary_Server::start() {
     uint32_t address_length = sizeof(this -> address);
     const char* msg = PRIMARY_SERVER_HELLO_MSG;
 
-    if(listen(server_fd, 3) < 0) {
-        perror("listen");
-        return -1;
+    if(listen(server_fd, PRIMARY_SERVER_DEFAULT_LISTEN_VALUE) < 0) {
+        std::string listen_failed_str(PRIMARY_SERVER_FAILED_LISTEN_ERR_MSG);
+        listen_failed_str += SERVER_ERRNO_STR_PREFIX;
+        listen_failed_str += std::to_string(errno);
+        throw std::runtime_error(listen_failed_str);
     }
 
     #ifdef PRIMARY_SERVER_PARTITION_MONITORING
@@ -36,7 +38,7 @@ int8_t Primary_Server::start() {
         // Accept one client
         new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&address_length);
         if (new_socket < 0) {
-            perror("accept");
+            std::cerr << PRIMARY_SERVER_FAILED_ACCEPT_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
             continue; // Skip this client and keep listening
         }
 
@@ -63,7 +65,7 @@ void Primary_Server::display_partitions_status() const {
     std::vector<bool> status = this -> get_partitions_status();
 
     for(uint32_t i = 0; i < status.size(); ++i) {
-        std::cout << "Partition: " << i << " " << (status.at(i)? PARTITION_ALIVE_MSG : PARTITION_DEAD_MSG) << std::endl;
+        std::cout << PRIMARY_SERVER_PARTITION_STR_PREFIX << i << " " << (status.at(i)? PARTITION_ALIVE_MSG : PARTITION_DEAD_MSG) << std::endl;
     }
 }
 

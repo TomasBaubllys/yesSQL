@@ -18,12 +18,30 @@
 #define PRIMARY_SERVER_HELLO_MSG "Hello from yesSQL server"
 
 #define PRIMARY_SERVER_FAILED_HOSTNAME_RESOLVE "Failed to resolve: "
+#define PRIMARY_SERVER_FAILED_LISTEN_ERR_MSG "Listen failed: "
+#define PRIMARY_SERVER_FAILED_ACCEPT_ERR_MSG "Accept failed: "
+
+#define PRIMARY_SERVER_DEFAULT_LISTEN_VALUE 10
 
 // comment/uncomment this line for debug
 #define PRIMARY_SERVER_DEBUG
 
 // comment/uncomment this line for partition monitoring
 #define PRIMARY_SERVER_PARTITION_MONITORING
+#define PRIMARY_SERVER_PARTITION_STR_PREFIX "Partition "
+
+#define PRIMARY_SERVER_DEFAULT_PARTITION_KEY_LEN 8192
+#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_1 1 
+#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_2 1
+#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_3 1
+#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_4 1
+#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_5 1
+#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_6 1
+#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_7 1
+#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_8 1
+
+// SUM(RATIO_PARTITIONS) = PARTITION_COUNT
+// PARTITIONS key ranges will be calculated like 8192 * i + 8192 * RATIO
 
 // primary server must:
 // periodically send request to all partitions to figure out if they are all alive

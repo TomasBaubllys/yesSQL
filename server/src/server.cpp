@@ -30,7 +30,7 @@ Server::Server(uint16_t port) : port(port) {
 }
 
 int8_t Server::start() {
-	/*uint32_t new_socket;
+	uint32_t new_socket;
 	uint32_t address_length = sizeof(this -> address);
 	const char* msg = "Hello from YSQL server\n";
 	if(listen(server_fd, 3) < 0) {
@@ -60,6 +60,6 @@ int8_t Server::start() {
 		// Close client socket
 		close(new_socket);
 	}
-	*/
+	
 	return 0;
 }
