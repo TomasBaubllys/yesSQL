@@ -140,7 +140,7 @@ std::set<Entry> LSM_Tree::get_ff(std::string _key){
 
             std::vector<Entry> found_ff_entries = ss_table -> get_entries_key_smaller_or_equal(key_bits);
 
-            ff_entries.emplace(found_ff_entries);
+            ff_entries.insert(found_ff_entries.begin(), found_ff_entries.end());
         }
     }
     return ff_entries;
@@ -169,7 +169,7 @@ std::set<Entry> LSM_Tree::get_fb(std::string _key){
 
             std::vector<Entry> found_fb_entries = ss_table->get_entries_key_smaller_or_equal(key_bits);
 
-            fb_entries.emplace(found_fb_entries);
+            fb_entries.insert(found_fb_entries.begin(), found_fb_entries.end());
         }
     }
     return fb_entries;

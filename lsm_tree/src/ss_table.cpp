@@ -157,9 +157,9 @@ SS_Table::SS_Table(const std::filesystem::path& _data_file, const std::filesyste
     };
 
 SS_Table:: ~SS_Table(){
-    remove(this -> data_file);
-    remove(this -> index_file);
-    remove(this -> index_offset_file);
+    // remove(this -> data_file);
+    // remove(this -> index_file);
+    // remove(this -> index_offset_file);
 };
 
 std::filesystem::path SS_Table::data_path() const {
@@ -796,13 +796,9 @@ std::vector<Entry> SS_Table::get_entries_key_smaller_or_equal(const Bits& target
     }
 
     // open the data file for checking if the value is alive
-    std::ifstream data_ifstream;
-
-    if(key_filter == SS_TABLE_FILTER_ALIVE_ENTRIES) {
-        data_ifstream.open(this -> data_file, std::ios::binary);
-        if(data_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
-        }
+    std::ifstream data_ifstream(this -> data_file, std::ios::binary);
+    if(data_ifstream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
     }
 
     uint64_t current_key_offset = 0;
@@ -869,14 +865,14 @@ std::vector<Entry> SS_Table::get_entries_key_smaller_or_equal(const Bits& target
     return entries;
 }
 
-std::vector<Entry> SS_Table::get_entries_key_larger_or_equal(const Bits& target_key, SS_Table_Key_Filter key_filter) const {
+std::vector<Entry> SS_Table::get_entries_key_larger_or_equal(const Bits& target_key, SS_Table_Key_Filter entry_filter) const {
     std::vector<Entry> entries;
     if(target_key > this -> last_index) {
         return entries;
     }
 
     if(target_key <= this -> first_index) {
-        return this -> get_all_entries(key_filter);
+        return this -> get_all_entries(entry_filter);
     }
 
     entries.reserve(this -> record_count);
@@ -904,14 +900,11 @@ std::vector<Entry> SS_Table::get_entries_key_larger_or_equal(const Bits& target_
         throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
     }
 
-    std::ifstream data_ifstream;
-    if(key_filter == SS_TABLE_FILTER_ALIVE_ENTRIES) {
-        data_ifstream.open(this -> data_file, std::ios::binary);
-        if(data_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
-        }
+    std::ifstream data_ifstream(this -> data_file, std::ios::binary);
+    if(data_ifstream.fail()) {
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
     }
-    
+
     while(offset_ifstream.read(reinterpret_cast<char*>(&current_key_offset), sizeof(current_key_offset))) {
         index_ifstream.seekg(current_key_offset, index_ifstream.beg);
         if(index_ifstream.fail()) {
@@ -938,6 +931,7 @@ std::vector<Entry> SS_Table::get_entries_key_larger_or_equal(const Bits& target_
 
         data_ifstream.seekg(current_data_offset, data_ifstream.beg);
         if(data_ifstream.fail()) {
+            std::cout << "DATA_OFFSET" << current_data_offset << std::endl; 
             throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
         }
 
@@ -957,7 +951,7 @@ std::vector<Entry> SS_Table::get_entries_key_larger_or_equal(const Bits& target_
 
         // check tombstone
         Entry current_entry(current_key, current_data);
-        if(key_filter == SS_TABLE_FILTER_ALIVE_ENTRIES && !current_entry.is_deleted()) {
+        if(entry_filter == SS_TABLE_FILTER_ALIVE_ENTRIES && !current_entry.is_deleted()) {
             entries.emplace_back(current_entry);
         }
         else {
