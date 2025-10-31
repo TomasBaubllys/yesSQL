@@ -1,7 +1,34 @@
 #include "../include/primary_server.h"
 
 Primary_Server::Primary_Server(uint16_t port) : Server(port) {
+    const char* partition_count_str = std::getenv(PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING);
+    if(!partition_count_str) {
+        throw std::runtime_error(PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_UNDEF_ERR_MSG);
+    }
 
+    this -> partition_count = atoi(partition_count_str);
+    if(this -> partition_count == 0) { // || this -> partition_count >= PRIMARY_SERVER_MAX_PARTITION_COUNT) {
+        throw std::runtime_error(PRIMARY_SERVER_PARTITION_COUNT_ZERO_ERR_MSG);
+    }
+
+    uint32_t partition_range_len = std::numeric_limits<uint32_t>::max() / this -> partition_count;
+
+    this -> partitions.reserve(partition_count);
+
+    for(uint32_t i = 0; i < this -> partition_count; ++i) {
+        Partition_Entry partition_entry;
+        partition_entry.partition_name = PARTITION_SERVER_NAME_PREFIX + std::to_string(i + 1);
+        
+        partition_entry.range.beg = partition_range_len * i;
+        partition_entry.range.end = partition_range_len * (i + 1);
+
+        // for the last partition is everything until the max index
+        if(i == this -> partition_count - 1) {
+            partition_entry.range.end = std::numeric_limits<uint32_t>::max();
+        }
+
+        this -> partitions.push_back(partition_entry);
+    }
 }
 
 void Primary_Server::start_partition_monitor_thread() const {
@@ -20,7 +47,7 @@ int8_t Primary_Server::start() {
     const char* msg = PRIMARY_SERVER_HELLO_MSG;
 
     if(listen(server_fd, PRIMARY_SERVER_DEFAULT_LISTEN_VALUE) < 0) {
-        std::string listen_failed_str(PRIMARY_SERVER_FAILED_LISTEN_ERR_MSG);
+        std::string listen_failed_str(SERVER_FAILED_LISTEN_ERR_MSG);
         listen_failed_str += SERVER_ERRNO_STR_PREFIX;
         listen_failed_str += std::to_string(errno);
         throw std::runtime_error(listen_failed_str);
@@ -38,7 +65,7 @@ int8_t Primary_Server::start() {
         // Accept one client
         new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&address_length);
         if (new_socket < 0) {
-            std::cerr << PRIMARY_SERVER_FAILED_ACCEPT_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+            std::cerr << SERVER_FAILED_ACCEPT_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
             continue; // Skip this client and keep listening
         }
 
@@ -65,27 +92,16 @@ void Primary_Server::display_partitions_status() const {
     std::vector<bool> status = this -> get_partitions_status();
 
     for(uint32_t i = 0; i < status.size(); ++i) {
-        std::cout << PRIMARY_SERVER_PARTITION_STR_PREFIX << i << " " << (status.at(i)? PARTITION_ALIVE_MSG : PARTITION_DEAD_MSG) << std::endl;
+        std::cout << this -> partitions.at(i).partition_name << " " << (status.at(i)? PARTITION_ALIVE_MSG : PARTITION_DEAD_MSG) << std::endl;
     }
 }
 
 std::vector<bool> Primary_Server::get_partitions_status() const {
-    std::vector<std::pair<std::string, uint16_t>> partitons = {
-        {PARTITION_SERVER_1_NAME, PARTITION_SERVER_1_PORT},
-        {PARTITION_SERVER_2_NAME, PARTITION_SERVER_2_PORT},
-        {PARTITION_SERVER_3_NAME, PARTITION_SERVER_3_PORT},
-        {PARTITION_SERVER_4_NAME, PARTITION_SERVER_4_PORT},
-        {PARTITION_SERVER_5_NAME, PARTITION_SERVER_5_PORT},
-        {PARTITION_SERVER_6_NAME, PARTITION_SERVER_6_PORT},
-        {PARTITION_SERVER_7_NAME, PARTITION_SERVER_7_PORT},
-        {PARTITION_SERVER_8_NAME, PARTITION_SERVER_8_PORT},
-    };
-
     std::vector<bool> partitions_status;
-    partitions_status.reserve(PARTITION_COUNT);
+    partitions_status.reserve(this -> partition_count);
 
-    for(uint32_t i = 0; i < PARTITION_COUNT; ++i) {
-        partitions_status.push_back(try_connect(partitons.at(i).first, partitons.at(i).second));
+    for(uint32_t i = 0; i < this -> partition_count; ++i) {
+        partitions_status.push_back(try_connect(this -> partitions.at(i).partition_name, PARTITION_SERVER_PORT));
     }
 
     return partitions_status;

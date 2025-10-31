@@ -13,13 +13,19 @@
 #include <sys/socket.h>
 #include <thread>
 #include "partition_server.h"
+#include <cstdlib>
+#include "../include/partition_entry.h"
+#include <limits>
+
+#define PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING "PARTITION_COUNT"
+#define PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_UNDEF_ERR_MSG "Enviromental variable PARTITION_COUNT is undefined...\n"
+// #define PRIMARY_SERVER_MAX_PARTITION_COUNT 256
+#define PRIMARY_SERVER_PARTITION_COUNT_ZERO_ERR_MSG "Partition count is 0!\n"
 
 #define PRIMARY_SERVER_PARTITION_CHECK_INTERVAL 10
 #define PRIMARY_SERVER_HELLO_MSG "Hello from yesSQL server"
 
 #define PRIMARY_SERVER_FAILED_HOSTNAME_RESOLVE "Failed to resolve: "
-#define PRIMARY_SERVER_FAILED_LISTEN_ERR_MSG "Listen failed: "
-#define PRIMARY_SERVER_FAILED_ACCEPT_ERR_MSG "Accept failed: "
 
 #define PRIMARY_SERVER_DEFAULT_LISTEN_VALUE 10
 
@@ -30,19 +36,6 @@
 #define PRIMARY_SERVER_PARTITION_MONITORING
 #define PRIMARY_SERVER_PARTITION_STR_PREFIX "Partition "
 
-#define PRIMARY_SERVER_DEFAULT_PARTITION_KEY_LEN 8192
-#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_1 1 
-#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_2 1
-#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_3 1
-#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_4 1
-#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_5 1
-#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_6 1
-#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_7 1
-#define PRIMARY_SERVER_DEFAULT_RATIO_PARTITION_8 1
-
-// SUM(RATIO_PARTITIONS) = PARTITION_COUNT
-// PARTITIONS key ranges will be calculated like 8192 * i + 8192 * RATIO
-
 // primary server must:
 // periodically send request to all partitions to figure out if they are all alive
 // rerout requests based on which partition we want to send to
@@ -51,13 +44,17 @@
 
 class Primary_Server : public Server {
     private:
-         std::vector<bool> get_partitions_status() const;
+        uint32_t partition_count;
 
-         bool try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec = 1) const;
+        std::vector<Partition_Entry> partitions;
 
-         void display_partitions_status() const;
+        std::vector<bool> get_partitions_status() const;
 
-         void start_partition_monitor_thread() const;
+        bool try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec = 1) const;
+
+        void display_partitions_status() const;
+
+        void start_partition_monitor_thread() const;
 
     public:
         Primary_Server(uint16_t port);

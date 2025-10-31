@@ -3,136 +3,28 @@ name: yesSQL
 services:
   main_server:
     image: server
-    container_name: primary_server
     command: ["0", "8080"]
-    #build:
-    #  context: ..
-    #  dockerfile: docker/Dockerfile
     ports:
       - "8080:8080"
     environment:
       - SERVER_NAME=Primary_Server
+    env_file:
+      - database_setup.env
     depends_on:
-      - partition_server1
-      - partition_server2
-      - partition_server3
-      - partition_server4
-      - partition_server5
-      - partition_server6
-      - partition_server7
-      - partition_server8
+      - partition_server
     networks:
       - internal_net
 
-  partition_server1:
+  partition_server:
     image: server
-    container_name: partition_server1
-    command: ["1", "9001"]
     #build:
     #  context: ..
-    #  dockerfile: docker/Dockerfile
+    #  dockerfile: ./docker/Dockerfile
+    command: ["1", "9000"]
     expose:
-      - "9001"
+      - "9000"
     environment:
-      - SERVER_NAME=Partition_Server1
-    networks:
-      - internal_net
-
-  partition_server2:
-    command: ["1", "9002"]
-    image: server
-    container_name: partition_server2
-    #build:
-    #  context: ..
-    #  dockerfile: docker/Dockerfile
-    expose:
-      - "9002"
-    environment:
-      - SERVER_NAME=Partition_Server2
-    networks:
-      - internal_net
-
-  partition_server3:
-    image: server
-    container_name: partition_server3
-    command: ["1", "9003"]
-    #build:
-    #  context: ..
-    #  dockerfile: docker/Dockerfile
-    expose:
-      - "9003"
-    environment:
-      - SERVER_NAME=Partition_Server3
-    networks:
-      - internal_net
-
-  partition_server4:
-    image: server
-    container_name: partition_server4
-    command: ["1", "9004"]
-    #build:
-    #  context: ..
-    #  dockerfile: docker/Dockerfile
-    expose:
-      - "9004"
-    environment:
-      - SERVER_NAME=Partition_Server4
-    networks:
-      - internal_net
-
-  partition_server5:
-    image: server
-    container_name: partition_server5
-    command: ["1", "9005"]
-    #build:
-    #  context: ..
-    #  dockerfile: docker/Dockerfile
-    expose:
-      - "9005"
-    environment:
-      - SERVER_NAME=Partition_Server5
-    networks:
-      - internal_net
-
-  partition_server6:
-    image: server
-    container_name: partition_server6
-    command: ["1", "9006"]
-    #build:
-    #  context: ..
-    #  dockerfile: docker/Dockerfile
-    expose:
-      - "9006"
-    environment:
-      - SERVER_NAME=Partition_Server6
-    networks:
-      - internal_net
-
-  partition_server7:
-    image: server
-    container_name: partition_server7
-    command: ["1", "9007"]
-    #build:
-    #  context: ..
-    #  dockerfile: docker/Dockerfile
-    expose:
-      - "9007"
-    environment:
-      - SERVER_NAME=Partition_Server7
-    networks:
-      - internal_net
-
-  partition_server8:
-    image: server
-    container_name: partition_server8
-    command: ["1", "9008"]
-    #build:
-    #  context: ..
-    #  dockerfile: docker/Dockerfile
-    expose:
-      - "9008"
-    environment:
-      - SERVER_NAME=Partition_Server8
+      - SERVER_NAME=Partition_Server
     networks:
       - internal_net
 

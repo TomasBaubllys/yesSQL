@@ -1,5 +1,4 @@
 #include "../include/partition_server.h"
-#include <cstdio>
 
 Partition_Server::Partition_Server(uint16_t port) : Server(port) {
 

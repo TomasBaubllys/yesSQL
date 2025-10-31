@@ -21,6 +21,9 @@
 
 #define SERVER_ERRNO_STR_PREFIX "errno: "
 
+#define SERVER_FAILED_LISTEN_ERR_MSG "Listen failed: "
+#define SERVER_FAILED_ACCEPT_ERR_MSG "Accept failed: "
+
 // server must
 // create a tcp port
 // etc...

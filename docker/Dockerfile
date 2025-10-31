@@ -11,10 +11,11 @@ RUN apt-get update \
 WORKDIR /app
 
 # Copy source code first
-COPY server/ /app/
+COPY lsm_tree/ /app/lsm_tree
+COPY server/ /app/server
 
 # Compile
-RUN g++ -std=c++20 -pthread -O2 -o server src/server.cpp src/main.cpp src/partition_server.cpp src/primary_server.cpp
+RUN g++ -std=c++20 -pthread -O2 -o server_bin server/src/server.cpp server/src/main.cpp server/src/partition_server.cpp server/src/primary_server.cpp
 
 # Final stage
 FROM debian:bullseye-slim
@@ -22,6 +23,6 @@ FROM debian:bullseye-slim
 WORKDIR /app
 
 # Copy only the compiled binary
-COPY --from=builder /app/server .
+COPY --from=builder /app/server_bin .
 
-ENTRYPOINT ["./server"]
+ENTRYPOINT ["./server_bin"]
