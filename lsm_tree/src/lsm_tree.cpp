@@ -505,3 +505,81 @@ uint64_t LSM_Tree::get_max_file_limit(){
         return static_cast<uint64_t>(limit);
     #endif
 }
+
+bool LSM_Tree::reconstruct_tree(){
+    try{
+        /*std::vector<std::filesystem::path> subdirectories;
+        int index = 0;
+
+        while(1){
+            std::string level_n_dir(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
+            snprintf(&level_n_dir[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_LEVEL_DIR, index);
+            level_n_dir.resize(strlen(level_n_dir.c_str()));
+            if (!std::filesystem::exists(level_n_dir)) {
+                break;
+            }
+            else{
+                std::cout << index << std::endl;
+                subdirectories.push_back(level_n_dir);
+                ++index;
+            }
+        }
+
+        for(uint8_t i = 0; i < subdirectories.size(); ++i){
+            SS_Table_Controller ss_table_controller(SS_TABLE_CONTROLLER_RATIO, i);
+            this -> ss_table_controllers.push_back(ss_table_controller);
+
+            // private struct in LSM_tree class
+            // struct SS_Table_Files{
+            //  std::string dataFile
+            //  std::string indexFile
+            //  std::string offsetFIle
+            //}
+            // std::vector<SS_Table_Files> ss_table_files = discover_sstables(subdirectories.at(i), i)
+            // int kazkas = fill_ss_tables(std::vector<SS_Table_Files>, ss_tablr_controller)
+        }*/
+
+        std::filesystem::path ss_level_path = LSM_TREE_SS_LEVEL_PATH;
+        uint16_t ss_table_level_count = 0;
+
+        for(const std::filesystem::directory_entry level_path : std::filesystem::directory_iterator(ss_level_path)){
+            if(level_path.is_directory()){
+                ss_table_controllers.emplace_back(SS_TABLE_CONTROLLER_RATIO, ss_table_level_count);
+
+                std::vector<std::filesystem::path> ss_table_data_files;
+                std::vector<std::filesystem::path> ss_table_index_files;
+                std::vector<std::filesystem::path> ss_table_offset_files;
+                
+                for(const std::filesystem::directory_entry ss_table_file : std::filesystem::directory_iterator(level_path)){
+                    std::string full_path_name = ss_table_file.path().string();
+
+                    // ADD DEFINES!!!!!
+                    if(full_path_name.find("data") != std::string::npos){
+                        ss_table_data_files.emplace_back(ss_table_file.path());
+                    }else if(full_path_name.find("index") != std::string::npos){
+                        ss_table_index_files.emplace_back(ss_table_file.path());
+                    }else if(full_path_name.find("offset") != std::string::npos){
+                        ss_table_offset_files.emplace_back(ss_table_file.path());
+                    }else{
+                        continue;
+                    }
+
+                }
+
+                std::vector<std::pair<uint8_t, uint16_t>> corrupted_indexes = fill_ss_tables(ss_table_level_count, ss_table_data_files, ss_table_index_files, ss_table_offset_files);
+
+                ++ss_table_level_count;
+
+            }
+        }
+    }
+    catch(const std::exception& e){
+        std::cerr << e.what() << '\n';
+        return false;
+    }
+    
+};
+
+std::vector<std::pair<uint8_t, uint16_t>> LSM_Tree::fill_ss_tables(uint8_t level, std::vector<std::filesystem::path> data_files, std::vector<std::filesystem::path> index_files, std::vector<std::filesystem::path> offset_files){
+
+};
