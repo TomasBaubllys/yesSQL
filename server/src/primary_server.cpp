@@ -157,3 +157,11 @@ Partition_Entry Primary_Server::get_partition_for_key(const std::string& key) co
 
     return this -> partitions.at(partition_index);
 }
+
+std::vector<Partition_Entry> Primary_Server::get_partitions_ff(const std::string& key) const {
+
+}
+
+std::vector<Partition_Entry> Primary_Server::get_partitions_fb(const std::string& key) const {
+
+}

@@ -64,6 +64,10 @@ class Primary_Server : public Server {
 
         Partition_Entry get_partition_for_key(const std::string& key) const;
 
+        std::vector<Partition_Entry> get_partitions_ff(const std::string& key) const;
+
+        std::vector<Partition_Entry> get_partitions_fb(const std::string& key) const;
+
     public:
         Primary_Server(uint16_t port);
 
