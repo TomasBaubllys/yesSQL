@@ -331,7 +331,7 @@ bool LSM_Tree::compact_level(level_index_type index) {
             }
 
             // now if the next level exist check for overlapping keys there
-            if(ss_table_controllers.size() > index + 1) {
+            if(ss_table_controllers.size() > (uint64_t)(index + 1)) {
                 for(table_index_type i = 0; i < ss_table_controllers.at(index + 1).get_ss_tables_count(); ++i) {
                     if(ss_table_controllers.at(index + 1).at(i) -> overlap(first_index, last_index)) {
                         overlapping_key_ranges.push_back(std::make_pair(index + 1, i));
@@ -344,7 +344,7 @@ bool LSM_Tree::compact_level(level_index_type index) {
             std::string filename_index(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
             std::string filename_offset(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
 
-            uint64_t ss_table_count = ss_table_controllers.size() > index + 1? (ss_table_controllers.at(index + 1).get_current_name_counter()) : 0;
+            uint64_t ss_table_count = ss_table_controllers.size() > (uint64_t)(index + 1)? (ss_table_controllers.at(index + 1).get_current_name_counter()) : 0;
 
             snprintf(&filename_data[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_DATA,  index + 1, ss_table_count);
             snprintf(&filename_index[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_SS_TABLE_FILE_NAME_INDEX,  index + 1, ss_table_count);
@@ -400,7 +400,7 @@ bool LSM_Tree::compact_level(level_index_type index) {
             }
 
             // add the new table to our vector
-            if(ss_table_controllers.size() <= index + 1) {
+            if(ss_table_controllers.size() <= (uint64_t)(index + 1)) {
                 ss_table_controllers.emplace_back(SS_TABLE_CONTROLLER_RATIO, ss_table_controllers.size());
             }
 

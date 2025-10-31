@@ -3,7 +3,7 @@
 
 #include "server.h"
 #include <cstdio>
-// #include "../../lsm_tree/include/lsm_tree.h"
+#include "../../lsm_tree/include/lsm_tree.h"
 
 #define PARTITION_SERVER_NAME_PREFIX "yessql-partition_server-"
 #define PARTITION_SERVER_PORT 9000
@@ -17,6 +17,7 @@
 
 class Partition_Server : public Server {
     private:
+        LSM_Tree lsm_tree;
 
     public:
         Partition_Server(uint16_t port);

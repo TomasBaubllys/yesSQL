@@ -1,12 +1,13 @@
 CXX = g++
-CFLAGS = -Wall -O2
-LDFLAGS = -g
+CFLAGS = -Wall -O2 -std=c++17
+AR = ar
+ARFLAGS = rcs
 
 SRC_DIR = src
 OBJS_DIR = objs
-BIN_DIR = bin
+LIB_DIR = lib
 
-TARGET = $(BIN_DIR)/main
+TARGET = $(LIB_DIR)/lsm_tree.a
 
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJS_DIR)/%.o, $(SRCS))
@@ -14,13 +15,13 @@ OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJS_DIR)/%.o, $(SRCS))
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	@mkdir -p $(BIN_DIR)
-	$(CXX) $(CFLAGS) $(OBJS) -o $(TARGET) $(LDFLAGS)
+	@mkdir -p $(LIB_DIR)
+	$(AR) $(ARFLAGS) $(TARGET) $(OBJS)
 
 $(OBJS_DIR)/%.o: $(SRC_DIR)/%.cpp
-	@mkdir -p $(OBJS_DIR)	
+	@mkdir -p $(OBJS_DIR)
 	$(CXX) $(CFLAGS) -c $< -o $@
+	@echo "Compiled: $<"
 
 clean:
-	rm -rf $(OBJS_DIR) $(BIN_DIR)
-
+	rm -rf $(OBJS_DIR) $(LIB_DIR)
