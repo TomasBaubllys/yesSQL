@@ -138,15 +138,9 @@ std::set<Entry> LSM_Tree::get_ff(std::string _key){
         for(uint16_t i = 0; i < sstable_count; ++i){
             const SS_Table* ss_table = ss_table_controller.at(i);
 
-            std::vector<Bits> found_ff_keys = ss_table->get_keys_larger_or_equal(key_bits);
+            std::vector<Entry> found_ff_entries = ss_table -> get_entries_key_smaller_or_equal(key_bits);
 
-            for(const Bits& ss_table_key : found_ff_keys){
-                bool is_entry_found = false;
-
-                Entry ss_table_found_entry = ss_table->get(ss_table_key, is_entry_found);
-
-                if(is_entry_found){ff_entries.emplace(ss_table_found_entry);}
-            }
+            ff_entries.emplace(found_ff_entries);
         }
     }
     return ff_entries;
@@ -173,15 +167,9 @@ std::set<Entry> LSM_Tree::get_fb(std::string _key){
         for(uint16_t i = 0; i < sstable_count; ++i){
             const SS_Table* ss_table = ss_table_controller.at(i);
 
-            std::vector<Bits> found_fb_keys = ss_table->get_keys_smaller_or_equal(key_bits);
+            std::vector<Entry> found_fb_entries = ss_table->get_entries_key_smaller_or_equal(key_bits);
 
-            for(const Bits& ss_table_key : found_fb_keys){
-                bool is_entry_found = false;
-
-                Entry ss_table_found_entry = ss_table->get(ss_table_key, is_entry_found);
-
-                if(is_entry_found){fb_entries.emplace(ss_table_found_entry);}
-            }
+            fb_entries.emplace(found_fb_entries);
         }
     }
     return fb_entries;
