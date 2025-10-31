@@ -1,5 +1,5 @@
 # Builder stage
-FROM debian:bullseye-slim AS builder
+FROM debian:bookworm-slim AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -15,11 +15,11 @@ COPY lsm_tree/ /app/lsm_tree
 COPY server/ /app/server
 
 # Compile
-RUN cd lsm_tree && make
-RUN cd server && make
+RUN cd lsm_tree && make clean && make
+RUN cd server && make clean && make 
 
 # Final stage
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 WORKDIR /app
 

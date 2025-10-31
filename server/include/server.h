@@ -24,9 +24,7 @@
 #define SERVER_FAILED_LISTEN_ERR_MSG "Listen failed: "
 #define SERVER_FAILED_ACCEPT_ERR_MSG "Accept failed: "
 
-// server must
-// create a tcp port
-// etc...
+#define SERVER_OK_MSG "OK"
 
 class Server {
     protected:
@@ -39,7 +37,6 @@ class Server {
         Server(uint16_t port);
 
         virtual int8_t start();
-
 };
 
 #endif // YSQL_SERVER_H_INCLUDED

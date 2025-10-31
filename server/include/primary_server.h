@@ -36,6 +36,8 @@
 #define PRIMARY_SERVER_PARTITION_MONITORING
 #define PRIMARY_SERVER_PARTITION_STR_PREFIX "Partition "
 
+#define PRIMARY_SERVER_BYTES_IN_KEY_PREFIX 4
+
 // primary server must:
 // periodically send request to all partitions to figure out if they are all alive
 // rerout requests based on which partition we want to send to
@@ -55,6 +57,8 @@ class Primary_Server : public Server {
         void display_partitions_status() const;
 
         void start_partition_monitor_thread() const;
+
+        uint32_t key_prefix_to_uint32(const std::string& key) const;
 
     public:
         Primary_Server(uint16_t port);

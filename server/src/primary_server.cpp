@@ -61,6 +61,8 @@ int8_t Primary_Server::start() {
         std::cout << SERVER_LISTENING_ON_PORT_MSG << port << "..." << std::endl;
     #endif // PRIMARY_SERVER_DEBUG
 
+    // accept a client, read their message, if(key needs range) check ranges
+
     while (true) {
         // Accept one client
         new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&address_length);
@@ -132,6 +134,17 @@ bool Primary_Server::try_connect(const std::string& hostname, uint16_t port, uin
     return success;
 }
 
+uint32_t Primary_Server::key_prefix_to_uint32(const std::string& key) const {
+    uint32_t uint32_prefix_key = 0;
+
+    uint32_t key_limit = std::min<uint32_t>(PRIMARY_SERVER_BYTES_IN_KEY_PREFIX, key.length());
+
+    for(uint32_t i = 0; i < key_limit; ++i) {
+        uint32_prefix_key |= static_cast<uint32_t>(static_cast<uint8_t>(key[i]) << (8 * (PRIMARY_SERVER_BYTES_IN_KEY_PREFIX - 1 - i)));
+    }
+
+    return uint32_prefix_key;
+}
 
 
 
