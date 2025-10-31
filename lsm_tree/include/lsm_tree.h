@@ -21,6 +21,8 @@
 #include <iostream>
 #include <cstring>
 #include <set>
+#include <regex>
+#include <map>
 
 // .sst_l[level_index]_[file_type]_[ss_table_count].bin
 #define LSM_TREE_SS_TABLE_FILE_NAME_DATA ".sst_l%u_data_%lu.bin"
@@ -67,10 +69,11 @@ class LSM_Tree{
         uint64_t get_max_file_limit();
 
         struct SS_Table_Files{
-            std::string data_file;
-            std::string index_file;
-            std::string offset_file;
-        } SS_Tabe_Files;
+            std::filesystem::path data_file;
+            std::filesystem::path index_file;
+            std::filesystem::path offset_file;
+        };
+
 
     public:
         // default constructor initializes mem_table 

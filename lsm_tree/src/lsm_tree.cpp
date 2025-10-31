@@ -5,41 +5,10 @@ LSM_Tree::LSM_Tree(){
     mem_table = Mem_Table();
     max_files_count = get_max_file_limit();
 
-    // check if there are folders in data/val
-    // if yes, create that many sstable controllers as folders (levels), and add each sstable to to the controllers 4
-    // if crashes, we need to get back dataaa
+    if(!reconstruct_tree()){
+        throw std::runtime_error("failed to reconstruct tree");
 
-    std::vector<std::filesystem::path> subdirectories;
-    int index = 0;
-
-    while(1){
-        std::string level_n_dir(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
-        snprintf(&level_n_dir[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_LEVEL_DIR, index);
-        level_n_dir.resize(strlen(level_n_dir.c_str()));
-        if (!std::filesystem::exists(level_n_dir)) {
-            break;
-        }
-        else{
-            std::cout << index << std::endl;
-            subdirectories.push_back(level_n_dir);
-            ++index;
-        }
     }
-
-    for(uint8_t i = 0; i < subdirectories.size(); ++i){
-        SS_Table_Controller ss_table_controller(SS_TABLE_CONTROLLER_RATIO, i);
-        this -> ss_table_controllers.push_back(ss_table_controller);
-
-        // private struct in LSM_tree class
-        // struct SS_Table_Files{
-        //  std::string dataFile
-        //  std::string indexFile
-        //  std::string offsetFIle
-        //}
-        // std::vector<SS_Table_Files> ss_table_files = discover_sstables(subdirectories.at(i), i)
-        // int kazkas = fill_ss_tables(std::vector<SS_Table_Files>, ss_tablr_controller)
-    }
-
    
 
 };
@@ -506,80 +475,99 @@ uint64_t LSM_Tree::get_max_file_limit(){
     #endif
 }
 
+
+// perdaryt????? turi grazint corrupted indexes bet kaip tada catchint errorus??
 bool LSM_Tree::reconstruct_tree(){
     try{
-        /*std::vector<std::filesystem::path> subdirectories;
-        int index = 0;
-
-        while(1){
-            std::string level_n_dir(LSM_TREE_SS_TABLE_MAX_LENGTH, '\0');
-            snprintf(&level_n_dir[0], LSM_TREE_SS_TABLE_MAX_LENGTH, LSM_TREE_LEVEL_DIR, index);
-            level_n_dir.resize(strlen(level_n_dir.c_str()));
-            if (!std::filesystem::exists(level_n_dir)) {
-                break;
-            }
-            else{
-                std::cout << index << std::endl;
-                subdirectories.push_back(level_n_dir);
-                ++index;
-            }
-        }
-
-        for(uint8_t i = 0; i < subdirectories.size(); ++i){
-            SS_Table_Controller ss_table_controller(SS_TABLE_CONTROLLER_RATIO, i);
-            this -> ss_table_controllers.push_back(ss_table_controller);
-
-            // private struct in LSM_tree class
-            // struct SS_Table_Files{
-            //  std::string dataFile
-            //  std::string indexFile
-            //  std::string offsetFIle
-            //}
-            // std::vector<SS_Table_Files> ss_table_files = discover_sstables(subdirectories.at(i), i)
-            // int kazkas = fill_ss_tables(std::vector<SS_Table_Files>, ss_tablr_controller)
-        }*/
 
         std::filesystem::path ss_level_path = LSM_TREE_SS_LEVEL_PATH;
         uint16_t ss_table_level_count = 0;
 
+        std::regex ss_table_pattern(R"(\.sst_l(\d+)_(data|index|offset)_(\d+)\.bin)");
+        // match[1] -> level number
+        // match[2] -> file type
+        // match[3] -> file ID
+
+        std::vector<std::pair<uint8_t, uint16_t>> corrupted_indexes;
+
+
+        // FIX ITERATORIUS NEINA IS EILES KAIP MES NORIM!!!
         for(const std::filesystem::directory_entry level_path : std::filesystem::directory_iterator(ss_level_path)){
             if(level_path.is_directory()){
+                // CIA IRGI NEGERAI, REIKIA I SPECIFINE VIETA:()
                 ss_table_controllers.emplace_back(SS_TABLE_CONTROLLER_RATIO, ss_table_level_count);
+
+                std::map<uint16_t, LSM_Tree::SS_Table_Files> table_map;
 
                 std::vector<std::filesystem::path> ss_table_data_files;
                 std::vector<std::filesystem::path> ss_table_index_files;
                 std::vector<std::filesystem::path> ss_table_offset_files;
                 
                 for(const std::filesystem::directory_entry ss_table_file : std::filesystem::directory_iterator(level_path)){
-                    std::string full_path_name = ss_table_file.path().string();
+                    std::string filename = ss_table_file.path().filename().string();
+                    std::smatch match;
 
-                    // ADD DEFINES!!!!!
-                    if(full_path_name.find("data") != std::string::npos){
-                        ss_table_data_files.emplace_back(ss_table_file.path());
-                    }else if(full_path_name.find("index") != std::string::npos){
-                        ss_table_index_files.emplace_back(ss_table_file.path());
-                    }else if(full_path_name.find("offset") != std::string::npos){
-                        ss_table_offset_files.emplace_back(ss_table_file.path());
-                    }else{
-                        continue;
+                    if(std::regex_match(filename, match, ss_table_pattern)){
+                        std::string type = match[2];
+                        uint16_t id = static_cast<uint16_t>(std::stoi(match[3]));
+
+                        SS_Table_Files& set = table_map[id];
+
+                        if(type == "data")
+                            set.data_file = ss_table_file.path();
+                        else if (type == "index")
+                            set.index_file = ss_table_file.path();
+                        else if (type == "offset")
+                            set.offset_file = ss_table_file.path();
+
+
+
+
+                    }
+
+
+
+
+                }
+
+                for(std::pair<const uint16_t, SS_Table_Files>& entry : table_map){
+                    uint16_t id = entry.first;
+                    SS_Table_Files& set = entry.second;
+
+                    if(!set.data_file.empty() && !set.index_file.empty() && !set.offset_file.empty()){
+
+                        SS_Table* new_table = new SS_Table(entry.second.data_file, entry.second.index_file, entry.second.offset_file);
+                        ss_table_controllers.at(ss_table_level_count).add_sstable(new_table);
+                        
+                    }
+                    else{
+                        corrupted_indexes.emplace_back(ss_table_level_count, id);
+                        std::cout << "Corupted level: " << ss_table_level_count << " id: " << id << std::endl;
+                        std::cout << set.data_file.string() << std::endl;
+                                                std::cout << set.index_file.string() << std::endl;
+
+                                                                        std::cout << set.offset_file.string() << std::endl;
+
                     }
 
                 }
 
-                std::vector<std::pair<uint8_t, uint16_t>> corrupted_indexes = fill_ss_tables(ss_table_level_count, ss_table_data_files, ss_table_index_files, ss_table_offset_files);
 
                 ++ss_table_level_count;
 
+                
+
             }
+
         }
+
+        return true;
     }
     catch(const std::exception& e){
         std::cerr << e.what() << '\n';
         return false;
     }
     
-};
+}
 
-std::vector<std::pair<uint8_t, uint16_t>> LSM_Tree::fill_ss_tables(uint8_t level, std::vector<std::filesystem::path> data_files, std::vector<std::filesystem::path> index_files, std::vector<std::filesystem::path> offset_files){
 
-};
