@@ -21,6 +21,8 @@
 #include <iostream>
 #include <cstring>
 #include <set>
+#include <regex>
+#include <map>
 
 // .sst_l[level_index]_[file_type]_[ss_table_count].bin
 #define LSM_TREE_SS_TABLE_FILE_NAME_DATA ".sst_l%u_data_%lu.bin"
@@ -28,6 +30,7 @@
 #define LSM_TREE_SS_TABLE_FILE_NAME_OFFSET ".sst_l%u_offset_%lu.bin"
 #define LSM_TREE_LEVEL_DIR "./data/val/Level_%u"
 #define LSM_TREE_SS_TABLE_MAX_LENGTH 35
+#define LSM_TREE_SS_LEVEL_PATH "./data/val/"
 
 #define LSM_TREE_EMPTY_SS_TABLE_CONTROLLERS_ERR_MSG "LSM_Tree ss_table_controller vector is empty\n"
 #define LSM_TREE_EMPTY_ENTRY_VECTOR_ERR_MSG "LSM_Tree empty entries vector, could not fill ss table\n"
@@ -35,6 +38,7 @@
 #define LSM_TREE_FAILED_COMPACTION_ERR_MSG "Failed to compact levels\n"
 
 #define LSM_TREE_LEVEL_0_PATH "data/val/Level_0"
+#define LSM_TREE_CORRUPT_FILES_PATH "data/val/corrupted"
 
 
 
@@ -64,6 +68,13 @@ class LSM_Tree{
 
         // returns Max open files per process
         uint64_t get_max_file_limit();
+
+        struct SS_Table_Files{
+            std::filesystem::path data_file;
+            std::filesystem::path index_file;
+            std::filesystem::path offset_file;
+        };
+
 
     public:
         // default constructor initializes mem_table 
@@ -105,7 +116,13 @@ class LSM_Tree{
         // returns a pair <level, ratio> of the highest fill ratio on whole LSM tree
         std::pair<uint16_t, double> get_max_fill_ratio();
 
-        // 
+        // reconstructs LSM tree in case of a crash
+        bool reconstruct_tree();
+
+        // returns a pair vector of corrupted files <level, file index>
+        // fills sstables
+        std::vector<std::pair<uint8_t, uint16_t>> fill_ss_tables(uint8_t level, std::vector<std::filesystem::path> data_files, std::vector<std::filesystem::path> index_files, std::vector<std::filesystem::path> offset_files);
+
 };
 
 #endif

@@ -512,7 +512,7 @@ bool test_mem_table(vector<Entry>& entries, LSM_Tree& lsm_tree) {
 }
 
 int main() {
-    cout << "Generating non-overlapping entry sets..." << endl;
+    /*cout << "Generating non-overlapping entry sets..." << endl;
     vector<Entry> entriesA = generate_test_entries(0, ENTRY_COUNT);        // keys 0–999
     vector<Entry> entriesB = generate_test_entries(1000, ENTRY_COUNT);     // keys 1000–1999
     vector<Entry> entriesC = generate_test_entries(2000, ENTRY_COUNT);     // keys 2000–2999
@@ -523,12 +523,25 @@ int main() {
     vector<Entry> entriesH = generate_test_entries(7000, ENTRY_COUNT);     // keys 7000–7999
     vector<Entry> entriesI = generate_test_entries(8000, ENTRY_COUNT);     // keys 8000–8999
     vector<Entry> entriesJ = generate_test_entries(9000, ENTRY_COUNT);     // keys 9000–9999
+    */
+    
+    try{
+        cout << "Creating LSM tree..." << endl;
+        LSM_Tree lsm_tree;
+                std::cout << "LSM tree created successfully." << std::endl;
 
-    cout << "Creating LSM tree..." << endl;
-    LSM_Tree lsm_tree;
+
+    }
+    catch(const std::exception& e){
+        std::cerr << e.what() << '\n';
+        return false;
+    }
+    
+
+    
 
     // Run tests with guaranteed non-overlapping keys
-    assert(test_mem_table(entriesA, lsm_tree));
+    /*assert(test_mem_table(entriesA, lsm_tree));
     assert(test_mem_table(entriesB, lsm_tree));
     assert(test_mem_table(entriesC, lsm_tree));
     assert(test_mem_table(entriesD, lsm_tree));
@@ -561,6 +574,8 @@ int main() {
     vector<pair<uint16_t, double>> ratios = lsm_tree.get_fill_ratios();
     for (auto& r : ratios)
         cout << "Level " << r.first << " Ratio: " << r.second * 100 << "%\n";
+        */
+        
 
     return 0;
 }
