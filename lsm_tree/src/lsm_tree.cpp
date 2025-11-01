@@ -484,18 +484,37 @@ bool LSM_Tree::reconstruct_tree(){
         uint16_t ss_table_level_count = 0;
 
         std::regex ss_table_pattern(R"(\.sst_l(\d+)_(data|index|offset)_(\d+)\.bin)");
+        std::regex folder_pattern(R"(Level_(\d+))");
         // match[1] -> level number
         // match[2] -> file type
         // match[3] -> file ID
 
         std::vector<std::pair<uint8_t, uint16_t>> corrupted_indexes;
+        std::vector<std::pair<uint8_t, std::filesystem::path>> levels;
+
+        for(const std::filesystem::directory_entry level_path : std::filesystem::directory_iterator(ss_level_path)){
+            if(level_path.is_directory()){
+                std::string level_folder = level_path.path().filename().string();
+                std::smatch match;
+                if(std::regex_match(level_folder, match, folder_pattern)){
+                    uint8_t level = static_cast<uint8_t>(std::stoi(match[1]));
+                    levels.emplace_back(level, level_path);
+
+                }
+            }
+        }
+
+        std::sort(levels.begin(), levels.end(),
+                  [](const auto& a, const auto& b) {
+                      return a.first < b.first;
+                  });
+        
 
 
         // FIX ITERATORIUS NEINA IS EILES KAIP MES NORIM!!!
-        for(const std::filesystem::directory_entry level_path : std::filesystem::directory_iterator(ss_level_path)){
-            if(level_path.is_directory()){
+        for(std::vector<std::pair<uint8_t, std::filesystem::path>>::const_iterator it = levels.begin(); it != levels.end(); ++it){
                 // CIA IRGI NEGERAI, REIKIA I SPECIFINE VIETA:()
-                ss_table_controllers.emplace_back(SS_TABLE_CONTROLLER_RATIO, ss_table_level_count);
+                ss_table_controllers.emplace_back(SS_TABLE_CONTROLLER_RATIO, it -> first);
 
                 std::map<uint16_t, LSM_Tree::SS_Table_Files> table_map;
 
@@ -503,7 +522,7 @@ bool LSM_Tree::reconstruct_tree(){
                 std::vector<std::filesystem::path> ss_table_index_files;
                 std::vector<std::filesystem::path> ss_table_offset_files;
                 
-                for(const std::filesystem::directory_entry ss_table_file : std::filesystem::directory_iterator(level_path)){
+                for(const std::filesystem::directory_entry ss_table_file : std::filesystem::directory_iterator(it -> second )){
                     std::string filename = ss_table_file.path().filename().string();
                     std::smatch match;
 
@@ -520,13 +539,7 @@ bool LSM_Tree::reconstruct_tree(){
                         else if (type == "offset")
                             set.offset_file = ss_table_file.path();
 
-
-
-
                     }
-
-
-
 
                 }
 
@@ -555,14 +568,14 @@ bool LSM_Tree::reconstruct_tree(){
 
                 ++ss_table_level_count;
 
-                
+            
 
             }
 
+                    return true;
+
         }
 
-        return true;
-    }
     catch(const std::exception& e){
         std::cerr << e.what() << '\n';
         return false;
