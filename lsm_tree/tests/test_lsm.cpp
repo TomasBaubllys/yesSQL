@@ -525,9 +525,20 @@ int main() {
     vector<Entry> entriesJ = generate_test_entries(9000, ENTRY_COUNT);     // keys 9000–9999
     */
     
+    try{
+        cout << "Creating LSM tree..." << endl;
+        LSM_Tree lsm_tree;
+                std::cout << "LSM tree created successfully." << std::endl;
 
-    cout << "Creating LSM tree..." << endl;
-    LSM_Tree lsm_tree;
+
+    }
+    catch(const std::exception& e){
+        std::cerr << e.what() << '\n';
+        return false;
+    }
+    
+
+    
 
     // Run tests with guaranteed non-overlapping keys
     /*assert(test_mem_table(entriesA, lsm_tree));

@@ -481,8 +481,7 @@ bool LSM_Tree::reconstruct_tree(){
     try{
 
         std::filesystem::path ss_level_path = LSM_TREE_SS_LEVEL_PATH;
-        uint16_t ss_table_level_count = 0;
-
+        
         std::regex ss_table_pattern(R"(\.sst_l(\d+)_(data|index|offset)_(\d+)\.bin)");
         std::regex folder_pattern(R"(Level_(\d+))");
         // match[1] -> level number
@@ -550,32 +549,68 @@ bool LSM_Tree::reconstruct_tree(){
                     if(!set.data_file.empty() && !set.index_file.empty() && !set.offset_file.empty()){
 
                         SS_Table* new_table = new SS_Table(entry.second.data_file, entry.second.index_file, entry.second.offset_file);
-                        ss_table_controllers.at(ss_table_level_count).add_sstable(new_table);
+                        ss_table_controllers.at(it -> first).add_sstable(new_table);
                         
                     }
                     else{
-                        corrupted_indexes.emplace_back(ss_table_level_count, id);
-                        std::cout << "Corupted level: " << ss_table_level_count << " id: " << id << std::endl;
-                        std::cout << set.data_file.string() << std::endl;
-                                                std::cout << set.index_file.string() << std::endl;
+                        // create a folder to put all corrupted files in
 
-                                                                        std::cout << set.offset_file.string() << std::endl;
+                        std::cout << "heyeyy how ya doin" << std::endl;
+                        if (!std::filesystem::exists(LSM_TREE_CORRUPT_FILES_PATH)) {
+                            std::filesystem::create_directories(LSM_TREE_CORRUPT_FILES_PATH);
+                        }
 
+                        // move the entry.second.data_file, entry.second.index_file and entry.second.offset_file to the LMS_CORRUPT_FILES_PATH folder
+
+                        if(std::filesystem::exists(set.data_file)){
+                            std::filesystem::path dest = LSM_TREE_CORRUPT_FILES_PATH / set.data_file.filename();
+
+                            try{
+                                std::filesystem::rename(set.data_file, dest);
+                            }
+                            catch(const std::filesystem::filesystem_error& e){
+                                std::cerr << e.what() << std::endl;
+                                return false;
+                            }
+                        }
+
+                        if(std::filesystem::exists(set.index_file)){
+                            std::filesystem::path dest = LSM_TREE_CORRUPT_FILES_PATH / set.index_file.filename();
+                            try{
+                                std::filesystem::rename(set.index_file, dest);
+                            }
+                            catch(const std::filesystem::filesystem_error& e){
+                                std::cerr << e.what() << std::endl;
+                                return false;
+                            }
+                        }
+
+
+                        if(std::filesystem::exists(set.offset_file)){
+                            std::filesystem::path dest = LSM_TREE_CORRUPT_FILES_PATH / set.offset_file.filename();
+                            try{
+                                std::filesystem::rename(set.offset_file, dest);
+                            }
+                            catch(const std::filesystem::filesystem_error& e){
+                                std::cerr << e.what() << std::endl;
+                                return false;
+                            }
+                            
+                        }
                     }
 
                 }
 
-
-                ++ss_table_level_count;
-
-            
-
             }
 
-                    return true;
+        return true;
 
         }
 
+    catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "Filesystem error: " << e.what() << std::endl;
+        return false;
+    }
     catch(const std::exception& e){
         std::cerr << e.what() << '\n';
         return false;

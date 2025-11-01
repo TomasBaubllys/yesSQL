@@ -38,6 +38,7 @@
 #define LSM_TREE_FAILED_COMPACTION_ERR_MSG "Failed to compact levels\n"
 
 #define LSM_TREE_LEVEL_0_PATH "data/val/Level_0"
+#define LSM_TREE_CORRUPT_FILES_PATH "data/val/corrupted"
 
 
 
