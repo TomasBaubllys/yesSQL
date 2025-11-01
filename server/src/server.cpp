@@ -63,3 +63,73 @@ int8_t Server::start() {
 	
 	return 0;
 }
+
+std::string Server::read_message(uint32_t socket) const {
+    std::string buffer;
+    char block[SERVER_MESSAGE_BLOCK_SIZE];
+
+    uint64_t bytes_to_read = 0;
+
+    while (buffer.size() < sizeof(uint64_t)) {
+        int32_t bytes_read = recv(socket, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
+        if (bytes_read < 0) {
+            std::string recv_failed_str(SERVER_FAILED_RECV_ERR_MSG);
+            recv_failed_str += SERVER_ERRNO_STR_PREFIX;
+            recv_failed_str += std::to_string(errno);
+            throw std::runtime_error(recv_failed_str);
+        }
+
+        if (bytes_read == 0) {
+            return buffer;
+        }
+
+        buffer.append(block, bytes_read);
+    }
+
+    memcpy(&bytes_to_read, buffer.data(), sizeof(uint64_t));
+
+    while (buffer.size() < bytes_to_read) {
+        int32_t bytes_read = recv(socket, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
+        if (bytes_read < 0) {
+            std::string recv_failed_str(SERVER_FAILED_RECV_ERR_MSG);
+            recv_failed_str += SERVER_ERRNO_STR_PREFIX;
+            recv_failed_str += std::to_string(errno);
+            throw std::runtime_error(recv_failed_str);
+        }
+
+        if (bytes_read == 0) {
+            return buffer;
+        }
+
+        buffer.append(block, bytes_read);
+    }
+
+    return buffer.substr(0, bytes_to_read);
+}
+
+int64_t Server::send_message(uint32_t socket, const std::string& message) const {
+    size_t total_sent = 0;
+    ssize_t sent_bytes;
+
+    while (total_sent < message.size()) {
+        sent_bytes = send(socket, message.data() + total_sent, message.size() - total_sent, 0);
+
+        if (sent_bytes < 0) {
+            if (errno == EINTR) {
+                continue; 
+            }
+            std::string send_failed_str(SERVER_FAILED_SEND_ERR_MSG);
+            send_failed_str += SERVER_ERRNO_STR_PREFIX;
+            send_failed_str += std::to_string(errno);
+            throw std::runtime_error(send_failed_str);
+        }
+
+        if (sent_bytes == 0) {
+            break;
+        } 
+
+        total_sent += sent_bytes;
+    }
+
+    return static_cast<int64_t>(total_sent);
+}

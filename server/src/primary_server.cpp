@@ -159,9 +159,51 @@ Partition_Entry Primary_Server::get_partition_for_key(const std::string& key) co
 }
 
 std::vector<Partition_Entry> Primary_Server::get_partitions_ff(const std::string& key) const {
-
+    return std::vector<Partition_Entry>();
 }
 
 std::vector<Partition_Entry> Primary_Server::get_partitions_fb(const std::string& key) const {
+    return std::vector<Partition_Entry>();
+}
 
+Bits Primary_Server::extract_key_from_msg(const std::string& message) const {
+    std::string delim(PROTOCOL_LINE_ENDING);
+
+    // the fist delim is the size of the msg
+    size_t pos = message.find(delim);
+    if(pos == std::string::npos) {
+        throw std::runtime_error(PRIMARY_SERVER_NPOS_FAILED_ERR_MSG);
+    }
+
+    // the secind delim is number in array
+    pos = message.find(delim, pos + 1);
+    if(pos == std::string::npos) {
+        throw std::runtime_error(PRIMARY_SERVER_NPOS_FAILED_ERR_MSG);
+    }
+
+    // the third delim is the size of the command
+    pos = message.find(delim, pos + 1); 
+    if(pos == std::string::npos) {
+        throw std::runtime_error(PRIMARY_SERVER_NPOS_FAILED_ERR_MSG);
+    }
+
+    // the fourth delim should be key_len
+    pos = message.find(delim, pos + 1);
+    if(pos == std::string::npos) {
+        throw std::runtime_error(PRIMARY_SERVER_NPOS_FAILED_ERR_MSG);
+    }
+    
+    // now we need to go back 8 bytes
+    if(pos < sizeof(uint64_t)) {
+        throw std::runtime_error(PRIMARY_SERVER_NPOS_BAD_ERR_MSG);
+    }
+
+    pos -= sizeof(uint64_t);
+    uint64_t key_str_len(0);
+
+    memcpy(&key_str_len, message.data() + pos, sizeof(uint64_t));
+
+    std::string key_str(message.substr(pos + sizeof(uint64_t) + sizeof(delim), key_str_len));
+
+    return Bits(key_str);
 }

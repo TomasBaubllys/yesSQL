@@ -22,6 +22,9 @@
 // #define PRIMARY_SERVER_MAX_PARTITION_COUNT 256
 #define PRIMARY_SERVER_PARTITION_COUNT_ZERO_ERR_MSG "Partition count is 0!\n"
 
+#define PRIMARY_SERVER_NPOS_FAILED_ERR_MSG "Could not extract the key from the message received - npos failed\n"
+#define PRIMARY_SERVER_NPOS_BAD_ERR_MSG "Bad or corrupted message received, could not extract key\n"
+
 #define PRIMARY_SERVER_PARTITION_CHECK_INTERVAL 10
 #define PRIMARY_SERVER_HELLO_MSG "Hello from yesSQL server"
 
@@ -67,6 +70,8 @@ class Primary_Server : public Server {
         std::vector<Partition_Entry> get_partitions_ff(const std::string& key) const;
 
         std::vector<Partition_Entry> get_partitions_fb(const std::string& key) const;
+
+        Bits extract_key_from_msg(const std::string& message) const;
 
     public:
         Primary_Server(uint16_t port);

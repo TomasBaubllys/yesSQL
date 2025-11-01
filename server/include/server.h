@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <cstdio>
 #include <string>
+#include "protocol.h"
 
 #define SERVER_LISTENING_ON_PORT_MSG "Listening on port: "
 
@@ -23,6 +24,10 @@
 
 #define SERVER_FAILED_LISTEN_ERR_MSG "Listen failed: "
 #define SERVER_FAILED_ACCEPT_ERR_MSG "Accept failed: "
+#define SERVER_FAILED_RECV_ERR_MSG "Recv failed: "
+#define SERVER_FAILED_SEND_ERR_MSG "Send failed: "
+
+#define SERVER_MESSAGE_BLOCK_SIZE 1024
 
 #define SERVER_OK_MSG "OK"
 
@@ -37,6 +42,10 @@ class Server {
         Server(uint16_t port);
 
         virtual int8_t start();
+
+        std::string read_message(uint32_t socket) const;
+
+        int64_t send_message(uint32_t socket, const std::string& message) const;
 };
 
 #endif // YSQL_SERVER_H_INCLUDED
