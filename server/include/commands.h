@@ -27,7 +27,7 @@
     The format:
         ^<LEN>             - Length of the entire message (including delimeters) (uint64_t)
         *<N>               - Number of elements in the array (here: 3) MAX() (uint64_t)
-        $<len>             - Length of the following string (binary-safe) (uint64_t)
+        $<len>             - Length of the following string (binary-safe) (uint64_t) (should it alway be that big? for commands use uint8_t)
         <string>           - Actual data (command / key / value) 
 
    Example:

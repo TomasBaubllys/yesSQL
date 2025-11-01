@@ -46,6 +46,8 @@ class Server {
         std::string read_message(uint32_t socket) const;
 
         int64_t send_message(uint32_t socket, const std::string& message) const;
+
+        Command_Code extract_command_code(const std::string& raw_message) const;
 };
 
 #endif // YSQL_SERVER_H_INCLUDED

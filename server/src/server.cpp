@@ -87,6 +87,9 @@ std::string Server::read_message(uint32_t socket) const {
     }
 
     memcpy(&bytes_to_read, buffer.data(), sizeof(uint64_t));
+    
+    // not sure for this part but for now the first 8 bytes do not contain themselsevse
+    bytes_to_read += sizeof(uint64_t);
 
     while (buffer.size() < bytes_to_read) {
         int32_t bytes_read = recv(socket, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
@@ -132,4 +135,17 @@ int64_t Server::send_message(uint32_t socket, const std::string& message) const 
     }
 
     return static_cast<int64_t>(total_sent);
+}
+
+Command_Code Server::extract_command_code(const std::string& raw_message) const {
+    // find the command string, 
+         /*      Example:
+        ^L\r\n
+       *3\r\n
+       $3\r\n
+       SET\r\n
+    */
+    // find which command_code it coresponds to
+
+    return (Command_Code)0;
 }

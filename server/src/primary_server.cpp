@@ -65,17 +65,23 @@ int8_t Primary_Server::start() {
 
     while (true) {
         // Accept one client
-        new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&address_length);
+        struct sockaddr_in client_addr;
+        socklen_t client_addr_len = sizeof(client_addr);
+        new_socket = accept(server_fd, (struct sockaddr*)&client_addr, &client_addr_len);
         if (new_socket < 0) {
             std::cerr << SERVER_FAILED_ACCEPT_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
             continue; // Skip this client and keep listening
         }
 
-        // Print client info
-        char client_ip[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &(address.sin_addr), client_ip, INET_ADDRSTRLEN);
+        // wait for a messege from a client
+        // and print it
+        std::string rec_msg = this -> read_message(new_socket);
+        std::cout << rec_msg.substr(8) << std::endl;
 
+        // Print client info
         #ifdef PRIMARY_SERVER_DEBUG
+            char client_ip[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &(address.sin_addr), client_ip, INET_ADDRSTRLEN);
             std::cout << "Client connected from " << client_ip << ":" << ntohs(address.sin_port) << std::endl;
         #endif // PRIMARY_SERVER_DEBUG 
 

@@ -6,11 +6,8 @@ LSM_Tree::LSM_Tree(){
     max_files_count = get_max_file_limit();
 
     if(!reconstruct_tree()){
-        throw std::runtime_error("failed to reconstruct tree");
-
+        // throw std::runtime_error("failed to reconstruct tree");
     }
-   
-
 };
 
 LSM_Tree::~LSM_Tree(){
