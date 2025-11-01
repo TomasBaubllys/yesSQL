@@ -54,8 +54,8 @@ enum SS_Table_Binary_Search_Type : uint8_t {
 };
 
 enum SS_Table_Key_Filter : uint8_t {
-    SS_TABLE_ALL_KEYS,
-    SS_TABLE_ALIVE_KEYS
+    SS_TABLE_FILTER_ALL_ENTRIES,
+    SS_TABLE_FILTER_ALIVE_ENTRIES
 };
 
 class SS_Table{
@@ -92,6 +92,12 @@ class SS_Table{
 
         //THROWS
         std::vector<Bits> get_keys_smaller_or_equal(const Bits& target_key, SS_Table_Key_Filter key_filter) const;
+
+        std::vector<Entry> get_entries_key_smaller_or_equal(const Bits& target_key, SS_Table_Key_Filter key_filter) const;
+
+        std::vector<Entry> get_entries_key_larger_or_equal(const Bits& target_key, SS_Table_Key_Filter key_filter) const;
+
+        std::vector<Entry> get_all_entries(SS_Table_Key_Filter key_filter) const;
 
         std::vector<Bits> get_all_keys(SS_Table_Key_Filter key_filter) const;
 
@@ -193,21 +199,26 @@ class SS_Table{
         // @brief returns all the keys contained in a table
         std::vector<Bits> get_all_keys() const;
 
-        //THROWS
-        std::vector<Bits> get_keys_larger_or_equal(const Bits& target_key) const;
-
-        //THROWS
-        std::vector<Bits> get_keys_smaller_or_equal(const Bits& target_key) const;
-
         // THROWS
         std::vector<Bits> get_all_keys_alive() const;
 
-        //THROWS
-        std::vector<Bits> get_keys_larger_or_equal_alive(const Bits& target_key) const;
+        // THROWS
+        std::vector<Entry> get_entries_key_smaller_or_equal(const Bits& target_key) const;
 
-        //THROWS
-        std::vector<Bits> get_keys_smaller_or_equal_alive(const Bits& target_key) const;
+        // THROWS
+        std::vector<Entry> get_entries_key_larger_or_equal(const Bits& target_key) const;
 
+        // THROWS
+        std::vector<Entry> get_entries_key_smaller_or_equal_alive(const Bits& target_key) const;
+
+        // THROWS
+        std::vector<Entry> get_entries_key_larger_or_equal_alive(const Bits& target_key) const;
+
+        // THROWS
+        std::vector<Entry> get_all_entries_alive() const;
+
+        // THROWS
+        std::vector<Entry> get_all_entries() const;
 };
 
 
