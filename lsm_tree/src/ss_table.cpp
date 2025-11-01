@@ -519,7 +519,7 @@ std::vector<Bits> SS_Table::get_all_keys() const {
     return this -> get_all_keys(SS_TABLE_FILTER_ALL_ENTRIES);
 }
 
-std::vector<Bits> SS_Table::get_all_keys(SS_Table_Key_Filter key_filter) const {
+std::vector<Bits> SS_Table::get_all_keys(SS_Table_Entry_Filter key_filter) const {
     std::vector<Bits> keys;
     
     keys.reserve(this -> record_count);
@@ -677,7 +677,7 @@ uint64_t SS_Table::binary_search_nearest(std::ifstream& index_ifstream, std::ifs
     return binary_search_left;
 }
 
-std::vector<Entry> SS_Table::get_all_entries(SS_Table_Key_Filter key_filter) const {
+std::vector<Entry> SS_Table::get_all_entries(SS_Table_Entry_Filter key_filter) const {
     std::vector<Entry> entries;
     
     entries.reserve(this -> record_count);
@@ -755,7 +755,7 @@ std::vector<Entry> SS_Table::get_all_entries(SS_Table_Key_Filter key_filter) con
     return entries;
 }
 
-std::vector<Entry> SS_Table::get_entries_key_smaller_or_equal(const Bits& target_key, SS_Table_Key_Filter key_filter) const {
+std::vector<Entry> SS_Table::get_entries_key_smaller_or_equal(const Bits& target_key, SS_Table_Entry_Filter key_filter) const {
     std::vector<Entry> entries;
     if(target_key < this -> first_index) {
         return entries;
@@ -865,7 +865,7 @@ std::vector<Entry> SS_Table::get_entries_key_smaller_or_equal(const Bits& target
     return entries;
 }
 
-std::vector<Entry> SS_Table::get_entries_key_larger_or_equal(const Bits& target_key, SS_Table_Key_Filter entry_filter) const {
+std::vector<Entry> SS_Table::get_entries_key_larger_or_equal(const Bits& target_key, SS_Table_Entry_Filter entry_filter) const {
     std::vector<Entry> entries;
     if(target_key > this -> last_index) {
         return entries;

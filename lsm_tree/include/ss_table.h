@@ -53,7 +53,7 @@ enum SS_Table_Binary_Search_Type : uint8_t {
     SS_TABLE_SMALLER_OR_EQUAL
 };
 
-enum SS_Table_Key_Filter : uint8_t {
+enum SS_Table_Entry_Filter : uint8_t {
     SS_TABLE_FILTER_ALL_ENTRIES,
     SS_TABLE_FILTER_ALIVE_ENTRIES
 };
@@ -88,18 +88,18 @@ class SS_Table{
         // if ifstreams are not open, opens them
         uint64_t binary_search_nearest(std::ifstream& index_ifstream, std::ifstream& offset_ifstream, const Bits& target_key, SS_Table_Binary_Search_Type search_type) const;
 
-        std::vector<Bits> get_keys_larger_or_equal(const Bits& target_key, SS_Table_Key_Filter key_filter) const;
+        std::vector<Bits> get_keys_larger_or_equal(const Bits& target_key, SS_Table_Entry_Filter key_filter) const;
 
         //THROWS
-        std::vector<Bits> get_keys_smaller_or_equal(const Bits& target_key, SS_Table_Key_Filter key_filter) const;
+        std::vector<Bits> get_keys_smaller_or_equal(const Bits& target_key, SS_Table_Entry_Filter key_filter) const;
 
-        std::vector<Entry> get_entries_key_smaller_or_equal(const Bits& target_key, SS_Table_Key_Filter key_filter) const;
+        std::vector<Entry> get_entries_key_smaller_or_equal(const Bits& target_key, SS_Table_Entry_Filter key_filter) const;
 
-        std::vector<Entry> get_entries_key_larger_or_equal(const Bits& target_key, SS_Table_Key_Filter key_filter) const;
+        std::vector<Entry> get_entries_key_larger_or_equal(const Bits& target_key, SS_Table_Entry_Filter key_filter) const;
 
-        std::vector<Entry> get_all_entries(SS_Table_Key_Filter key_filter) const;
+        std::vector<Entry> get_all_entries(SS_Table_Entry_Filter key_filter) const;
 
-        std::vector<Bits> get_all_keys(SS_Table_Key_Filter key_filter) const;
+        std::vector<Bits> get_all_keys(SS_Table_Entry_Filter key_filter) const;
 
 
     public:
