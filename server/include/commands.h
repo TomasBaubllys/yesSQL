@@ -11,7 +11,6 @@
 #define COMMAND_GET_FB "GET_FB" // GET_FB <KEY>
 #define COMMAND_REMOVE "REMOVE" // REMOVE <KEY>
 
-
 /* SET COMMAND EXCHANGE ()
 
    The JS API sends a single, length-prefixed command message:
