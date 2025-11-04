@@ -18,6 +18,8 @@ Entry SS_Table_Controller::get(const Bits& key, bool& found) const{
         }
     }
 
+                std::cout << "miau" << std::endl;
+
     return Entry(Bits(placeholder_key), Bits(placeholder_value));
 
 }

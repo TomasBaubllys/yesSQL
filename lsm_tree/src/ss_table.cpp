@@ -151,6 +151,7 @@ Entry SS_Table::get(const Bits& key, bool& found) const {
     return Entry(key_str, data_str);
 }
 
+// needs a more complicated constructor --> or a reconstruct ss_table method
 SS_Table::SS_Table(const std::filesystem::path& _data_file, const std::filesystem::path& _index_file, std::filesystem::path& _index_offset_file)
     : data_file(_data_file), index_file(_index_file), index_offset_file(_index_offset_file), first_index(ENTRY_PLACEHOLDER_KEY), last_index((ENTRY_PLACEHOLDER_KEY)), record_count(0), data_file_size(0), index_file_size(0), index_offset_file_size(0) {
 

@@ -31,14 +31,18 @@
 #define LSM_TREE_LEVEL_DIR "./data/val/Level_%u"
 #define LSM_TREE_SS_TABLE_MAX_LENGTH 35
 #define LSM_TREE_SS_LEVEL_PATH "./data/val/"
+#define LSM_TREE_TYPE_DATA "data"
+#define LSM_TREE_TYPE_INDEX "index"
+#define LSM_TREE_TYPE_OFFSET "offset"
+
 
 #define LSM_TREE_EMPTY_SS_TABLE_CONTROLLERS_ERR_MSG "LSM_Tree ss_table_controller vector is empty\n"
 #define LSM_TREE_EMPTY_ENTRY_VECTOR_ERR_MSG "LSM_Tree empty entries vector, could not fill ss table\n"
 #define LSM_TREE_GETRLIMIT_ERR_MSG "Failed getrlimit() call\n"
 #define LSM_TREE_FAILED_COMPACTION_ERR_MSG "Failed to compact levels\n"
 
-#define LSM_TREE_LEVEL_0_PATH "data/val/Level_0"
-#define LSM_TREE_CORRUPT_FILES_PATH "data/val/corrupted"
+#define LSM_TREE_LEVEL_0_PATH ".data/val/Level_0"
+#define LSM_TREE_CORRUPT_FILES_PATH ".data/val/corrupted"
 
 
 
