@@ -67,6 +67,10 @@ class Server {
         bool try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec = 1) const;
 
         socket_t connect_to(const std::string& hostname, uint16_t port, bool& is_successful) const;
+
+        // THROWS
+        std::string extract_key_str_from_msg(const std::string& raw_message) const;
+
 };
 
 #endif // YSQL_SERVER_H_INCLUDED

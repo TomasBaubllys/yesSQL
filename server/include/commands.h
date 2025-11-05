@@ -14,6 +14,9 @@
 #define COMMAND_REMOVE "REMOVE" // REMOVE <KEY>
 
 using command_code_type = uint16_t;
+#define command_hton(x) htons(x)
+#define command_ntoh(x) ntohs(x)
+
 
 /* SET COMMAND EXCHANGE ()
 
@@ -67,7 +70,6 @@ typedef enum Command_Code : command_code_type {
     COMMAND_CODE_REMOVE,
 
     COMMAND_CODE_DATA_NOT_FOUND,
-    COMMAND_CODE_DATA_ARRAY_SIZE,
     INVALID_COMMAND_CODE
 } Command_Code;
 

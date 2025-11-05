@@ -150,24 +150,6 @@ std::vector<Partition_Entry> Primary_Server::get_partitions_fb(const std::string
     return std::vector<Partition_Entry>();
 }
 
-std::string Primary_Server::extract_key_str_from_msg(const std::string& raw_message) const {
-    // check if the command is long enough
-    if(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type)  > raw_message.size()) {
-        throw std::runtime_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
-    }
-
-    protocol_key_len_type key_len = 0;
-    memcpy(&key_len, &raw_message[PROTOCOL_FIRST_KEY_LEN_POS], sizeof(key_len));
-    key_len = ntohs(key_len);
-
-    // check if msg is long enough
-    if(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type) + key_len > raw_message.size()) {
-        throw std::runtime_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
-    }
-
-    return raw_message.substr(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type), key_len);
-}
-
 int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
     // read the message
     std::string raw_message;
@@ -187,9 +169,7 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
 
     // decide how to handle it
     switch(com_code) {
-        case COMMAND_CODE_GET: {
-            break;
-        }
+        case COMMAND_CODE_GET:
         case COMMAND_CODE_SET: {
             // extract the key string
             std::string key_str;
@@ -209,11 +189,16 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
 
             // forward the message there
             std::cout << "sending the message: " << raw_message << std::endl;
-            std::string partition_response = this -> query_parition(partition_entry,raw_message);
-
-            // forward the response to the client
-
-
+            std::string partition_response = this -> query_partition(partition_entry,raw_message);
+            try{
+                this -> send_message(client_socket, partition_response);
+            }
+            catch(const std::exception& e) {
+                if(this -> verbose > 0) {
+                    std::cerr << e.what() << std::endl;
+                }
+            }
+            close(client_socket);
             break;
         }
         case COMMAND_CODE_GET_KEYS: {
@@ -241,8 +226,7 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
     return 0;
 }
 
-
-std::string Primary_Server::query_parition(const Partition_Entry& partition, const std::string &raw_message) const {
+std::string Primary_Server::query_partition(const Partition_Entry& partition, const std::string &raw_message) const {
     bool success = false;
     socket_t partition_socket = this -> connect_to(partition.partition_name, partition.port, success);
     if(!success) {
