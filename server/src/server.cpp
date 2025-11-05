@@ -1,6 +1,6 @@
 #include "../include/server.h"
 
-Server::Server(uint16_t port) : port(port) {
+Server::Server(uint16_t port, uint8_t verbose) : port(port), verbose(verbose) {
 	// create a server_fd AF_INET - ipv4, SOCKET_STREAM - TCP
 	this -> server_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(this -> server_fd < 0) {
@@ -176,9 +176,9 @@ socket_t Server::connect_to(const std::string& hostname, uint16_t port, bool& is
     std::string port_str = std::to_string(port);
     int status = getaddrinfo(hostname.c_str(), port_str.c_str(), &hints, &res);
     if (status != 0 || !res) {
-        #ifdef SERVER_DEBUG
-        std::cerr << SERVER_FAILED_HOSTNAME_RESOLVE << hostname << ": " << gai_strerror(status) << std::endl;
-        #endif
+        if(this -> verbose > 0) {
+            std::cerr << SERVER_FAILED_HOSTNAME_RESOLVE << hostname << ": " << gai_strerror(status) << std::endl;
+        }
         is_successful = false;
         return -1;
     }

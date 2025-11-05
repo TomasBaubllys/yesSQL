@@ -1,6 +1,6 @@
 #include "../include/partition_server.h"
 
-Partition_Server::Partition_Server(uint16_t port) : Server(port), lsm_tree() {
+Partition_Server::Partition_Server(uint16_t port, uint8_t verbose) : Server(port, verbose), lsm_tree() {
 
 }
 

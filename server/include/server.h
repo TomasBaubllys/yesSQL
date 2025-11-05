@@ -34,7 +34,7 @@
 
 #define SERVER_FAILED_HOSTNAME_RESOLVE "Failed to resolve: "
 
-
+#define SERVER_DEFAULT_VERBOSE_VAL 0
 #define SERVER_MESSAGE_BLOCK_SIZE 1024
 
 #define SERVER_OK_MSG "OK"
@@ -50,7 +50,7 @@ class Server {
 
     public:
         // THROWS
-        Server(uint16_t port);
+        Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
 
         virtual int8_t start();
 

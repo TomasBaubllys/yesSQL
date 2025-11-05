@@ -44,12 +44,12 @@ int main(int argc, char* argv[]) {
     try {
         switch(server_type) {
             case PRIMARY_SERVER: {
-                Primary_Server primary_server(port);
+                Primary_Server primary_server(port, 1);
                 return primary_server.start();
                 break;
             }
             case PARTITION_SERVER: {
-                Partition_Server partition_server(port);
+                Partition_Server partition_server(port, 1);
                 return partition_server.start();
                 break;
             }

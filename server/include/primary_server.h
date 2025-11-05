@@ -78,7 +78,7 @@ class Primary_Server : public Server {
         std::string query_parition(const Partition_Entry& partition, const std::string& raw_message) const;
 
     public:
-        Primary_Server(uint16_t port);
+        Primary_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
 
         int8_t start() override;
 };

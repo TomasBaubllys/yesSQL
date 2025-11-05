@@ -1,6 +1,6 @@
 #include "../include/primary_server.h"
 
-Primary_Server::Primary_Server(uint16_t port) : Server(port) {
+Primary_Server::Primary_Server(uint16_t port, uint8_t verbose) : Server(port, verbose) {
     const char* partition_count_str = std::getenv(PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING);
     if(!partition_count_str) {
         throw std::runtime_error(PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_UNDEF_ERR_MSG);
@@ -69,7 +69,9 @@ int8_t Primary_Server::start() {
         socklen_t client_addr_len = sizeof(client_addr);
         new_socket = accept(server_fd, (struct sockaddr*)&client_addr, &client_addr_len);
         if (new_socket < 0) {
-            std::cerr << SERVER_FAILED_ACCEPT_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+            if(this -> verbose > 0) {
+                std::cerr << SERVER_FAILED_ACCEPT_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+            }
             continue; // Skip this client and keep listening
         }
 
@@ -170,7 +172,9 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
         raw_message = this -> read_message(client_socket);
     }
     catch(const std::exception &e) {
-        std::cerr << e.what() << std::endl; // add some variable that checks if the server is in printing mode
+        if(this -> verbose > 0) {
+            std::cerr << e.what() << std::endl; // add some variable that checks if the server is in printing mode
+        }
         close(client_socket);
         return -1;
     }
@@ -189,7 +193,9 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
                 std::string key_str = this -> extract_key_str_from_msg(raw_message);
             }
             catch(const std::exception& e) {
-                std::cerr << e.what() << std::endl; // add some variable that checks if the server is in printing mode
+                if(this -> verbose) {
+                    std::cerr << e.what() << std::endl; // add some variable that checks if the server is in printing mode
+                }
                 // send a message to the client about invalid operation
                 close(client_socket);
                 return -1;
