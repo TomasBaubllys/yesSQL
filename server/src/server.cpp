@@ -169,6 +169,7 @@ bool Server::try_connect(const std::string& hostname, uint16_t port, uint32_t ti
 }
 
 socket_t Server::connect_to(const std::string& hostname, uint16_t port, bool& is_successful) const {
+    // std::cout << port << std::endl;
     struct addrinfo hints{}, *res = nullptr;
     hints.ai_family = AF_INET;       // IPv4
     hints.ai_socktype = SOCK_STREAM; // TCP
@@ -177,7 +178,7 @@ socket_t Server::connect_to(const std::string& hostname, uint16_t port, bool& is
     int status = getaddrinfo(hostname.c_str(), port_str.c_str(), &hints, &res);
     if (status != 0 || !res) {
         if(this -> verbose > 0) {
-            std::cerr << SERVER_FAILED_HOSTNAME_RESOLVE << hostname << ": " << gai_strerror(status) << std::endl;
+            std::cerr << SERVER_FAILED_HOSTNAME_RESOLVE_ERR_MSG << hostname << ": " << gai_strerror(status) << std::endl;
         }
         is_successful = false;
         return -1;
@@ -190,7 +191,19 @@ socket_t Server::connect_to(const std::string& hostname, uint16_t port, bool& is
         return -1;
     }
 
-    if (connect(sock, res->ai_addr, res->ai_addrlen) != 0) {
+    /*struct sockaddr_in* addr_in = (struct sockaddr_in*)res->ai_addr;
+
+    char ip_str[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(addr_in->sin_addr), ip_str, sizeof(ip_str));
+
+    std::cout << "Connecting to " << ip_str
+    << ":" << ntohs(addr_in->sin_port) << std::endl;
+    */
+
+    if (connect(sock, res -> ai_addr, res -> ai_addrlen) != 0) {
+        if(this -> verbose) {
+            std::cout << SERVER_CONNECT_FAILED_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+        }
         close(sock);
         freeaddrinfo(res);
         is_successful = false;

@@ -20,7 +20,7 @@ int8_t Partition_Server::start() {
     // std::cout << "Partition server listening on port " << port << "..." << std::endl;
 
     while (true) {
-        // std::cout << "Waiting for connection..." << std::endl;
+        std::cout << "Waiting for connection..." << std::endl;
 
         new_socket = accept(this -> server_fd, (struct sockaddr*)&client_addr, &client_len);
         if (new_socket < 0) {

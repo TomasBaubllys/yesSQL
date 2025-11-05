@@ -32,7 +32,8 @@
 #define SERVER_MESSAGE_TOO_SHORT_ERR_MSG "The received message is too short to be valid\n"
 #define SERVER_INVALID_SOCKET_ERR_MSG "The socket provided is invalid\n"
 
-#define SERVER_FAILED_HOSTNAME_RESOLVE "Failed to resolve: "
+#define SERVER_FAILED_HOSTNAME_RESOLVE_ERR_MSG "Failed to resolve: "
+#define SERVER_CONNECT_FAILED_ERR_MSG "Failed to connect: "
 
 #define SERVER_DEFAULT_VERBOSE_VAL 0
 #define SERVER_MESSAGE_BLOCK_SIZE 1024

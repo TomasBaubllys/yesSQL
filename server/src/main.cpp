@@ -21,7 +21,7 @@ typedef enum Server_Type {
 
 // arguments must be passed like [server_type] [port]
 int main(int argc, char* argv[]) {
-    if(argc != 3) {
+    if(argc != 3 && argc != 4) {
         // check for ? argument
         if(argc == 2 && argv[1][0] == HELP_SYMBOL) {
             // print help msg
@@ -36,6 +36,8 @@ int main(int argc, char* argv[]) {
     // check the port if its valid
     uint16_t port = atoi(argv[2]);
 
+    uint8_t verbose = atoi(argv[3]);
+
     /*if(port < MIN_PORT_NUMBER){
         std::cerr << BAD_PORT_NUMBER_MSG << ALLOWED_PORT_RANGE_MSG;
         return -1;
@@ -44,12 +46,12 @@ int main(int argc, char* argv[]) {
     try {
         switch(server_type) {
             case PRIMARY_SERVER: {
-                Primary_Server primary_server(port, 1);
+                Primary_Server primary_server(port, verbose);
                 return primary_server.start();
                 break;
             }
             case PARTITION_SERVER: {
-                Partition_Server partition_server(port, 1);
+                Partition_Server partition_server(port, verbose);
                 return partition_server.start();
                 break;
             }

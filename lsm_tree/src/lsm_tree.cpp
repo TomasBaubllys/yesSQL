@@ -5,6 +5,7 @@ LSM_Tree::LSM_Tree(){
     mem_table = Mem_Table();
     max_files_count = get_max_file_limit();
 
+
     if(!reconstruct_tree()){
         // throw std::runtime_error("failed to reconstruct tree");
     }
@@ -476,7 +477,7 @@ bool LSM_Tree::reconstruct_tree(){
         std::vector<std::pair<uint8_t, uint16_t>> corrupted_indexes;
         std::vector<std::pair<uint8_t, std::filesystem::path>> levels;
 
-        for(const std::filesystem::directory_entry level_path : std::filesystem::directory_iterator(ss_level_path)){
+        for(const std::filesystem::directory_entry& level_path : std::filesystem::directory_iterator(ss_level_path)){
             if(level_path.is_directory()){
                 std::string level_folder = level_path.path().filename().string();
                 std::smatch match;
@@ -506,7 +507,7 @@ bool LSM_Tree::reconstruct_tree(){
                 std::vector<std::filesystem::path> ss_table_index_files;
                 std::vector<std::filesystem::path> ss_table_offset_files;
                 
-                for(const std::filesystem::directory_entry ss_table_file : std::filesystem::directory_iterator(it -> second )){
+                for(const std::filesystem::directory_entry& ss_table_file : std::filesystem::directory_iterator(it -> second )){
                     std::string filename = ss_table_file.path().filename().string();
                     std::smatch match;
 
@@ -528,7 +529,7 @@ bool LSM_Tree::reconstruct_tree(){
                 }
 
                 for(std::pair<const uint16_t, SS_Table_Files>& entry : table_map){
-                    uint16_t id = entry.first;
+                    // uint16_t id = entry.first;
                     SS_Table_Files& set = entry.second;
 
                     if(!set.data_file.empty() && !set.index_file.empty() && !set.offset_file.empty()){
@@ -588,8 +589,6 @@ bool LSM_Tree::reconstruct_tree(){
 
             }
 
-        return true;
-
         }
 
     catch (const std::filesystem::filesystem_error& e) {
@@ -597,10 +596,11 @@ bool LSM_Tree::reconstruct_tree(){
         return false;
     }
     catch(const std::exception& e){
-        std::cerr << e.what() << '\n';
+        std::cerr << e.what() << std::endl;
         return false;
     }
-    
+
+    return true;
 }
 
 

@@ -18,6 +18,7 @@ Primary_Server::Primary_Server(uint16_t port, uint8_t verbose) : Server(port, ve
     for(uint32_t i = 0; i < this -> partition_count; ++i) {
         Partition_Entry partition_entry;
         partition_entry.partition_name = PARTITION_SERVER_NAME_PREFIX + std::to_string(i + 1);
+        partition_entry.port = PARTITION_SERVER_PORT;
         
         partition_entry.range.beg = this -> partition_range_length * i;
         partition_entry.range.end = this ->  partition_range_length * (i + 1);
@@ -43,7 +44,6 @@ void Primary_Server::start_partition_monitor_thread() const {
 
 int8_t Primary_Server::start() {
     uint32_t new_socket;
-    uint32_t address_length = sizeof(this -> address);
     const char* msg = PRIMARY_SERVER_HELLO_MSG;
 
     if(listen(server_fd, PRIMARY_SERVER_DEFAULT_LISTEN_VALUE) < 0) {
