@@ -228,13 +228,28 @@ std::string Primary_Server::query_parition(const Partition_Entry& partition, con
     bool success = false;
     socket_t partition_socket = this -> connect_to(partition.partition_name, partition.port, success);
     if(!success) {
-        close(partition_socket);
+        std::string fail_str(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
+        fail_str += partition.partition_name;
+        throw std::runtime_error(fail_str);
     }
 
     uint64_t bytes_sent = this -> send_message(partition_socket, raw_message);
     if(bytes_sent == 0) {
-        // ...
+        std::string fail_str(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
+        fail_str += partition.partition_name;
+        close(partition_socket);
+        throw std::runtime_error(fail_str);
     }
 
-    return this -> read_message(partition_socket);
+    std::string response;
+    try {
+        response = this -> read_message(partition_socket);
+    }
+    catch(...) {
+        close(partition_socket);
+        throw;
+    }
+
+    close(partition_socket);
+    return response;
 }
