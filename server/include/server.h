@@ -12,6 +12,8 @@
 #include <cstdio>
 #include <string>
 #include "protocol.h"
+#include <stdexcept>
+#include <netdb.h>
 
 #define SERVER_LISTENING_ON_PORT_MSG "Listening on port: "
 
@@ -26,6 +28,12 @@
 #define SERVER_FAILED_ACCEPT_ERR_MSG "Accept failed: "
 #define SERVER_FAILED_RECV_ERR_MSG "Recv failed: "
 #define SERVER_FAILED_SEND_ERR_MSG "Send failed: "
+
+#define SERVER_MESSAGE_TOO_SHORT_ERR_MSG "The received message is too short to be valid\n"
+#define SERVER_INVALID_SOCKET_ERR_MSG "The socket provided is invalid\n"
+
+#define SERVER_FAILED_HOSTNAME_RESOLVE "Failed to resolve: "
+
 
 #define SERVER_MESSAGE_BLOCK_SIZE 1024
 
@@ -43,11 +51,17 @@ class Server {
 
         virtual int8_t start();
 
-        std::string read_message(uint32_t socket) const;
+        // THROWS
+        std::string read_message(socket_t socket) const;
 
-        int64_t send_message(uint32_t socket, const std::string& message) const;
+        // THROWS
+        int64_t send_message(socket_t socket, const std::string& message) const;
 
         Command_Code extract_command_code(const std::string& raw_message) const;
+
+        bool try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec = 1) const;
+
+        socket_t connect_to(const std::string& hostname, uint16_t port, bool& is_successful) const;
 };
 
 #endif // YSQL_SERVER_H_INCLUDED

@@ -13,7 +13,6 @@
 #include <sys/socket.h>
 #include <thread>
 #include "partition_server.h"
-#include <cstdlib>
 #include "../include/partition_entry.h"
 #include <limits>
 
@@ -27,8 +26,6 @@
 
 #define PRIMARY_SERVER_PARTITION_CHECK_INTERVAL 10
 #define PRIMARY_SERVER_HELLO_MSG "Hello from yesSQL server"
-
-#define PRIMARY_SERVER_FAILED_HOSTNAME_RESOLVE "Failed to resolve: "
 
 #define PRIMARY_SERVER_DEFAULT_LISTEN_VALUE 10
 
@@ -57,8 +54,6 @@ class Primary_Server : public Server {
 
         std::vector<bool> get_partitions_status() const;
 
-        bool try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec = 1) const;
-
         void display_partitions_status() const;
 
         void start_partition_monitor_thread() const;
@@ -71,7 +66,13 @@ class Primary_Server : public Server {
 
         std::vector<Partition_Entry> get_partitions_fb(const std::string& key) const;
 
-        Bits extract_key_from_msg(const std::string& message) const;
+        // returns the first key found in the message
+        // THROWS
+        std::string extract_key_str_from_msg(const std::string& raw_message) const;
+
+        int8_t handle_client_request(socket_t socket) const;
+
+        std::string query_parition(const Partition_Entry& partition, const std::string& raw_message) const;
 
     public:
         Primary_Server(uint16_t port);

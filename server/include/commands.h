@@ -1,6 +1,8 @@
 #ifndef YSQL_COMMANDS_H_INCLUDED
 #define YSQL_COMMANDS_H_INCLUDED
 
+#include <cstdint>
+
 #define COMMAND_OK "OK"// OK
 #define COMMAND_ERR "ERR" // NOT OK
 #define COMMAND_GET "GET" // GET <KEY>
@@ -10,6 +12,8 @@
 #define COMMAND_GET_FF "GET_FF" // GET_FF <KEY>
 #define COMMAND_GET_FB "GET_FB" // GET_FB <KEY>
 #define COMMAND_REMOVE "REMOVE" // REMOVE <KEY>
+
+using command_code_type = uint16_t;
 
 /* SET COMMAND EXCHANGE ()
 
@@ -51,7 +55,7 @@
    JS API receives either "+OK" or "-ERR <reason>".
 */
 
-typedef enum Command_Code {
+typedef enum Command_Code : command_code_type {
     COMMAND_CODE_OK,
     COMMAND_CODE_ERR,
     COMMAND_CODE_GET,
@@ -64,6 +68,7 @@ typedef enum Command_Code {
 
     COMMAND_CODE_DATA_NOT_FOUND,
     COMMAND_CODE_DATA_ARRAY_SIZE,
+    INVALID_COMMAND_CODE
 } Command_Code;
 
 #endif // YSQL_COMMANDS_H_INCLUDED

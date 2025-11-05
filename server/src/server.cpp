@@ -1,4 +1,5 @@
 #include "../include/server.h"
+#include <cstring>
 
 Server::Server(uint16_t port) : port(port) {
 	// create a server_fd AF_INET - ipv4, SOCKET_STREAM - TCP
@@ -64,7 +65,11 @@ int8_t Server::start() {
 	return 0;
 }
 
-std::string Server::read_message(uint32_t socket) const {
+std::string Server::read_message(socket_t socket) const {
+    if(socket < 0) {
+        throw std::runtime_error(SERVER_INVALID_SOCKET_ERR_MSG);
+    }
+
     std::string buffer;
     char block[SERVER_MESSAGE_BLOCK_SIZE];
 
@@ -110,7 +115,11 @@ std::string Server::read_message(uint32_t socket) const {
     return buffer.substr(0, bytes_to_read);
 }
 
-int64_t Server::send_message(uint32_t socket, const std::string& message) const {
+int64_t Server::send_message(socket_t socket, const std::string& message) const {
+    if(socket < 0) {
+        throw std::runtime_error(SERVER_INVALID_SOCKET_ERR_MSG);
+    }
+
     size_t total_sent = 0;
     ssize_t sent_bytes;
 
@@ -138,14 +147,64 @@ int64_t Server::send_message(uint32_t socket, const std::string& message) const 
 }
 
 Command_Code Server::extract_command_code(const std::string& raw_message) const {
-    // find the command string, 
-         /*      Example:
-        ^L\r\n
-       *3\r\n
-       $3\r\n
-       SET\r\n
-    */
-    // find which command_code it coresponds to
+    if(PROTOCOL_COMMAND_NUMBER_POS + sizeof(command_code_type) > raw_message.size()) {
+        return INVALID_COMMAND_CODE;
+    }
 
-    return (Command_Code)0;
+    command_code_type com_code;
+    memcpy(&com_code, &raw_message[PROTOCOL_COMMAND_NUMBER_POS], sizeof(command_code_type));
+
+    return static_cast<Command_Code>(com_code);
 }
+
+bool Server::try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec) const {
+    bool success = false;
+
+    socket_t sock = this -> connect_to(hostname, port, success);
+
+    if(success) {
+        close(sock);
+    }
+
+    return success;
+}
+
+#include <netdb.h>      // getaddrinfo, freeaddrinfo
+#include <unistd.h>     // close
+#include <cstring>      // memset, memcpy
+#include <arpa/inet.h>  // htons
+
+socket_t Server::connect_to(const std::string& hostname, uint16_t port, bool& is_successful) const {
+    struct addrinfo hints{}, *res = nullptr;
+    hints.ai_family = AF_INET;       // IPv4
+    hints.ai_socktype = SOCK_STREAM; // TCP
+
+    std::string port_str = std::to_string(port);
+    int status = getaddrinfo(hostname.c_str(), port_str.c_str(), &hints, &res);
+    if (status != 0 || !res) {
+        #ifdef SERVER_DEBUG
+        std::cerr << SERVER_FAILED_HOSTNAME_RESOLVE << hostname << ": " << gai_strerror(status) << std::endl;
+        #endif
+        is_successful = false;
+        return -1;
+    }
+
+    socket_t sock = socket(res -> ai_family, res -> ai_socktype, res -> ai_protocol);
+    if (sock < 0) {
+        freeaddrinfo(res);
+        is_successful = false;
+        return -1;
+    }
+
+    if (connect(sock, res->ai_addr, res->ai_addrlen) != 0) {
+        close(sock);
+        freeaddrinfo(res);
+        is_successful = false;
+        return -1;
+    }
+
+    freeaddrinfo(res);
+    is_successful = true;
+    return sock;
+}
+

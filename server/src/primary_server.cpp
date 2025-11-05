@@ -1,4 +1,6 @@
 #include "../include/primary_server.h"
+#include <netdb.h>
+#include <unistd.h>
 
 Primary_Server::Primary_Server(uint16_t port) : Server(port) {
     const char* partition_count_str = std::getenv(PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING);
@@ -73,8 +75,7 @@ int8_t Primary_Server::start() {
             continue; // Skip this client and keep listening
         }
 
-        // wait for a messege from a client
-        // and print it
+        // print the message received from the client
         std::string rec_msg = this -> read_message(new_socket);
         std::cout << rec_msg.substr(8) << std::endl;
 
@@ -109,35 +110,10 @@ std::vector<bool> Primary_Server::get_partitions_status() const {
     partitions_status.reserve(this -> partition_count);
 
     for(uint32_t i = 0; i < this -> partition_count; ++i) {
-        partitions_status.push_back(try_connect(this -> partitions.at(i).partition_name, PARTITION_SERVER_PORT));
+        partitions_status.push_back(try_connect(this -> partitions.at(i).partition_name, this -> partitions.at(i).port));
     }
 
     return partitions_status;
-}
-
-bool Primary_Server::try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec) const {
-    int32_t sock = socket(AF_INET, SOCK_STREAM, 0);
-    if(sock < 0) {
-        return false;
-    }
-
-    struct hostent* server = gethostbyname(hostname.c_str());
-    if(!server) {
-        std::cerr << PRIMARY_SERVER_FAILED_HOSTNAME_RESOLVE << hostname << std::endl;
-        close(sock);
-        return false;
-    }
-
-    struct sockaddr_in serv_addr{};
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(port);
-    std::memcpy(&serv_addr.sin_addr.s_addr, server -> h_addr, server -> h_length);
-
-    bool success = (connect(sock, (struct sockaddr*)& serv_addr, sizeof(serv_addr)) == 0);
-
-    close(sock);
-
-    return success;
 }
 
 uint32_t Primary_Server::key_prefix_to_uint32(const std::string& key) const {
@@ -172,44 +148,93 @@ std::vector<Partition_Entry> Primary_Server::get_partitions_fb(const std::string
     return std::vector<Partition_Entry>();
 }
 
-Bits Primary_Server::extract_key_from_msg(const std::string& message) const {
-    std::string delim(PROTOCOL_LINE_ENDING);
-
-    // the fist delim is the size of the msg
-    size_t pos = message.find(delim);
-    if(pos == std::string::npos) {
-        throw std::runtime_error(PRIMARY_SERVER_NPOS_FAILED_ERR_MSG);
+std::string Primary_Server::extract_key_str_from_msg(const std::string& raw_message) const {
+    // check if the command is long enough
+    if(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type)  > raw_message.size()) {
+        throw std::runtime_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
     }
 
-    // the secind delim is number in array
-    pos = message.find(delim, pos + 1);
-    if(pos == std::string::npos) {
-        throw std::runtime_error(PRIMARY_SERVER_NPOS_FAILED_ERR_MSG);
+    protocol_key_len_type key_len = 0;
+    memcpy(&key_len, &raw_message[PROTOCOL_FIRST_KEY_LEN_POS], sizeof(key_len));
+
+    // check if msg is long enough
+    if(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type) + key_len > raw_message.size()) {
+        throw std::runtime_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
     }
 
-    // the third delim is the size of the command
-    pos = message.find(delim, pos + 1); 
-    if(pos == std::string::npos) {
-        throw std::runtime_error(PRIMARY_SERVER_NPOS_FAILED_ERR_MSG);
+    return raw_message.substr(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type), key_len);
+}
+
+int8_t Primary_Server::handle_client_request(socket_t socket) const {
+    try {
+        // read the message
+        std::string raw_message = this -> read_message(socket);
+
+        // extract the command code
+        Command_Code com_code = this -> extract_command_code(raw_message);
+
+        // decide how to handle it
+        switch(com_code) {
+            case COMMAND_CODE_GET: {
+                break;
+            }
+            case COMMAND_CODE_SET: {
+                // extract the key string
+                std::string key_str = this -> extract_key_str_from_msg(raw_message);
+
+                // find to which partition entry it belongs to
+                Partition_Entry partition_entry = this -> get_partition_for_key(key_str);
+
+                // forward the message there
+
+
+                // wait for response
+
+                // forward the response to the client
+
+                break;
+            }
+            case COMMAND_CODE_GET_KEYS: {
+                break;
+            }
+            case COMMAND_CODE_GET_KEYS_PREFIX: {
+                break;
+            }
+            case COMMAND_CODE_GET_FF: {
+                break;
+            }
+            case COMMAND_CODE_GET_FB: {
+                break;
+            }
+            case COMMAND_CODE_REMOVE: {
+                break;
+            }
+            default: {
+
+                break;
+            }
+
+        }
+
+    }
+    catch(const std::exception &e) {
+        std::cerr << e.what() << std::endl;
+    }
+    return 0;
+}
+
+
+std::string Primary_Server::query_parition(const Partition_Entry& partition, const std::string &raw_message) const {
+    bool success = false;
+    socket_t partition_socket = this -> connect_to(partition.partition_name, partition.port, success);
+    if(!success) {
+        close(partition_socket);
     }
 
-    // the fourth delim should be key_len
-    pos = message.find(delim, pos + 1);
-    if(pos == std::string::npos) {
-        throw std::runtime_error(PRIMARY_SERVER_NPOS_FAILED_ERR_MSG);
-    }
-    
-    // now we need to go back 8 bytes
-    if(pos < sizeof(uint64_t)) {
-        throw std::runtime_error(PRIMARY_SERVER_NPOS_BAD_ERR_MSG);
+    uint64_t bytes_sent = this -> send_message(partition_socket, raw_message);
+    if(bytes_sent == 0) {
+        // ...
     }
 
-    pos -= sizeof(uint64_t);
-    uint64_t key_str_len(0);
-
-    memcpy(&key_str_len, message.data() + pos, sizeof(uint64_t));
-
-    std::string key_str(message.substr(pos + sizeof(uint64_t) + sizeof(delim), key_str_len));
-
-    return Bits(key_str);
+    return this -> read_message(partition_socket);
 }
