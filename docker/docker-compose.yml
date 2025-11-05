@@ -1,9 +1,9 @@
 name: yesSQL
 
 services:
-  main_server:
+  primary_server:
     image: server
-    command: ["0", "8080"]
+    command: ["0", "8080", "1"]
     ports:
       - "8080:8080"
     environment:
@@ -20,7 +20,7 @@ services:
     #build:
     #  context: ..
     #  dockerfile: ./docker/Dockerfile
-    command: ["1", "9000"]
+    command: ["1", "9000", "1"]
     expose:
       - "9000"
     environment:

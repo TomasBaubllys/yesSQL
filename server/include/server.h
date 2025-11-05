@@ -11,6 +11,9 @@
 #include <stdexcept>
 #include <cstdio>
 #include <string>
+#include "protocol.h"
+#include <stdexcept>
+#include <netdb.h>
 
 #define SERVER_LISTENING_ON_PORT_MSG "Listening on port: "
 
@@ -23,6 +26,17 @@
 
 #define SERVER_FAILED_LISTEN_ERR_MSG "Listen failed: "
 #define SERVER_FAILED_ACCEPT_ERR_MSG "Accept failed: "
+#define SERVER_FAILED_RECV_ERR_MSG "Recv failed: "
+#define SERVER_FAILED_SEND_ERR_MSG "Send failed: "
+
+#define SERVER_MESSAGE_TOO_SHORT_ERR_MSG "The received message is too short to be valid\n"
+#define SERVER_INVALID_SOCKET_ERR_MSG "The socket provided is invalid\n"
+
+#define SERVER_FAILED_HOSTNAME_RESOLVE_ERR_MSG "Failed to resolve: "
+#define SERVER_CONNECT_FAILED_ERR_MSG "Failed to connect: "
+
+#define SERVER_DEFAULT_VERBOSE_VAL 0
+#define SERVER_MESSAGE_BLOCK_SIZE 1024
 
 #define SERVER_OK_MSG "OK"
 
@@ -32,11 +46,26 @@ class Server {
         int32_t server_fd;
         struct sockaddr_in address;
 
+        // variable decides if server prints out the messages.
+        uint8_t verbose;
+
     public:
         // THROWS
-        Server(uint16_t port);
+        Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
 
         virtual int8_t start();
+
+        // THROWS
+        std::string read_message(socket_t socket) const;
+
+        // THROWS
+        int64_t send_message(socket_t socket, const std::string& message) const;
+
+        Command_Code extract_command_code(const std::string& raw_message) const;
+
+        bool try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec = 1) const;
+
+        socket_t connect_to(const std::string& hostname, uint16_t port, bool& is_successful) const;
 };
 
 #endif // YSQL_SERVER_H_INCLUDED

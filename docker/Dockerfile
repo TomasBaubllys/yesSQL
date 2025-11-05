@@ -1,5 +1,5 @@
 # Builder stage
-FROM debian:bookworm-slim AS builder
+FROM debian:trixie-slim AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -19,7 +19,7 @@ RUN cd lsm_tree && make clean && make
 RUN cd server && make clean && make 
 
 # Final stage
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 WORKDIR /app
 

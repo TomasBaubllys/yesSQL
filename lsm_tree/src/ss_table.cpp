@@ -5,25 +5,25 @@
 #include <iostream>
 #include <stdexcept>
 #include "../include/entry.h"
+#include "../include/file_exception.h"
 
 std::string SS_Table::read_stream_at_offset(uint64_t& offset) const {
     std::ifstream data_in(this -> data_file, std::ios::binary);
     if(!data_in) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG, this -> data_file.c_str());
     }
 
     data_in.seekg(offset, data_in.beg);
 
     if(data_in.fail()) {
-        throw std::runtime_error(SS_TABLE_BAD_OFFSET_ERR_MSG);
+        throw File_Exception(SS_TABLE_BAD_OFFSET_ERR_MSG, this -> data_file.c_str());
     }
 
     uint64_t data_len = 0;
     data_in.read(reinterpret_cast<char*>(&data_len), sizeof(data_len));
   
     if(data_in.fail()) {
-        std::cout<<"1"<<std::endl;
-        throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+        throw File_Exception(SS_TABLE_UNEXPECTED_DATA_EOF_MSG, this -> data_file.c_str());
     }
 
     std::string raw_data(data_len, '\0');
@@ -31,8 +31,7 @@ std::string SS_Table::read_stream_at_offset(uint64_t& offset) const {
     data_in.read(&raw_data[0], data_len);
 
     if(data_in.fail()) {
-        std::cout<<"2"<<std::endl;
-        throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+        throw File_Exception(SS_TABLE_UNEXPECTED_DATA_EOF_MSG, this -> data_file.c_str());
     }
 
     return raw_data;
@@ -48,12 +47,12 @@ Entry SS_Table::get(const Bits& key, bool& found) const {
 
     std::ifstream index_in(this -> index_file, std::ios::binary);
     if(!index_in) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG, this -> index_file.c_str());
     }
 
     std::ifstream index_offset_in(this -> index_offset_file, std::ios::binary);
     if(!index_offset_in) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG, this -> index_offset_file.c_str());
     }
 
     // first set the index to the middle
@@ -71,33 +70,33 @@ Entry SS_Table::get(const Bits& key, bool& found) const {
         // read the key offset
         index_offset_in.seekg(binary_search_index * sizeof(uint64_t) , index_offset_in.beg);
         if(index_offset_in.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG, this -> index_offset_file.c_str());
         }
 
 
         // read the keys offset
         index_offset_in.read(reinterpret_cast<char*>(&key_offset), sizeof(key_offset));
         if(index_offset_in.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG, this -> index_offset_file.c_str());
         }
 
         // place the pointer in index_in
         index_in.seekg(key_offset, index_in.beg);
         if(index_in.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         // read the size of the key itself
         index_in.read(reinterpret_cast<char*>(&key_length), sizeof(key_length));
         if(index_in.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         // now read the key
         key_str.resize(key_length);
         index_in.read(&key_str[0], key_length);
         if(index_in.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         // compare the key
@@ -109,7 +108,7 @@ Entry SS_Table::get(const Bits& key, bool& found) const {
         if(compare == 0) {
             index_in.read(reinterpret_cast<char*>(&data_offset), sizeof(data_offset));
             if(index_in.fail()) {
-                throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+                throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
             }
 
             found = true;
@@ -193,15 +192,15 @@ uint64_t SS_Table::fill_ss_table(const std::vector<Entry>& entry_vector) {
     std::ofstream index_offset_out(this ->index_offset_file, std::ios::binary);
 
 	if(!data_out) {
-		throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
+		throw File_Exception(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG, this -> data_file.c_str());
 	}
 
 	if(!index_out) {
-		throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+		throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG, this -> index_file.c_str());
 	}
 
 	if(!index_offset_out) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG, this -> index_offset_file.c_str());
     }
 
 	uint64_t data_offset = 0;
@@ -217,33 +216,33 @@ uint64_t SS_Table::fill_ss_table(const std::vector<Entry>& entry_vector) {
         // write to the index offset mapping file
         index_offset_out.write(reinterpret_cast<char*>(&key_offset), sizeof(key_offset));
         if(index_offset_out.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_INDEX_OFFSET_WRITE_ERR_MSG);
+            throw File_Exception(SS_TABLE_FAILED_INDEX_OFFSET_WRITE_ERR_MSG, this -> data_file.c_str());
         }
 
         // write the index length
         index_out.write(reinterpret_cast<char*>(&key_len), sizeof(key_len));
         if(index_out.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+            throw File_Exception(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG, this -> index_file.c_str());
         }
 
         index_out.write(key_in.data(), key_len);
         if(index_out.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+            throw File_Exception(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG, this -> index_file.c_str());
         }
 
         index_out.write(reinterpret_cast<char*>(&data_offset), sizeof(data_offset));
         if(index_out.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+            throw File_Exception(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG, this -> index_file.c_str());
         }
 
         data_out.write(reinterpret_cast<char*>(&data_len), sizeof(data_len));
         if(data_out.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG);
+            throw File_Exception(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG, this -> data_file.c_str());
         }
 
         data_out.write(data_in.data(), data_len);
         if(data_out.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG);
+            throw File_Exception(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG, this -> data_file.c_str());
         }
 
         data_offset += data_len + sizeof(data_len);
@@ -273,15 +272,15 @@ uint64_t SS_Table::append(const std::vector<Entry>& entry_vector) {
     std::ofstream index_offset_out(this ->index_offset_file, std::ios::binary | std::ios::app);
 
     if(!data_out) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG, this -> data_file.c_str());
     }
 
     if(!index_out) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG, this -> index_file.c_str());
     }
 
     if(!index_offset_out) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG, this -> index_offset_file.c_str());
     }
 
     uint64_t data_offset = this -> data_file_size;
@@ -297,33 +296,33 @@ uint64_t SS_Table::append(const std::vector<Entry>& entry_vector) {
         // write to the index offset mapping file
         index_offset_out.write(reinterpret_cast<char*>(&key_offset), sizeof(key_offset));
         if(index_offset_out.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_INDEX_OFFSET_WRITE_ERR_MSG);
+            throw File_Exception(SS_TABLE_FAILED_INDEX_OFFSET_WRITE_ERR_MSG, this -> index_offset_file.c_str());
         }
 
         // write the index length
         index_out.write(reinterpret_cast<char*>(&key_len), sizeof(key_len));
         if(index_out.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+            throw File_Exception(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG, this -> index_file.c_str());
         }
 
         index_out.write(key_in.data(), key_len);
         if(index_out.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+            throw File_Exception(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG, this -> index_file.c_str());
         }
 
         index_out.write(reinterpret_cast<char*>(&data_offset), sizeof(data_offset));
         if(index_out.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+            throw File_Exception(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG, this -> index_file.c_str());
         }
 
         data_out.write(reinterpret_cast<char*>(&data_len), sizeof(data_len));
         if(data_out.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG);
+            throw File_Exception(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG, this -> data_file.c_str());
         }
 
         data_out.write(data_in.data(), data_len);
         if(data_out.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG);
+            throw File_Exception(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG, this -> data_file.c_str());
         }
 
         data_offset += data_len + sizeof(data_len);
@@ -425,17 +424,17 @@ SS_Table::Keynator SS_Table::get_keynator() const {
 int8_t SS_Table::init_writing() {
     this -> data_ofstream.open(this -> data_file, std::ios::binary);
     if(this -> data_ofstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG, this -> data_file.c_str());
     }
 
     this -> index_ofstream.open(this -> index_file, std::ios::binary);
     if(this -> index_ofstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG, this -> index_file.c_str());
     }
 
     this -> index_offset_ofstream.open(this -> index_offset_file, std::ios::binary);
     if(this ->index_offset_ofstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG, this -> index_offset_file.c_str());
     }
 
     return 0;
@@ -454,32 +453,32 @@ int8_t SS_Table::write(const Bits& key, const std::string& data_string) {
 
     index_offset_ofstream.write(reinterpret_cast<char*>(&key_offset), sizeof(key_offset));
     if(index_offset_ofstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_INDEX_OFFSET_WRITE_ERR_MSG);
+        throw File_Exception(SS_TABLE_FAILED_INDEX_OFFSET_WRITE_ERR_MSG, this -> index_offset_file.c_str());
     }
 
     index_ofstream.write(reinterpret_cast<char*>(&key_length), sizeof(key_length));
     if(index_ofstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+        throw File_Exception(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG, this -> index_file.c_str());
     }
 
     index_ofstream.write(&key_string[0], key_length);
     if(index_ofstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+        throw File_Exception(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG, this -> index_file.c_str());
     }
 
     index_ofstream.write(reinterpret_cast<char*>(&data_offset), sizeof(data_offset));
     if(index_ofstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG);
+        throw File_Exception(SS_TABLE_FAILED_INDEX_WRITE_ERR_MSG, this -> index_file.c_str());
     }
 
     data_ofstream.write(reinterpret_cast<char*>(&data_length), sizeof(data_length));
     if(data_ofstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG);
+        throw File_Exception(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG, this -> data_file.c_str());
     }
 
     data_ofstream.write(&data_string[0], data_length);
     if(data_ofstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG);
+        throw File_Exception(SS_TABLE_FAILED_DATA_WRITE_ERR_MSG, this -> data_file.c_str());
     }
 
     ++this -> record_count;
@@ -526,17 +525,17 @@ std::vector<Bits> SS_Table::get_all_keys(SS_Table_Entry_Filter key_filter) const
     keys.reserve(this -> record_count);
     std::ifstream index_ifstream(this -> index_file, std::ios::binary);
     if(index_ifstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG, this -> index_file.c_str());
     }
 
     std::ifstream offset_ifstream(this -> index_offset_file, std::ios::binary);
     if(offset_ifstream.fail()){
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG, this -> index_offset_file.c_str());
     }
 
     std::ifstream data_ifstream(this -> data_file, std::ios::binary);
     if(data_ifstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG, this -> data_file.c_str());
     }
 
     uint64_t current_key_offset = 0;
@@ -544,19 +543,19 @@ std::vector<Bits> SS_Table::get_all_keys(SS_Table_Entry_Filter key_filter) const
     while(offset_ifstream.read(reinterpret_cast<char*>(&current_key_offset), sizeof(current_key_offset))) {
         index_ifstream.seekg(current_key_offset, index_ifstream.beg);
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         key_len_type current_key_length = 0;
         index_ifstream.read(reinterpret_cast<char*>(&current_key_length), sizeof(current_key_length));
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         std::string current_key(current_key_length, '\0');
         index_ifstream.read(&current_key[0], current_key_length);
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         // read the data offset
@@ -564,24 +563,24 @@ std::vector<Bits> SS_Table::get_all_keys(SS_Table_Entry_Filter key_filter) const
             uint64_t current_data_offset = 0;
             index_ifstream.read(reinterpret_cast<char*>(&current_data_offset), sizeof(current_data_offset));
             if(index_ifstream.fail()) {
-                throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+                throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
             }
 
             data_ifstream.seekg(current_data_offset, data_ifstream.beg);
             if(data_ifstream.fail()) {
-                throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+                throw File_Exception(SS_TABLE_UNEXPECTED_DATA_EOF_MSG, this -> data_file.c_str());
             }
             // read the data itself
             uint64_t current_data_size = 0;
             data_ifstream.read(reinterpret_cast<char*>(&current_data_size), sizeof(current_data_size));
             if(data_ifstream.fail()) {
-                throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+                throw File_Exception(SS_TABLE_UNEXPECTED_DATA_EOF_MSG, this -> data_file.c_str());
             }
 
             std::string current_data(current_data_size, '\0');
             data_ifstream.read(&current_data[0], current_data_size);
             if(data_ifstream.fail()) {
-                throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+                throw File_Exception(SS_TABLE_UNEXPECTED_DATA_EOF_MSG, this -> data_file.c_str());
             }
             // check the tombstone flag
             Entry current_entry(current_key, current_data);
@@ -605,7 +604,7 @@ uint64_t SS_Table::binary_search_nearest(std::ifstream& index_ifstream, std::ifs
         index_ifstream.open(this -> index_file, std::ios::binary);
 
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+            throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG, this -> index_file.c_str());
         }
     }
 
@@ -613,7 +612,7 @@ uint64_t SS_Table::binary_search_nearest(std::ifstream& index_ifstream, std::ifs
         offset_ifstream.open(this -> index_offset_file, std::ios::binary);
 
         if(offset_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
+            throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG, this -> index_offset_file.c_str());
         }
     }
     // binary search to find the first key larger than or equal to key
@@ -625,30 +624,30 @@ uint64_t SS_Table::binary_search_nearest(std::ifstream& index_ifstream, std::ifs
         uint64_t binary_search_middle = (binary_search_left + binary_search_right) / 2;
         offset_ifstream.seekg(binary_search_middle * sizeof(uint64_t), std::ios::beg);
         if(offset_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG, this -> index_offset_file.c_str());
         }
 
         uint64_t search_key_offset = 0;
         offset_ifstream.read(reinterpret_cast<char*>(&search_key_offset), sizeof(search_key_offset));
         if(offset_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG, this -> index_offset_file.c_str());
         }
 
         index_ifstream.seekg(search_key_offset, index_ifstream.beg);
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         key_len_type key_length = 0;
         index_ifstream.read(reinterpret_cast<char*>(&key_length), sizeof(key_length));
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         std::string current_key_string(key_length, '\0');
         index_ifstream.read(&current_key_string[0], key_length);
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         Bits current_key(current_key_string);
@@ -684,17 +683,17 @@ std::vector<Entry> SS_Table::get_all_entries(SS_Table_Entry_Filter key_filter) c
     entries.reserve(this -> record_count);
     std::ifstream index_ifstream(this -> index_file, std::ios::binary);
     if(index_ifstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG, this -> index_file.c_str());
     }
 
     std::ifstream offset_ifstream(this -> index_offset_file, std::ios::binary);
     if(offset_ifstream.fail()){
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG, this -> index_offset_file.c_str());
     }
 
     std::ifstream data_ifstream(this -> data_file, std::ios::binary);
     if(data_ifstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG, this -> data_file.c_str());
     }
 
     uint64_t current_key_offset = 0;
@@ -702,43 +701,43 @@ std::vector<Entry> SS_Table::get_all_entries(SS_Table_Entry_Filter key_filter) c
     while(offset_ifstream.read(reinterpret_cast<char*>(&current_key_offset), sizeof(current_key_offset))) {
         index_ifstream.seekg(current_key_offset, index_ifstream.beg);
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         key_len_type current_key_length = 0;
         index_ifstream.read(reinterpret_cast<char*>(&current_key_length), sizeof(current_key_length));
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         std::string current_key(current_key_length, '\0');
         index_ifstream.read(&current_key[0], current_key_length);
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         // read the data offset
         uint64_t current_data_offset = 0;
         index_ifstream.read(reinterpret_cast<char*>(&current_data_offset), sizeof(current_data_offset));
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         data_ifstream.seekg(current_data_offset, data_ifstream.beg);
         if(data_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_DATA_EOF_MSG, this -> data_file.c_str());
         }
         // read the data itself
         uint64_t current_data_size = 0;
         data_ifstream.read(reinterpret_cast<char*>(&current_data_size), sizeof(current_data_size));
         if(data_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_DATA_EOF_MSG, this -> data_file.c_str());
         }
 
         std::string current_data(current_data_size, '\0');
         data_ifstream.read(&current_data[0], current_data_size);
         if(data_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_DATA_EOF_MSG, this ->data_file.c_str());
         }
         // check the tombstone flag
         Entry current_entry(current_key, current_data);
@@ -770,12 +769,12 @@ std::vector<Entry> SS_Table::get_entries_key_smaller_or_equal(const Bits& target
 
     std::ifstream index_ifstream(this -> index_file, std::ios::binary);
     if(index_ifstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG, this -> index_file.c_str());
     }
 
     std::ifstream offset_ifstream(this -> index_offset_file, std::ios::binary);
     if(offset_ifstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG, this -> index_offset_file.c_str());
     }
 
     uint64_t smaller_equal_index = this -> binary_search_nearest(index_ifstream, offset_ifstream, target_key, SS_TABLE_SMALLER_OR_EQUAL);
@@ -789,17 +788,17 @@ std::vector<Entry> SS_Table::get_entries_key_smaller_or_equal(const Bits& target
 
     offset_ifstream.seekg(0, offset_ifstream.beg);
     if(offset_ifstream.fail()) {
-        throw std::runtime_error(SS_TABLE_INDEX_OFFSET_SEEK0_FAILED_ERR_MSG);
+        throw File_Exception(SS_TABLE_INDEX_OFFSET_SEEK0_FAILED_ERR_MSG, this -> index_offset_file.c_str());
     }
 
     if(index_ifstream.fail()) {
-        throw std::runtime_error(SS_TABLE_INDEX_SEEK0_FAILED_ERR_MSG);
+        throw File_Exception(SS_TABLE_INDEX_SEEK0_FAILED_ERR_MSG, this -> index_file.c_str());
     }
 
     // open the data file for checking if the value is alive
     std::ifstream data_ifstream(this -> data_file, std::ios::binary);
     if(data_ifstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG, this -> data_file.c_str());
     }
 
     uint64_t current_key_offset = 0;
@@ -807,50 +806,50 @@ std::vector<Entry> SS_Table::get_entries_key_smaller_or_equal(const Bits& target
     for(uint64_t i = 0; i < smaller_equal_index; ++i) {
         offset_ifstream.read(reinterpret_cast<char*>(&current_key_offset), sizeof(current_key_offset));
         if(offset_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG, this -> index_offset_file.c_str());
         }
 
         index_ifstream.seekg(current_key_offset, index_ifstream.beg);
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         key_len_type current_key_length = 0;
         index_ifstream.read(reinterpret_cast<char*>(&current_key_length), sizeof(current_key_length));
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         std::string current_key(current_key_length, '\0');
         index_ifstream.read(&current_key[0], current_key_length);
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         // read the data offset
         uint64_t current_data_offset = 0;
         index_ifstream.read(reinterpret_cast<char*>(&current_data_offset), sizeof(current_data_offset));
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         data_ifstream.seekg(current_data_offset, data_ifstream.beg);
         if(data_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_DATA_EOF_MSG, this -> data_file.c_str());
         }
 
         // read the data length
         uint64_t current_data_length = 0;
         data_ifstream.read(reinterpret_cast<char*>(&current_data_length), sizeof(current_data_length));
         if(data_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_DATA_EOF_MSG, this -> data_file.c_str());
         }
 
         // read the data itself
         std::string current_data(current_data_length, '\0');
         data_ifstream.read(&current_data[0], current_data_length);
         if(data_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_DATA_EOF_MSG, this -> data_file.c_str());
         }
 
         // check tombstone
@@ -880,12 +879,12 @@ std::vector<Entry> SS_Table::get_entries_key_larger_or_equal(const Bits& target_
 
     std::ifstream index_ifstream(this -> index_file, std::ios::binary);
     if(index_ifstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG, this -> index_file.c_str());
     }
 
     std::ifstream offset_ifstream(this -> index_offset_file, std::ios::binary);
     if(offset_ifstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG, this -> index_offset_file.c_str());
     }
 
     uint64_t larger_equal_index = this -> binary_search_nearest(index_ifstream, offset_ifstream, target_key, SS_TABLE_LARGER_OR_EQUAL);
@@ -898,56 +897,55 @@ std::vector<Entry> SS_Table::get_entries_key_larger_or_equal(const Bits& target_
     uint64_t current_key_offset = 0;
     offset_ifstream.seekg(larger_equal_index * sizeof(uint64_t), offset_ifstream.beg);
     if(offset_ifstream.fail()) {
-        throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG);
+        throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG, this -> index_offset_file.c_str());
     }
 
     std::ifstream data_ifstream(this -> data_file, std::ios::binary);
     if(data_ifstream.fail()) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG);
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG, this -> data_file.c_str());
     }
 
     while(offset_ifstream.read(reinterpret_cast<char*>(&current_key_offset), sizeof(current_key_offset))) {
         index_ifstream.seekg(current_key_offset, index_ifstream.beg);
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         key_len_type current_key_length = 0;
         index_ifstream.read(reinterpret_cast<char*>(&current_key_length), sizeof(current_key_length));
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         std::string current_key(current_key_length, '\0');
         index_ifstream.read(&current_key[0], current_key_length);
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
         // read the data offset
         uint64_t current_data_offset = 0;
         index_ifstream.read(reinterpret_cast<char*>(&current_data_offset), sizeof(current_data_offset));
         if(index_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
         }
 
         data_ifstream.seekg(current_data_offset, data_ifstream.beg);
         if(data_ifstream.fail()) {
-            std::cout << "DATA_OFFSET" << current_data_offset << std::endl; 
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_DATA_EOF_MSG, this -> data_file.c_str());
         }
 
         // read the data length
         uint64_t current_data_length = 0;
         data_ifstream.read(reinterpret_cast<char*>(&current_data_length), sizeof(current_data_length));
         if(data_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_DATA_EOF_MSG, this -> data_file.c_str());
         }
 
         // read the data itself
         std::string current_data(current_data_length, '\0');
         data_ifstream.read(&current_data[0], current_data_length);
         if(data_ifstream.fail()) {
-            throw std::runtime_error(SS_TABLE_UNEXPECTED_DATA_EOF_MSG);
+            throw File_Exception(SS_TABLE_UNEXPECTED_DATA_EOF_MSG, this -> data_file.c_str());
         }
 
         // check tombstone
@@ -997,7 +995,7 @@ void SS_Table::reconstruct_ss_table(){
 
     std::ifstream index_in(this -> index_file, std::ios::binary);
     if(!index_in) {
-        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+        throw std::(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG, this -> index_file);
     }
 
     std::ifstream index_offset_in(this -> index_offset_file, std::ios::binary);

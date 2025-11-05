@@ -1,6 +1,6 @@
 #include "../include/partition_server.h"
 
-Partition_Server::Partition_Server(uint16_t port) : Server(port), lsm_tree() {
+Partition_Server::Partition_Server(uint16_t port, uint8_t verbose) : Server(port, verbose), lsm_tree() {
 
 }
 
@@ -20,7 +20,7 @@ int8_t Partition_Server::start() {
     // std::cout << "Partition server listening on port " << port << "..." << std::endl;
 
     while (true) {
-        // std::cout << "Waiting for connection..." << std::endl;
+        std::cout << "Waiting for connection..." << std::endl;
 
         new_socket = accept(this -> server_fd, (struct sockaddr*)&client_addr, &client_len);
         if (new_socket < 0) {

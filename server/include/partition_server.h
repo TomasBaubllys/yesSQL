@@ -20,7 +20,7 @@ class Partition_Server : public Server {
         LSM_Tree lsm_tree;
 
     public:
-        Partition_Server(uint16_t port);
+        Partition_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
 
         int8_t start() override;
 };

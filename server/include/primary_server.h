@@ -8,24 +8,26 @@
 #include <cstdlib>
 #include <netdb.h>
 #include <string>
-#include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <thread>
 #include "partition_server.h"
-#include <cstdlib>
 #include "../include/partition_entry.h"
 #include <limits>
+#include <unistd.h>
 
 #define PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING "PARTITION_COUNT"
 #define PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_UNDEF_ERR_MSG "Enviromental variable PARTITION_COUNT is undefined...\n"
 // #define PRIMARY_SERVER_MAX_PARTITION_COUNT 256
 #define PRIMARY_SERVER_PARTITION_COUNT_ZERO_ERR_MSG "Partition count is 0!\n"
 
+#define PRIMARY_SERVER_NPOS_FAILED_ERR_MSG "Could not extract the key from the message received - npos failed\n"
+#define PRIMARY_SERVER_NPOS_BAD_ERR_MSG "Bad or corrupted message received, could not extract key\n"
+
+#define PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG "Failed to query the partition: "
+
 #define PRIMARY_SERVER_PARTITION_CHECK_INTERVAL 10
 #define PRIMARY_SERVER_HELLO_MSG "Hello from yesSQL server"
-
-#define PRIMARY_SERVER_FAILED_HOSTNAME_RESOLVE "Failed to resolve: "
 
 #define PRIMARY_SERVER_DEFAULT_LISTEN_VALUE 10
 
@@ -54,8 +56,6 @@ class Primary_Server : public Server {
 
         std::vector<bool> get_partitions_status() const;
 
-        bool try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec = 1) const;
-
         void display_partitions_status() const;
 
         void start_partition_monitor_thread() const;
@@ -68,8 +68,17 @@ class Primary_Server : public Server {
 
         std::vector<Partition_Entry> get_partitions_fb(const std::string& key) const;
 
+        // returns the first key found in the message
+        // THROWS
+        std::string extract_key_str_from_msg(const std::string& raw_message) const;
+
+        int8_t handle_client_request(socket_t socket) const;
+
+        // THROWS
+        std::string query_parition(const Partition_Entry& partition, const std::string& raw_message) const;
+
     public:
-        Primary_Server(uint16_t port);
+        Primary_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
 
         int8_t start() override;
 };

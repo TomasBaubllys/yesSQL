@@ -1,6 +1,6 @@
 #include "../include/primary_server.h"
 
-Primary_Server::Primary_Server(uint16_t port) : Server(port) {
+Primary_Server::Primary_Server(uint16_t port, uint8_t verbose) : Server(port, verbose) {
     const char* partition_count_str = std::getenv(PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING);
     if(!partition_count_str) {
         throw std::runtime_error(PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_UNDEF_ERR_MSG);
@@ -18,6 +18,7 @@ Primary_Server::Primary_Server(uint16_t port) : Server(port) {
     for(uint32_t i = 0; i < this -> partition_count; ++i) {
         Partition_Entry partition_entry;
         partition_entry.partition_name = PARTITION_SERVER_NAME_PREFIX + std::to_string(i + 1);
+        partition_entry.port = PARTITION_SERVER_PORT;
         
         partition_entry.range.beg = this -> partition_range_length * i;
         partition_entry.range.end = this ->  partition_range_length * (i + 1);
@@ -43,7 +44,6 @@ void Primary_Server::start_partition_monitor_thread() const {
 
 int8_t Primary_Server::start() {
     uint32_t new_socket;
-    uint32_t address_length = sizeof(this -> address);
     const char* msg = PRIMARY_SERVER_HELLO_MSG;
 
     if(listen(server_fd, PRIMARY_SERVER_DEFAULT_LISTEN_VALUE) < 0) {
@@ -65,17 +65,24 @@ int8_t Primary_Server::start() {
 
     while (true) {
         // Accept one client
-        new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&address_length);
+        struct sockaddr_in client_addr;
+        socklen_t client_addr_len = sizeof(client_addr);
+        new_socket = accept(server_fd, (struct sockaddr*)&client_addr, &client_addr_len);
         if (new_socket < 0) {
-            std::cerr << SERVER_FAILED_ACCEPT_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+            if(this -> verbose > 0) {
+                std::cerr << SERVER_FAILED_ACCEPT_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+            }
             continue; // Skip this client and keep listening
         }
 
-        // Print client info
-        char client_ip[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &(address.sin_addr), client_ip, INET_ADDRSTRLEN);
+        // print the message received from the client
+        std::string rec_msg = this -> read_message(new_socket);
+        std::cout << rec_msg.substr(8) << std::endl;
 
+        // Print client info
         #ifdef PRIMARY_SERVER_DEBUG
+            char client_ip[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &(address.sin_addr), client_ip, INET_ADDRSTRLEN);
             std::cout << "Client connected from " << client_ip << ":" << ntohs(address.sin_port) << std::endl;
         #endif // PRIMARY_SERVER_DEBUG 
 
@@ -103,35 +110,10 @@ std::vector<bool> Primary_Server::get_partitions_status() const {
     partitions_status.reserve(this -> partition_count);
 
     for(uint32_t i = 0; i < this -> partition_count; ++i) {
-        partitions_status.push_back(try_connect(this -> partitions.at(i).partition_name, PARTITION_SERVER_PORT));
+        partitions_status.push_back(try_connect(this -> partitions.at(i).partition_name, this -> partitions.at(i).port));
     }
 
     return partitions_status;
-}
-
-bool Primary_Server::try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec) const {
-    int32_t sock = socket(AF_INET, SOCK_STREAM, 0);
-    if(sock < 0) {
-        return false;
-    }
-
-    struct hostent* server = gethostbyname(hostname.c_str());
-    if(!server) {
-        std::cerr << PRIMARY_SERVER_FAILED_HOSTNAME_RESOLVE << hostname << std::endl;
-        close(sock);
-        return false;
-    }
-
-    struct sockaddr_in serv_addr{};
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(port);
-    std::memcpy(&serv_addr.sin_addr.s_addr, server -> h_addr, server -> h_length);
-
-    bool success = (connect(sock, (struct sockaddr*)& serv_addr, sizeof(serv_addr)) == 0);
-
-    close(sock);
-
-    return success;
 }
 
 uint32_t Primary_Server::key_prefix_to_uint32(const std::string& key) const {
@@ -159,9 +141,128 @@ Partition_Entry Primary_Server::get_partition_for_key(const std::string& key) co
 }
 
 std::vector<Partition_Entry> Primary_Server::get_partitions_ff(const std::string& key) const {
-
+    return std::vector<Partition_Entry>();
 }
 
 std::vector<Partition_Entry> Primary_Server::get_partitions_fb(const std::string& key) const {
+    return std::vector<Partition_Entry>();
+}
 
+std::string Primary_Server::extract_key_str_from_msg(const std::string& raw_message) const {
+    // check if the command is long enough
+    if(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type)  > raw_message.size()) {
+        throw std::runtime_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+    }
+
+    protocol_key_len_type key_len = 0;
+    memcpy(&key_len, &raw_message[PROTOCOL_FIRST_KEY_LEN_POS], sizeof(key_len));
+
+    // check if msg is long enough
+    if(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type) + key_len > raw_message.size()) {
+        throw std::runtime_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+    }
+
+    return raw_message.substr(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type), key_len);
+}
+
+int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
+    // read the message
+    std::string raw_message;
+    try{
+        raw_message = this -> read_message(client_socket);
+    }
+    catch(const std::exception &e) {
+        if(this -> verbose > 0) {
+            std::cerr << e.what() << std::endl; // add some variable that checks if the server is in printing mode
+        }
+        close(client_socket);
+        return -1;
+    }
+    // extract the command code
+    Command_Code com_code = this -> extract_command_code(raw_message);
+
+    // decide how to handle it
+    switch(com_code) {
+        case COMMAND_CODE_GET: {
+            break;
+        }
+        case COMMAND_CODE_SET: {
+            // extract the key string
+            std::string key_str;
+            try {
+                std::string key_str = this -> extract_key_str_from_msg(raw_message);
+            }
+            catch(const std::exception& e) {
+                if(this -> verbose) {
+                    std::cerr << e.what() << std::endl; // add some variable that checks if the server is in printing mode
+                }
+                // send a message to the client about invalid operation
+                close(client_socket);
+                return -1;
+            }
+            // find to which partition entry it belongs to
+            Partition_Entry partition_entry = this -> get_partition_for_key(key_str);
+
+            // forward the message there
+            std::string partition_response = this -> query_parition(partition_entry,raw_message);
+
+            // forward the response to the client
+
+
+            break;
+        }
+        case COMMAND_CODE_GET_KEYS: {
+            break;
+        }
+        case COMMAND_CODE_GET_KEYS_PREFIX: {
+            break;
+        }
+        case COMMAND_CODE_GET_FF: {
+            break;
+        }
+        case COMMAND_CODE_GET_FB: {
+            break;
+        }
+        case COMMAND_CODE_REMOVE: {
+            break;
+        }
+        default: {
+
+            break;
+        }
+
+    }
+
+    return 0;
+}
+
+
+std::string Primary_Server::query_parition(const Partition_Entry& partition, const std::string &raw_message) const {
+    bool success = false;
+    socket_t partition_socket = this -> connect_to(partition.partition_name, partition.port, success);
+    if(!success) {
+        std::string fail_str(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
+        fail_str += partition.partition_name;
+        throw std::runtime_error(fail_str);
+    }
+
+    uint64_t bytes_sent = this -> send_message(partition_socket, raw_message);
+    if(bytes_sent == 0) {
+        std::string fail_str(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
+        fail_str += partition.partition_name;
+        close(partition_socket);
+        throw std::runtime_error(fail_str);
+    }
+
+    std::string response;
+    try {
+        response = this -> read_message(partition_socket);
+    }
+    catch(...) {
+        close(partition_socket);
+        throw;
+    }
+
+    close(partition_socket);
+    return response;
 }

@@ -8,6 +8,7 @@
 typedef struct Partition_Entry {
     Range range;
     std::string partition_name;
+    uint16_t port;
 } Partition_Entry;
 
 #endif // YSQL_PARTITION_ENTRY_H_INCLUDED
