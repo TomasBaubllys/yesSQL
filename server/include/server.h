@@ -14,6 +14,7 @@
 #include "protocol.h"
 #include <stdexcept>
 #include <netdb.h>
+#include <bit>
 
 #define SERVER_LISTENING_ON_PORT_MSG "Listening on port: "
 

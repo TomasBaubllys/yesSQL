@@ -91,9 +91,11 @@ std::string Server::read_message(socket_t socket) const {
     }
 
     memcpy(&bytes_to_read, buffer.data(), sizeof(uint64_t));
+
+    bytes_to_read = ntohll(bytes_to_read);
     
     // not sure for this part but for now the first 8 bytes do not contain themselsevse
-    bytes_to_read += sizeof(uint64_t);
+    std::cout << bytes_to_read << std::endl;
 
     while (buffer.size() < bytes_to_read) {
         int32_t bytes_read = recv(socket, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
@@ -152,7 +154,8 @@ Command_Code Server::extract_command_code(const std::string& raw_message) const 
 
     command_code_type com_code;
     memcpy(&com_code, &raw_message[PROTOCOL_COMMAND_NUMBER_POS], sizeof(command_code_type));
-
+    com_code = ntohs(com_code);
+    
     return static_cast<Command_Code>(com_code);
 }
 

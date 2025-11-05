@@ -75,9 +75,11 @@ int8_t Primary_Server::start() {
             continue; // Skip this client and keep listening
         }
 
+        handle_client_request(new_socket);
+
         // print the message received from the client
-        std::string rec_msg = this -> read_message(new_socket);
-        std::cout << rec_msg.substr(8) << std::endl;
+        // std::string rec_msg = this -> read_message(new_socket);
+        // std::cout << rec_msg.substr(8) << std::endl;
 
         // Print client info
         #ifdef PRIMARY_SERVER_DEBUG
@@ -156,6 +158,7 @@ std::string Primary_Server::extract_key_str_from_msg(const std::string& raw_mess
 
     protocol_key_len_type key_len = 0;
     memcpy(&key_len, &raw_message[PROTOCOL_FIRST_KEY_LEN_POS], sizeof(key_len));
+    key_len = ntohs(key_len);
 
     // check if msg is long enough
     if(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type) + key_len > raw_message.size()) {
@@ -178,6 +181,7 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
         close(client_socket);
         return -1;
     }
+
     // extract the command code
     Command_Code com_code = this -> extract_command_code(raw_message);
 
@@ -204,6 +208,7 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
             Partition_Entry partition_entry = this -> get_partition_for_key(key_str);
 
             // forward the message there
+            std::cout << "sending the message: " << raw_message << std::endl;
             std::string partition_response = this -> query_parition(partition_entry,raw_message);
 
             // forward the response to the client

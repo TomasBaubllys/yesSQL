@@ -20,6 +20,13 @@ using socket_t =
     int;
 #endif
 
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    #define htonll(x) __builtin_bswap64(x)
+    #define ntohll(x) __builtin_bswap64(x)
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    #define htonll(x) (x)
+    #define ntohll(x) (x)
+#endif
 /* General command exchange
  *
  * <(uint64_t) length of the whole message>
