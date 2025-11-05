@@ -101,6 +101,8 @@ class SS_Table{
 
         std::vector<Bits> get_all_keys(SS_Table_Entry_Filter key_filter) const;
 
+        void reconstruct_ss_table();
+
 
     public:
         std::filesystem::path data_path() const;

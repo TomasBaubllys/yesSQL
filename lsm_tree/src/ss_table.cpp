@@ -986,3 +986,26 @@ std::vector<Entry> SS_Table::get_all_entries_alive() const {
 std::vector<Entry> SS_Table::get_all_entries() const {
     return this -> get_all_entries(SS_TABLE_FILTER_ALL_ENTRIES);
 }
+
+void SS_Table::reconstruct_ss_table(){
+    // atsidaryt offset filea, nuskaityt pirmo rakto offseta
+    // atsidaryt index file ir seekg tuo offsetu -> set first index
+    // atsidaryt offset filea, eit i pati gala - sizeofoffset record, nuskaityt
+    // seekg tuo offsetu index file -> set last index
+    // record count --> offset ir dalint is record size
+    // visu failu dydzius nuskaityt
+
+    std::ifstream index_in(this -> index_file, std::ios::binary);
+    if(!index_in) {
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG);
+    }
+
+    std::ifstream index_offset_in(this -> index_offset_file, std::ios::binary);
+    if(!index_offset_in) {
+        throw std::runtime_error(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG);
+    }
+
+    
+
+
+}

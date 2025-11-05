@@ -18,10 +18,7 @@ Entry SS_Table_Controller::get(const Bits& key, bool& found) const{
         }
     }
 
-                std::cout << "miau" << std::endl;
-
     return Entry(Bits(placeholder_key), Bits(placeholder_value));
-
 }
 
 SS_Table_Controller:: SS_Table_Controller(uint16_t ratio, level_index_type current_level): current_name_counter(0){
