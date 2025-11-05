@@ -1,5 +1,4 @@
 #include "../include/server.h"
-#include <cstring>
 
 Server::Server(uint16_t port) : port(port) {
 	// create a server_fd AF_INET - ipv4, SOCKET_STREAM - TCP
@@ -168,11 +167,6 @@ bool Server::try_connect(const std::string& hostname, uint16_t port, uint32_t ti
 
     return success;
 }
-
-#include <netdb.h>      // getaddrinfo, freeaddrinfo
-#include <unistd.h>     // close
-#include <cstring>      // memset, memcpy
-#include <arpa/inet.h>  // htons
 
 socket_t Server::connect_to(const std::string& hostname, uint16_t port, bool& is_successful) const {
     struct addrinfo hints{}, *res = nullptr;

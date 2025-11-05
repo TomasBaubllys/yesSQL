@@ -1,6 +1,4 @@
 #include "../include/primary_server.h"
-#include <netdb.h>
-#include <unistd.h>
 
 Primary_Server::Primary_Server(uint16_t port) : Server(port) {
     const char* partition_count_str = std::getenv(PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING);
@@ -165,61 +163,70 @@ std::string Primary_Server::extract_key_str_from_msg(const std::string& raw_mess
     return raw_message.substr(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type), key_len);
 }
 
-int8_t Primary_Server::handle_client_request(socket_t socket) const {
-    try {
-        // read the message
-        std::string raw_message = this -> read_message(socket);
+int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
+    // read the message
+    std::string raw_message;
+    try{
+        raw_message = this -> read_message(client_socket);
+    }
+    catch(const std::exception &e) {
+        std::cerr << e.what() << std::endl; // add some variable that checks if the server is in printing mode
+        close(client_socket);
+        return -1;
+    }
+    // extract the command code
+    Command_Code com_code = this -> extract_command_code(raw_message);
 
-        // extract the command code
-        Command_Code com_code = this -> extract_command_code(raw_message);
-
-        // decide how to handle it
-        switch(com_code) {
-            case COMMAND_CODE_GET: {
-                break;
-            }
-            case COMMAND_CODE_SET: {
-                // extract the key string
+    // decide how to handle it
+    switch(com_code) {
+        case COMMAND_CODE_GET: {
+            break;
+        }
+        case COMMAND_CODE_SET: {
+            // extract the key string
+            std::string key_str;
+            try {
                 std::string key_str = this -> extract_key_str_from_msg(raw_message);
-
-                // find to which partition entry it belongs to
-                Partition_Entry partition_entry = this -> get_partition_for_key(key_str);
-
-                // forward the message there
-
-
-                // wait for response
-
-                // forward the response to the client
-
-                break;
             }
-            case COMMAND_CODE_GET_KEYS: {
-                break;
+            catch(const std::exception& e) {
+                std::cerr << e.what() << std::endl; // add some variable that checks if the server is in printing mode
+                // send a message to the client about invalid operation
+                close(client_socket);
+                return -1;
             }
-            case COMMAND_CODE_GET_KEYS_PREFIX: {
-                break;
-            }
-            case COMMAND_CODE_GET_FF: {
-                break;
-            }
-            case COMMAND_CODE_GET_FB: {
-                break;
-            }
-            case COMMAND_CODE_REMOVE: {
-                break;
-            }
-            default: {
+            // find to which partition entry it belongs to
+            Partition_Entry partition_entry = this -> get_partition_for_key(key_str);
 
-                break;
-            }
+            // forward the message there
+            std::string partition_response = this -> query_parition(partition_entry,raw_message);
 
+            // forward the response to the client
+
+
+            break;
+        }
+        case COMMAND_CODE_GET_KEYS: {
+            break;
+        }
+        case COMMAND_CODE_GET_KEYS_PREFIX: {
+            break;
+        }
+        case COMMAND_CODE_GET_FF: {
+            break;
+        }
+        case COMMAND_CODE_GET_FB: {
+            break;
+        }
+        case COMMAND_CODE_REMOVE: {
+            break;
+        }
+        default: {
+
+            break;
         }
 
     }
-    catch(const std::exception &e) {
-        std::cerr << e.what() << std::endl;
-    }
+
     return 0;
 }
 

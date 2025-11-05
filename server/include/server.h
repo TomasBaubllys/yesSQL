@@ -45,6 +45,9 @@ class Server {
         int32_t server_fd;
         struct sockaddr_in address;
 
+        // variable decides if server prints out the messages.
+        uint8_t verbose;
+
     public:
         // THROWS
         Server(uint16_t port);

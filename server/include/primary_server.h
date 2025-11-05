@@ -8,13 +8,13 @@
 #include <cstdlib>
 #include <netdb.h>
 #include <string>
-#include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <thread>
 #include "partition_server.h"
 #include "../include/partition_entry.h"
 #include <limits>
+#include <unistd.h>
 
 #define PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING "PARTITION_COUNT"
 #define PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_UNDEF_ERR_MSG "Enviromental variable PARTITION_COUNT is undefined...\n"
