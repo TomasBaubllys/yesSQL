@@ -167,6 +167,8 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
     // extract the command code
     Command_Code com_code = this -> extract_command_code(raw_message);
 
+    std::cout << com_code << std::endl;
+
     // decide how to handle it
     switch(com_code) {
         case COMMAND_CODE_GET:
@@ -190,6 +192,12 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
             // forward the message there
             std::cout << "sending the message: " << raw_message << std::endl;
             std::string partition_response = this -> query_partition(partition_entry,raw_message);
+            
+            std::cout << "received response: " << std::endl;
+            for(int i = 0; i < partition_response.size(); ++i) {
+                std::cout << int(partition_response[i]) << std::endl;
+            } 
+
             try{
                 this -> send_message(client_socket, partition_response);
             }

@@ -21,10 +21,14 @@ class Partition_Server : public Server {
     private:
         LSM_Tree lsm_tree;
 
+        int8_t send_status_response(Command_Code status, socket_t socket) const;
+
     public:
         Partition_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
 
         int8_t send_error_response(socket_t socket) const;
+
+        int8_t send_ok_response(socket_t socket) const; 
 
         // THROWS
         std::string extract_value(const std::string& raw_message) const;

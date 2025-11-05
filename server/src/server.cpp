@@ -94,9 +94,6 @@ std::string Server::read_message(socket_t socket) const {
 
     bytes_to_read = ntohll(bytes_to_read);
     
-    // not sure for this part but for now the first 8 bytes do not contain themselsevse
-    std::cout << bytes_to_read << std::endl;
-
     while (buffer.size() < bytes_to_read) {
         int32_t bytes_read = recv(socket, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
         if (bytes_read < 0) {
