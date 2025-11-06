@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include "ss_table.h"
+#include "file_exception.h"
 #include <cmath>
 
     #include <iostream>

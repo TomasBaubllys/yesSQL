@@ -226,7 +226,6 @@ bool LSM_Tree::remove(std::string key){
 // GETFF ir GETFB turi leisti puslapiuoti, t.y. gauti po n porų ir fektyviai tęsti toliau
 // REMOVE <key>
 
-// data compression??
 void LSM_Tree::flush_mem_table(){
 
     // check for compaction

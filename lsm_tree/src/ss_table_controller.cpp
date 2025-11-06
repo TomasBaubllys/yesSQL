@@ -48,6 +48,8 @@ uint64_t SS_Table_Controller:: calculate_size_bytes(){
         //size += std::filesystem::file_size(sst -> index_path());
     }
 
+    //std::cout << "Level: " << this -> level <<  " SS_tables count: " << sstables.size() << " Curent name counter " << this -> current_name_counter << std::endl; 
+
     return size;
 }
 
@@ -69,8 +71,24 @@ uint16_t SS_Table_Controller::get_level(){
 }
 
 void  SS_Table_Controller::delete_sstable(table_index_type index){
+    std::filesystem::path data_path = this -> sstables.at(index) -> data_path();
+    if(!std::filesystem::remove(data_path)){
+        throw File_Exception(SS_TABLE_FAILED_INDEX_OFFSET_WRITE_ERR_MSG, this -> sstables.at(index) -> data_path().c_str());
+    }
+
+    std::filesystem::path index_path = this -> sstables.at(index) -> index_path();
+    if(!std::filesystem::remove(index_path)){
+        throw File_Exception(SS_TABLE_FAILED_INDEX_OFFSET_WRITE_ERR_MSG, this -> sstables.at(index) -> index_path().c_str());
+    }
+
+    std::filesystem::path offset_path = this -> sstables.at(index) -> offset_path();
+    if(!std::filesystem::remove(offset_path)){
+        throw File_Exception(SS_TABLE_FAILED_INDEX_OFFSET_WRITE_ERR_MSG, this -> sstables.at(index) -> offset_path().c_str());
+    }
+
     const SS_Table *ss_table = this -> sstables.at(index);
     delete(ss_table);
+
 
     this -> sstables.erase(sstables.begin() + index);
     return;
