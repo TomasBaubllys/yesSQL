@@ -171,7 +171,8 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
     // decide how to handle it
     switch(com_code) {
         case COMMAND_CODE_GET:
-        case COMMAND_CODE_SET: {
+        case COMMAND_CODE_SET: 
+        case COMMAND_CODE_REMOVE: {
             // extract the key string
             std::string key_str;
             try {
@@ -211,9 +212,6 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
             break;
         }
         case COMMAND_CODE_GET_FB: {
-            break;
-        }
-        case COMMAND_CODE_REMOVE: {
             break;
         }
         default: {

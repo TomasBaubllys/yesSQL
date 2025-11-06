@@ -66,7 +66,7 @@ int8_t Partition_Server::start() {
                 // REMOVE THIS TRY CATCH AFTER IT HAS BEEN FIGURED OUT!!!!
                 try {
                     Entry entry = lsm_tree.get(key_str);
-                    if(entry.get_string_key_bytes() == ENTRY_PLACEHOLDER_KEY) {
+                    if(entry.is_deleted() || entry.get_string_key_bytes() == ENTRY_PLACEHOLDER_KEY) {
                         this -> send_not_found_response(client_socket);
                         break;
                     }
@@ -146,6 +146,24 @@ int8_t Partition_Server::start() {
             }
 
             case COMMAND_CODE_REMOVE: {
+                std::string key_str;
+                try {
+                    key_str = this -> extract_key_str_from_msg(raw_message);
+                }
+                catch (const std::exception& e) {
+                    if(this -> verbose > 0) {
+                        std::cerr << e.what() << std::endl;
+                    }
+                    this -> send_error_response(client_socket);
+                    break;
+                }
+
+                if(lsm_tree.remove(key_str)) {
+                    this -> send_ok_response(client_socket);
+                }                
+                else {
+                    this -> send_error_response(client_socket);
+                }
 
                 break;
             }
