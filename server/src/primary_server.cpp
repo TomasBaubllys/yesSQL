@@ -1,4 +1,5 @@
 #include "../include/primary_server.h"
+#include <fcntl.h>
 #include <netdb.h>
 #include <sys/epoll.h>
 
@@ -222,7 +223,6 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket, std::string
             std::string partition_response;
             try {
                 std::string partition_response = this -> query_partition(partition_entry, client_message);
-                std::cout << partition_response << std::endl;
             }
             catch(const std::exception& e) {
                 this -> send_error_response(client_socket);
@@ -230,7 +230,7 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket, std::string
             }
 
             try{
-                this -> send_message(client_socket, partition_response);
+                std::cout << this -> send_message(client_socket, partition_response) << std::endl;
             }
             catch(const std::exception& e) {
                 if(this -> verbose > 0) {

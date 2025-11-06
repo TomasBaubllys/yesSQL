@@ -172,7 +172,7 @@ int8_t Partition_Server::start() {
             }
         }
 
-        close(client_socket);
+        // close(client_socket);
     }
 
     return 0;

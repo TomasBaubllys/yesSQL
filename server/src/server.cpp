@@ -144,7 +144,6 @@ int64_t Server::send_message(socket_t socket, const std::string& message) const 
 
     while (total_sent < message.size()) {
         sent_bytes = send(socket, message.data() + total_sent, message.size() - total_sent, 0);
-
         if (sent_bytes < 0) {
             if (errno == EINTR) {
                 continue; 
@@ -160,6 +159,8 @@ int64_t Server::send_message(socket_t socket, const std::string& message) const 
         } 
 
         total_sent += sent_bytes;
+
+        std::cout << message.size() << std::endl;
     }
 
     return static_cast<int64_t>(total_sent);
