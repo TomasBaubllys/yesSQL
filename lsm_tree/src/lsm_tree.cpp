@@ -37,9 +37,10 @@ bool LSM_Tree::set(std::string key, std::string value){
     Bits value_bits(value);
 
     Entry entry(key_bits, value_bits);
+    std::ostringstream bytes = entry.get_ostream_bytes();
 
     try{
-        write_ahead_log.append_entry(entry.get_ostream_bytes());
+        write_ahead_log.append_entry(bytes);
         mem_table.insert_entry(entry);
     }
     catch(const std::exception& e){
@@ -191,11 +192,12 @@ bool LSM_Tree::remove(std::string key){
 
     try{
         Entry entry = get(key);
+        std::ostringstream bytes = entry.get_ostream_bytes();
 
         if(!entry.is_deleted()){
             entry.set_tombstone(true);
         }
-        write_ahead_log.append_entry(entry.get_ostream_bytes());
+        write_ahead_log.append_entry(bytes);
         mem_table.insert_entry(entry);
     }
     catch(const std::exception& e){

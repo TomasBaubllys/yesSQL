@@ -12,44 +12,34 @@ Mem_Table::Mem_Table(Wal& wal){
     total_mem_table_size = 0;
 
     std::string wal_path = wal.get_wal_file_location();
-
-    std::ostringstream buffer;
-    {
-        std::ifstream input(wal_path, std::ios::binary);
-        if (!input.is_open()) {
-            throw std::runtime_error("Failed to open WAL file: " + wal_path);
-        }
-        buffer << input.rdbuf();
+    std::ifstream input(wal_path);
+    
+    if (!input.is_open()) {
+        throw std::runtime_error("Failed to open WAL file: " + wal_path);
     }
 
-    std::istringstream in(buffer.str());
-    in.seekg(0, std::ios::beg);
-
     uint64_t entry_length = 0;
-    while (in.read(reinterpret_cast<char*>(&entry_length), sizeof(entry_length))) {
-
+    
+    while (input.read(reinterpret_cast<char*>(&entry_length), sizeof(entry_length))) {
+        
         if (entry_length <= sizeof(entry_length)) {
             throw std::runtime_error("Invalid entry length in WAL file.");
         }
 
-        // Read remaining entry bytes (already know total size)
-        std::string entry_bytes(entry_length - sizeof(entry_length), '\0');
-        if (!in.read(entry_bytes.data(), entry_bytes.size())) {
+        std::string full_entry_bytes(entry_length, '\0');
+        
+        memcpy(full_entry_bytes.data(), &entry_length, sizeof(entry_length));
+        
+        if (!input.read(full_entry_bytes.data() + sizeof(entry_length), 
+                       entry_length - sizeof(entry_length))) {
             throw std::runtime_error("Unexpected EOF while reading entry data.");
         }
 
-        // Reconstruct full serialized entry (prepend length field)
-        std::string full_entry;
-        full_entry.reserve(entry_length);
-        full_entry.append(reinterpret_cast<char*>(&entry_length), sizeof(entry_length));
-        full_entry.append(entry_bytes);
-
-        std::stringstream entry_stream(full_entry);
+        std::stringstream entry_stream(full_entry_bytes);
 
         try {
             Entry entry(entry_stream);
-
-            avl_tree.insert(entry.get_key(), entry.get_value());
+            avl_tree.insert(entry);
             entry_array_length++;
             total_mem_table_size += entry.get_entry_length();
 
@@ -57,7 +47,7 @@ Mem_Table::Mem_Table(Wal& wal){
             throw std::runtime_error(std::string("Error reading WAL entry: ") + e.what());
         }
     }
-};
+}
 
 Mem_Table::~Mem_Table(){
     //destroy AVL

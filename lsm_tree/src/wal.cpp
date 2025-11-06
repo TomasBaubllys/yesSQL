@@ -34,12 +34,61 @@ bool Wal::get_is_read_only(){
     return is_read_only;
 };
 
-void Wal::append_entry(std::ostringstream entry){
+// void Wal::append_entry(std::ostringstream& entry){
+//     std::ofstream wal_file(wal_file_location, std::ios::binary | std::ios::app);
+    
+//     if (!wal_file.is_open()) {
+//         std::cerr << "Failed to open WAL file: " << wal_file_location << std::endl;
+//         return;
+//     }
+    
+//     if (entry.tellp() == 0) {
+//         std::cerr << "Entry stream is empty" << std::endl;
+//         return;
+//     }
+    
+//     std::string content = entry.str();
+//     std::cout<<content<<std::endl;
+//     wal_file.write(content.c_str(), content.size());
+    
+//     if (!wal_file.good()) {
+//         std::cerr << "Write failed" << std::endl;
+//     }
+//     wal_file.close(); 
+// };
+void Wal::append_entry(std::ostringstream& entry){
     std::ofstream wal_file(wal_file_location, std::ios::binary | std::ios::app);
-
-    wal_file<<entry.rdbuf();
-
-    return;
+    
+    if (!wal_file.is_open()) {
+        std::cerr << "Failed to open WAL file: " << wal_file_location << std::endl;
+        return;
+    }
+    
+    if (entry.tellp() == 0) {
+        std::cerr << "Entry stream is empty" << std::endl;
+        return;
+    }
+    
+    std::string content = entry.str();
+    std::cout << "Content length: " << content.size() << std::endl;
+    std::cout << "Content hex: ";
+    for (unsigned char c : content.substr(0, std::min(content.size(), size_t(20)))) {
+        std::cout << std::hex << (int)c << " ";
+    }
+    std::cout << std::dec << std::endl;
+    
+    wal_file.write(content.c_str(), content.size());
+    
+    if (!wal_file.good()) {
+        std::cerr << "Write failed" << std::endl;
+    }
+    
+    wal_file.flush();  // Add explicit flush
+    wal_file.close();
+    
+    // Verify file size
+    std::ifstream check(wal_file_location, std::ios::binary | std::ios::ate);
+    std::cout << "File size after write: " << check.tellg() << std::endl;
 };
 
 void Wal::clear_entries(){
