@@ -95,13 +95,11 @@ bool test_single_entry() {
 bool test_multiple_entries() {
     cout << "\n=== Test 3: Multiple Entries Recovery ===" << endl;
     
-    string test_wal_name = "test_multiple.log";
-    string test_wal_path = DEFAULT_WAL_FOLDER_LOCATION + test_wal_name;
     
     const size_t ENTRY_COUNT = 100;
     
     // Create WAL with multiple entries
-    Wal wal(test_wal_name, DEFAULT_WAL_FOLDER_LOCATION);
+    Wal wal;
     wal.clear_entries();
     
     vector<Entry> entries = generate_test_entries(0, ENTRY_COUNT);
@@ -129,7 +127,7 @@ bool test_multiple_entries() {
     
     // Cleanup
     wal.clear_entries();
-    fs::remove(test_wal_path);
+    fs::remove(wal.get_wal_file_location());
     
     cout << "✓ Multiple entries test passed" << endl;
     return true;
@@ -139,14 +137,12 @@ bool test_multiple_entries() {
 bool test_large_entries() {
     cout << "\n=== Test 4: Large Entries Recovery ===" << endl;
     
-    string test_wal_name = "test_large.log";
-    string test_wal_path = DEFAULT_WAL_FOLDER_LOCATION + test_wal_name;
     
     const size_t VALUE_SIZE = 10000; // 10KB values
     const size_t ENTRY_COUNT = 10;
     
     // Create WAL with large entries
-    Wal wal(test_wal_name, DEFAULT_WAL_FOLDER_LOCATION);
+    Wal wal;
     wal.clear_entries();
     
     vector<Entry> entries = generate_test_entries(0, ENTRY_COUNT, VALUE_SIZE);
@@ -166,7 +162,7 @@ bool test_large_entries() {
     
     // Cleanup
     wal.clear_entries();
-    fs::remove(test_wal_path);
+    fs::remove(wal.get_wal_file_location());
     
     cout << "✓ Large entries test passed" << endl;
     return true;
@@ -176,11 +172,9 @@ bool test_large_entries() {
 bool test_non_overlapping_keys() {
     cout << "\n=== Test 5: Non-Overlapping Key Ranges ===" << endl;
     
-    string test_wal_name = "test_non_overlap.log";
-    string test_wal_path = DEFAULT_WAL_FOLDER_LOCATION + test_wal_name;
     
     // Create WAL with entries from different key ranges
-    Wal wal(test_wal_name, DEFAULT_WAL_FOLDER_LOCATION);
+    Wal wal;
     wal.clear_entries();
     
     vector<Entry> entriesA = generate_test_entries(0, 50);
@@ -210,7 +204,7 @@ bool test_non_overlapping_keys() {
     
     // Cleanup
     wal.clear_entries();
-    fs::remove(test_wal_path);
+    fs::remove(wal.get_wal_file_location());
     
     cout << "✓ Non-overlapping keys test passed" << endl;
     return true;
@@ -220,11 +214,9 @@ bool test_non_overlapping_keys() {
 bool test_overlapping_keys() {
     cout << "\n=== Test 6: Overlapping Keys (Updates) ===" << endl;
     
-    string test_wal_name = "test_overlap.log";
-    string test_wal_path = DEFAULT_WAL_FOLDER_LOCATION + test_wal_name;
     
     // Create WAL with updates to same keys
-    Wal wal(test_wal_name, DEFAULT_WAL_FOLDER_LOCATION);
+    Wal wal;
     wal.clear_entries();
     
     // Write initial entries
@@ -257,7 +249,7 @@ bool test_overlapping_keys() {
     
     // Cleanup
     wal.clear_entries();
-    fs::remove(test_wal_path);
+    fs::remove(wal.get_wal_file_location());
     
     cout << "✓ Overlapping keys test passed" << endl;
     return true;
@@ -267,13 +259,8 @@ bool test_overlapping_keys() {
 bool test_missing_wal_file() {
     cout << "\n=== Test 7: Missing WAL File ===" << endl;
     
-    string test_wal_name = "nonexistent.log";
-    string test_wal_path = DEFAULT_WAL_FOLDER_LOCATION + test_wal_name;
     
-    // Ensure file doesn't exist
-    fs::remove(test_wal_path);
-    
-    Wal wal(test_wal_name, DEFAULT_WAL_FOLDER_LOCATION);
+    Wal wal;
     
     bool exception_thrown = false;
     try {
@@ -294,17 +281,16 @@ bool test_missing_wal_file() {
 bool test_corrupted_wal_invalid_length() {
     cout << "\n=== Test 8: Corrupted WAL (Invalid Length) ===" << endl;
     
-    string test_wal_name = "test_corrupted.log";
-    string test_wal_path = DEFAULT_WAL_FOLDER_LOCATION + test_wal_name;
-    
+    string wal_location = DEFAULT_WAL_FOLDER_LOCATION;
+    wal_location += "wal.log";
     // Create corrupted WAL with invalid entry length
     {
-        ofstream wal_file(test_wal_path, ios::binary | ios::trunc);
+        ofstream wal_file(wal_location, ios::binary | ios::trunc);
         uint64_t invalid_length = 4; // Less than sizeof(uint64_t)
         wal_file.write(reinterpret_cast<const char*>(&invalid_length), sizeof(invalid_length));
     }
     
-    Wal wal(test_wal_name, DEFAULT_WAL_FOLDER_LOCATION);
+    Wal wal;
     
     bool exception_thrown = false;
     try {
@@ -318,7 +304,7 @@ bool test_corrupted_wal_invalid_length() {
     assert(exception_thrown);
     
     // Cleanup
-    fs::remove(test_wal_path);
+    fs::remove(wal.get_wal_file_location());
     
     cout << "✓ Corrupted WAL test passed" << endl;
     return true;
@@ -328,12 +314,11 @@ bool test_corrupted_wal_invalid_length() {
 bool test_partial_entry() {
     cout << "\n=== Test 9: Partial Entry (Unexpected EOF) ===" << endl;
     
-    string test_wal_name = "test_partial.log";
-    string test_wal_path = DEFAULT_WAL_FOLDER_LOCATION + test_wal_name;
-    
+    string wal_location = DEFAULT_WAL_FOLDER_LOCATION;
+    wal_location += "wal.log";
     // Create WAL with partial entry
     {
-        ofstream wal_file(test_wal_path, ios::binary | ios::trunc);
+        ofstream wal_file(wal_location, ios::binary | ios::trunc);
         uint64_t entry_length = 100;
         wal_file.write(reinterpret_cast<const char*>(&entry_length), sizeof(entry_length));
         // Write only partial data (less than promised)
@@ -341,7 +326,7 @@ bool test_partial_entry() {
         wal_file.write(partial_data.data(), partial_data.size());
     }
     
-    Wal wal(test_wal_name, DEFAULT_WAL_FOLDER_LOCATION);
+    Wal wal;
     
     bool exception_thrown = false;
     try {
@@ -355,7 +340,7 @@ bool test_partial_entry() {
     assert(exception_thrown);
     
     // Cleanup
-    fs::remove(test_wal_path);
+    fs::remove(wal.get_wal_file_location());
     
     cout << "✓ Partial entry test passed" << endl;
     return true;
@@ -365,13 +350,11 @@ bool test_partial_entry() {
 bool test_stress_many_entries() {
     cout << "\n=== Test 10: Stress Test (1000 entries) ===" << endl;
     
-    string test_wal_name = "test_stress.log";
-    string test_wal_path = DEFAULT_WAL_FOLDER_LOCATION + test_wal_name;
     
     const size_t ENTRY_COUNT = 1000;
     
     // Create WAL with many entries
-    Wal wal(test_wal_name, DEFAULT_WAL_FOLDER_LOCATION);
+    Wal wal;
     wal.clear_entries();
     
     vector<Entry> entries = generate_test_entries(0, ENTRY_COUNT);
@@ -398,7 +381,7 @@ bool test_stress_many_entries() {
     
     // Cleanup
     wal.clear_entries();
-    fs::remove(test_wal_path);
+    fs::remove(wal.get_wal_file_location());
     
     cout << "✓ Stress test passed" << endl;
     return true;
@@ -408,11 +391,9 @@ bool test_stress_many_entries() {
 bool test_tombstone_entries() {
     cout << "\n=== Test 11: Tombstone Entries ===" << endl;
     
-    string test_wal_name = "test_tombstone.log";
-    string test_wal_path = DEFAULT_WAL_FOLDER_LOCATION + test_wal_name;
     
     // Create WAL with tombstone entries
-    Wal wal(test_wal_name, DEFAULT_WAL_FOLDER_LOCATION);
+    Wal wal;
     wal.clear_entries();
     
     // Create entries and mark some as deleted
@@ -444,7 +425,7 @@ bool test_tombstone_entries() {
     
     // Cleanup
     wal.clear_entries();
-    fs::remove(test_wal_path);
+    fs::remove(wal.get_wal_file_location());
     
     cout << "✓ Tombstone entries test passed" << endl;
     return true;
@@ -454,11 +435,9 @@ bool test_tombstone_entries() {
 bool test_checksum_verification() {
     cout << "\n=== Test 12: Checksum Verification ===" << endl;
     
-    string test_wal_name = "test_checksum.log";
-    string test_wal_path = DEFAULT_WAL_FOLDER_LOCATION + test_wal_name;
     
     // Create WAL with valid entries
-    Wal wal(test_wal_name, DEFAULT_WAL_FOLDER_LOCATION);
+    Wal wal;
     wal.clear_entries();
     
     vector<Entry> entries = generate_test_entries(0, 10);
@@ -477,7 +456,7 @@ bool test_checksum_verification() {
     
     // Cleanup
     wal.clear_entries();
-    fs::remove(test_wal_path);
+    fs::remove(wal.get_wal_file_location());
     
     cout << "✓ Checksum verification test passed" << endl;
     return true;
@@ -487,11 +466,9 @@ bool test_checksum_verification() {
 bool test_entry_length_calculation() {
     cout << "\n=== Test 13: Entry Length Calculation ===" << endl;
     
-    string test_wal_name = "test_length.log";
-    string test_wal_path = DEFAULT_WAL_FOLDER_LOCATION + test_wal_name;
     
     // Create WAL with entries of various sizes
-    Wal wal(test_wal_name, DEFAULT_WAL_FOLDER_LOCATION);
+    Wal wal;
     wal.clear_entries();
     
     vector<Entry> small_entries = generate_test_entries(0, 5, 10);
@@ -521,7 +498,7 @@ bool test_entry_length_calculation() {
     
     // Cleanup
     wal.clear_entries();
-    fs::remove(test_wal_path);
+    fs::remove(wal.get_wal_file_location());
     
     cout << "✓ Entry length calculation test passed" << endl;
     return true;
@@ -531,11 +508,9 @@ bool test_entry_length_calculation() {
 bool test_sequential_recovery() {
     cout << "\n=== Test 14: Sequential Recovery ===" << endl;
     
-    string test_wal_name = "test_sequential.log";
-    string test_wal_path = DEFAULT_WAL_FOLDER_LOCATION + test_wal_name;
     
     // Create WAL with entries
-    Wal wal(test_wal_name, DEFAULT_WAL_FOLDER_LOCATION);
+    Wal wal;
     wal.clear_entries();
     
     vector<Entry> entries = generate_test_entries(0, 50);
@@ -560,7 +535,7 @@ bool test_sequential_recovery() {
     
     // Cleanup
     wal.clear_entries();
-    fs::remove(test_wal_path);
+    fs::remove(wal.get_wal_file_location());
     
     cout << "✓ Sequential recovery test passed" << endl;
     return true;

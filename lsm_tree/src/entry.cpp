@@ -18,9 +18,9 @@
     void Entry::calculate_entry_length(){
         entry_length =  sizeof(uint64_t)
                         + sizeof(tombstone_flag)
-                        + sizeof(key.size())
+                        + sizeof(key_len_type)
                         + key.size()
-                        + sizeof(value.size())
+                        + sizeof(key_len_type)
                         + value.size()
                         + sizeof(checksum);
     };
@@ -106,6 +106,14 @@
 
         key_len_type key_size = key.size();
         value_len_type value_size = value.size();
+
+        entry_length =  sizeof(entry_length)
+                + sizeof(tombstone_flag)
+                + sizeof(key_len_type)
+                + key_size
+                + sizeof(value_len_type)
+                + value_size
+                + sizeof(checksum);
 
         ostream_bytes.write(reinterpret_cast<const char*>(&entry_length), sizeof(entry_length));
         ostream_bytes.write(reinterpret_cast<const char*>(&tombstone_flag), sizeof(tombstone_flag));

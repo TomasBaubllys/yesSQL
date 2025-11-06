@@ -5,6 +5,9 @@ Wal::Wal(){
     wal_file_location = DEFAULT_WAL_FOLDER_LOCATION + wal_name;
     entry_count = 0;
     is_read_only = false;
+
+    std::ofstream wal_file(wal_file_location, std::ios::binary | std::ios::app);
+    wal_file.close();
 };
 
 Wal::Wal(std::string _wal_name, std::string _wal_file_location){
@@ -12,6 +15,9 @@ Wal::Wal(std::string _wal_name, std::string _wal_file_location){
     wal_file_location = _wal_file_location;
     entry_count = 0;
     is_read_only = false;
+
+    std::ofstream wal_file(wal_file_location, std::ios::binary | std::ios::app);
+    wal_file.close();
 };
 
 Wal::~Wal(){
@@ -70,12 +76,6 @@ void Wal::append_entry(std::ostringstream& entry){
     }
     
     std::string content = entry.str();
-    std::cout << "Content length: " << content.size() << std::endl;
-    std::cout << "Content hex: ";
-    for (unsigned char c : content.substr(0, std::min(content.size(), size_t(20)))) {
-        std::cout << std::hex << (int)c << " ";
-    }
-    std::cout << std::dec << std::endl;
     
     wal_file.write(content.c_str(), content.size());
     
@@ -83,15 +83,12 @@ void Wal::append_entry(std::ostringstream& entry){
         std::cerr << "Write failed" << std::endl;
     }
     
-    wal_file.flush();  // Add explicit flush
+    wal_file.flush();
     wal_file.close();
-    
-    // Verify file size
-    std::ifstream check(wal_file_location, std::ios::binary | std::ios::ate);
-    std::cout << "File size after write: " << check.tellg() << std::endl;
 };
 
 void Wal::clear_entries(){
     entry_count = 0;
     std::ofstream wal_file(wal_file_location, std::ios::binary | std::ios::trunc);
+    wal_file.close();
 };

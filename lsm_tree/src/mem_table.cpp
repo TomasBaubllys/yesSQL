@@ -12,7 +12,7 @@ Mem_Table::Mem_Table(Wal& wal){
     total_mem_table_size = 0;
 
     std::string wal_path = wal.get_wal_file_location();
-    std::ifstream input(wal_path);
+    std::ifstream input(wal_path, std::ios::binary);
     
     if (!input.is_open()) {
         throw std::runtime_error("Failed to open WAL file: " + wal_path);
