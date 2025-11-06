@@ -1,4 +1,6 @@
 #include "../include/server.h"
+#include <cerrno>
+#include <fcntl.h>
 
 Server::Server(uint16_t port, uint8_t verbose) : port(port), verbose(verbose) {
 	// create a server_fd AF_INET - ipv4, SOCKET_STREAM - TCP
@@ -64,53 +66,72 @@ int8_t Server::start() {
 	return 0;
 }
 
-std::string Server::read_message(socket_t socket) const {
+std::string Server::read_message(socket_t socket) {
     if(socket < 0) {
         throw std::runtime_error(SERVER_INVALID_SOCKET_ERR_MSG);
     }
-
-    std::string buffer;
     char block[SERVER_MESSAGE_BLOCK_SIZE];
 
-    uint64_t bytes_to_read = 0;
+    std::string &buffer = this -> partial_buffers[socket].second;
+    protocol_message_len_type& bytes_to_read = this -> partial_buffers[socket].first;
 
-    while (buffer.size() < sizeof(uint64_t)) {
+    // new instance, bytes to read must be a trash value
+    if(buffer.size() < sizeof(protocol_message_len_type)) {
+        bytes_to_read = 0;
+    }
+
+    while (true) {
         int32_t bytes_read = recv(socket, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
         if (bytes_read < 0) {
-            std::string recv_failed_str(SERVER_FAILED_RECV_ERR_MSG);
-            recv_failed_str += SERVER_ERRNO_STR_PREFIX;
-            recv_failed_str += std::to_string(errno);
-            throw std::runtime_error(recv_failed_str);
+            if(errno == EAGAIN || errno == EWOULDBLOCK) {
+                break;
+            }
+            else {
+                if(this ->verbose > 0) {
+                    std::cerr << SERVER_FAILED_RECV_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+                }
+
+                partial_buffers.erase(socket);
+                close(socket);
+                return "";
+            }
+
         }
 
         if (bytes_read == 0) {
+            partial_buffers.erase(socket);
+            close(socket);
+            // somehow indicate that client quit
             return buffer;
         }
 
         buffer.append(block, bytes_read);
+
+        if(bytes_to_read == 0 && buffer.size() >= sizeof(protocol_message_len_type)) {
+            memcpy(&bytes_to_read, buffer.data(), sizeof(protocol_message_len_type));
+            bytes_to_read = ntohll(bytes_to_read);
+        }
+
+        if(bytes_to_read > 0 && buffer.size() >= bytes_to_read) {
+            break;
+        }
+
+        if(!(fcntl(socket, F_GETFL) & O_NONBLOCK)) {
+            continue;
+        }
+        else {
+            break;
+        }
     }
-
-    memcpy(&bytes_to_read, buffer.data(), sizeof(uint64_t));
-
-    bytes_to_read = ntohll(bytes_to_read);
     
-    while (buffer.size() < bytes_to_read) {
-        int32_t bytes_read = recv(socket, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
-        if (bytes_read < 0) {
-            std::string recv_failed_str(SERVER_FAILED_RECV_ERR_MSG);
-            recv_failed_str += SERVER_ERRNO_STR_PREFIX;
-            recv_failed_str += std::to_string(errno);
-            throw std::runtime_error(recv_failed_str);
-        }
-
-        if (bytes_read == 0) {
-            return buffer;
-        }
-
-        buffer.append(block, bytes_read);
+    if (bytes_to_read > 0 && buffer.size() >= bytes_to_read) {
+        std::string msg = buffer.substr(0, bytes_to_read);
+        buffer.erase(0, bytes_to_read); // remove processed message
+        return msg;
     }
 
-    return buffer.substr(0, bytes_to_read);
+    return ""; // message not complete yet
+
 }
 
 int64_t Server::send_message(socket_t socket, const std::string& message) const {
@@ -191,15 +212,6 @@ socket_t Server::connect_to(const std::string& hostname, uint16_t port, bool& is
         return -1;
     }
 
-    /*struct sockaddr_in* addr_in = (struct sockaddr_in*)res->ai_addr;
-
-    char ip_str[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &(addr_in->sin_addr), ip_str, sizeof(ip_str));
-
-    std::cout << "Connecting to " << ip_str
-    << ":" << ntohs(addr_in->sin_port) << std::endl;
-    */
-
     if (connect(sock, res -> ai_addr, res -> ai_addrlen) != 0) {
         if(this -> verbose) {
             std::cout << SERVER_CONNECT_FAILED_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
@@ -231,4 +243,59 @@ std::string Server::extract_key_str_from_msg(const std::string& raw_message) con
     }
 
     return raw_message.substr(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type), key_len);
+}
+
+void Server::make_non_blocking(socket_t& socket) {
+    int flags = fcntl(socket, F_GETFL, 0);
+    if(flags == -1) {
+        flags = 0;
+    }
+
+    fcntl(socket, F_SETFL, flags | O_NONBLOCK);
+}
+
+int8_t Server::send_ok_response(socket_t socket) const {
+    return this -> send_status_response(COMMAND_CODE_OK, socket);
+}
+
+int8_t Server::send_error_response(socket_t socket) const {
+    return this -> send_status_response(COMMAND_CODE_ERR, socket);
+}
+
+int8_t Server::send_status_response(Command_Code status, socket_t socket) const {
+    if(status != COMMAND_CODE_ERR && status != COMMAND_CODE_OK && status != COMMAND_CODE_DATA_NOT_FOUND) {
+        return -1;
+    }
+
+    if(socket < 0) {
+        return -1;
+    }
+
+    protocol_message_len_type message_length;
+    protocol_array_len_type arr_len = 0;
+    command_code_type com_code = command_hton(status);
+    message_length = sizeof(message_length) + sizeof(arr_len) + sizeof(com_code);
+    std::string message(message_length, '\0');
+
+    protocol_message_len_type network_msg_len = protocol_msg_len_hton(message_length);
+
+    size_t curr_pos = 0;
+    memcpy(&message[0], &network_msg_len, sizeof(network_msg_len));
+    curr_pos += sizeof(network_msg_len);
+    memcpy(&message[curr_pos], &arr_len, sizeof(arr_len));
+    curr_pos += sizeof(arr_len);
+    memcpy(&message[curr_pos], &com_code, sizeof(com_code));
+
+    try {
+        this -> send_message(socket, message);
+    }
+    catch(const std::exception& e) {
+        if(this -> verbose > 0) {
+            std::cerr << e.what() << std::endl;
+        }
+
+        return -1;
+    }
+
+    return 0;
 }

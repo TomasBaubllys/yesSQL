@@ -1,4 +1,6 @@
 #include "../include/primary_server.h"
+#include <netdb.h>
+#include <sys/epoll.h>
 
 Primary_Server::Primary_Server(uint16_t port, uint8_t verbose) : Server(port, verbose) {
     const char* partition_count_str = std::getenv(PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING);
@@ -17,8 +19,18 @@ Primary_Server::Primary_Server(uint16_t port, uint8_t verbose) : Server(port, ve
 
     for(uint32_t i = 0; i < this -> partition_count; ++i) {
         Partition_Entry partition_entry;
-        partition_entry.partition_name = PARTITION_SERVER_NAME_PREFIX + std::to_string(i + 1);
+        partition_entry.name = PARTITION_SERVER_NAME_PREFIX + std::to_string(i + 1);
         partition_entry.port = PARTITION_SERVER_PORT;
+
+        bool success = false;
+        partition_entry.socket_fd = this -> connect_to(partition_entry.name, partition_entry.port, success);
+        if(!success) {
+            partition_entry.status = Partition_Status::PARTITION_DEAD;
+        }
+        else {
+            partition_entry.status = Partition_Status::PARTITION_FREE;
+        }
+
         
         partition_entry.range.beg = this -> partition_range_length * i;
         partition_entry.range.end = this ->  partition_range_length * (i + 1);
@@ -43,68 +55,100 @@ void Primary_Server::start_partition_monitor_thread() const {
 }
 
 int8_t Primary_Server::start() {
-    uint32_t new_socket;
-    const char* msg = PRIMARY_SERVER_HELLO_MSG;
-
-    if(listen(server_fd, PRIMARY_SERVER_DEFAULT_LISTEN_VALUE) < 0) {
-        std::string listen_failed_str(SERVER_FAILED_LISTEN_ERR_MSG);
-        listen_failed_str += SERVER_ERRNO_STR_PREFIX;
-        listen_failed_str += std::to_string(errno);
-        throw std::runtime_error(listen_failed_str);
+    if (listen(server_fd, PRIMARY_SERVER_DEFAULT_LISTEN_VALUE) < 0) {
+        std::string err = "listen() failed: errno=" + std::to_string(errno);
+        throw std::runtime_error(err);
     }
 
-    #ifdef PRIMARY_SERVER_PARTITION_MONITORING
-        this -> start_partition_monitor_thread();
-    #endif // PRIMARY_SERVER_PARTITION_MONITORING
+    make_non_blocking(server_fd);
 
-    #ifdef PRIMARY_SERVER_DEBUG
-        std::cout << SERVER_LISTENING_ON_PORT_MSG << port << "..." << std::endl;
-    #endif // PRIMARY_SERVER_DEBUG
+    int epoll_fd = epoll_create1(0);
+    if (epoll_fd < 0)
+        throw std::runtime_error("Failed to create epoll fd");
 
-    // accept a client, read their message, if(key needs range) check ranges
+    epoll_event ev{};
+    ev.events = EPOLLIN; // monitor read events
+    ev.data.fd = server_fd;
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev) < 0)
+        throw std::runtime_error("Failed to add server_fd to epoll");
 
+    std::vector<epoll_event> events(128);
+
+    std::cout << "Primary server listening on port " << port << "..." << std::endl;
+
+    // Main event loop
     while (true) {
-        // Accept one client
-        struct sockaddr_in client_addr;
-        socklen_t client_addr_len = sizeof(client_addr);
-        new_socket = accept(server_fd, (struct sockaddr*)&client_addr, &client_addr_len);
-        if (new_socket < 0) {
-            if(this -> verbose > 0) {
-                std::cerr << SERVER_FAILED_ACCEPT_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+        int ready_fd_count = epoll_wait(epoll_fd, events.data(), events.size(), -1);
+        if (ready_fd_count < 0) {
+            if (errno == EINTR) continue; // interrupted by signal
+            perror("epoll_wait");
+            break;
+        }
+
+        for (int i = 0; i < ready_fd_count; ++i) {
+            int fd = events[i].data.fd;
+
+            if (fd == server_fd) {
+                // Accept new client connection
+                sockaddr_in client_addr{};
+                socklen_t len = sizeof(client_addr);
+                socket_t client_fd = accept(server_fd, (sockaddr*)&client_addr, &len);
+                if (client_fd >= 0) {
+                    make_non_blocking(client_fd);
+
+                    ev.events = EPOLLIN | EPOLLET; // edge-triggered for efficiency
+                    ev.data.fd = client_fd;
+                    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &ev);
+
+                    if (verbose > 0)
+                        std::cout << "Client connected: fd=" << client_fd << std::endl;
+                }
+            } else if (events[i].events & EPOLLIN) {
+                // Data is ready to be read
+                try {
+                    std::string message = this -> read_message(fd);
+                    if (message.empty()) {
+                        // connection closed
+                        //if (verbose > 0)
+                        //    std::cout << "Client disconnected: fd=" << fd << std::endl;
+                        //epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
+                        //close(fd);
+                        continue;
+                    }
+
+                    // Handle the full message
+                    int8_t result = this -> handle_client_request(fd, message);
+                    if (result < 0) {
+                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
+                        close(fd);
+                    }
+                }
+                catch (const std::exception& e) {
+                    if (verbose > 0)
+                        std::cerr << "Error reading from fd=" << fd << ": " << e.what() << std::endl;
+                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
+                    close(fd);
+                }
+            } else if (events[i].events & (EPOLLHUP | EPOLLERR)) {
+                // Client hang-up or error
+                if (verbose > 0)
+                    std::cerr << "Client error/hang-up: fd=" << fd << std::endl;
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
+                close(fd);
             }
-            continue; // Skip this client and keep listening
         }
-
-        while(true) {
-            handle_client_request(new_socket);
-        }
-        // print the message received from the client
-        // std::string rec_msg = this -> read_message(new_socket);
-        // std::cout << rec_msg.substr(8) << std::endl;
-
-        // Print client info
-        #ifdef PRIMARY_SERVER_DEBUG
-            char client_ip[INET_ADDRSTRLEN];
-            inet_ntop(AF_INET, &(address.sin_addr), client_ip, INET_ADDRSTRLEN);
-            std::cout << "Client connected from " << client_ip << ":" << ntohs(address.sin_port) << std::endl;
-        #endif // PRIMARY_SERVER_DEBUG 
-
-        // Send message
-        send(new_socket, msg, strlen(msg), 0);
-
-        // Close client socket
-        close(new_socket);
     }
 
-    Server::start();
+    close(epoll_fd);
     return 0;
 }
+
 
 void Primary_Server::display_partitions_status() const {
     std::vector<bool> status = this -> get_partitions_status();
 
     for(uint32_t i = 0; i < status.size(); ++i) {
-        std::cout << this -> partitions.at(i).partition_name << " " << (status.at(i)? PARTITION_ALIVE_MSG : PARTITION_DEAD_MSG) << std::endl;
+        std::cout << this -> partitions.at(i).name << " " << (status.at(i)? PARTITION_ALIVE_MSG : PARTITION_DEAD_MSG) << std::endl;
     }
 }
 
@@ -113,7 +157,7 @@ std::vector<bool> Primary_Server::get_partitions_status() const {
     partitions_status.reserve(this -> partition_count);
 
     for(uint32_t i = 0; i < this -> partition_count; ++i) {
-        partitions_status.push_back(try_connect(this -> partitions.at(i).partition_name, this -> partitions.at(i).port));
+        partitions_status.push_back(try_connect(this -> partitions.at(i).name, this -> partitions.at(i).port));
     }
 
     return partitions_status;
@@ -151,22 +195,8 @@ std::vector<Partition_Entry> Primary_Server::get_partitions_fb(const std::string
     return std::vector<Partition_Entry>();
 }
 
-int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
-    // read the message
-    std::string raw_message;
-    try{
-        raw_message = this -> read_message(client_socket);
-    }
-    catch(const std::exception &e) {
-        if(this -> verbose > 0) {
-            std::cerr << e.what() << std::endl; // add some variable that checks if the server is in printing mode
-        }
-        close(client_socket);
-        return -1;
-    }
-
-    // extract the command code
-    Command_Code com_code = this -> extract_command_code(raw_message);
+int8_t Primary_Server::handle_client_request(socket_t client_socket, std::string& client_message) {
+    Command_Code com_code = this -> extract_command_code(client_message);
 
     // decide how to handle it
     switch(com_code) {
@@ -176,20 +206,28 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
             // extract the key string
             std::string key_str;
             try {
-                std::string key_str = this -> extract_key_str_from_msg(raw_message);
+                std::string key_str = this -> extract_key_str_from_msg(client_message);
             }
             catch(const std::exception& e) {
                 if(this -> verbose) {
-                    std::cerr << e.what() << std::endl; // add some variable that checks if the server is in printing mode
+                    std::cerr << e.what() << std::endl;
                 }
                 // send a message to the client about invalid operation
-                close(client_socket);
+                this -> send_error_response(client_socket);
                 return -1;
             }
+
             // find to which partition entry it belongs to
             Partition_Entry partition_entry = this -> get_partition_for_key(key_str);
-
-            std::string partition_response = this -> query_partition(partition_entry,raw_message);
+            std::string partition_response;
+            try {
+                std::string partition_response = this -> query_partition(partition_entry, client_message);
+                std::cout << partition_response << std::endl;
+            }
+            catch(const std::exception& e) {
+                this -> send_error_response(client_socket);
+                break;
+            }
 
             try{
                 this -> send_message(client_socket, partition_response);
@@ -199,7 +237,6 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
                     std::cerr << e.what() << std::endl;
                 }
             }
-            // close(client_socket);
             break;
         }
         case COMMAND_CODE_GET_KEYS: {
@@ -224,32 +261,45 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
     return 0;
 }
 
-std::string Primary_Server::query_partition(const Partition_Entry& partition, const std::string &raw_message) const {
-    bool success = false;
-    socket_t partition_socket = this -> connect_to(partition.partition_name, partition.port, success);
-    if(!success) {
-        std::string fail_str(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
-        fail_str += partition.partition_name;
-        throw std::runtime_error(fail_str);
+std::string Primary_Server::query_partition(Partition_Entry& partition, const std::string &raw_message) {
+    if(!ensure_partition_connection(partition)) {
+        throw std::runtime_error(" ");
     }
 
-    uint64_t bytes_sent = this -> send_message(partition_socket, raw_message);
+    uint64_t bytes_sent = this -> send_message(partition.socket_fd, raw_message);
     if(bytes_sent == 0) {
         std::string fail_str(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
-        fail_str += partition.partition_name;
-        close(partition_socket);
+        fail_str += partition.name;
+        close(partition.socket_fd);
+        partition.status = Partition_Status::PARTITION_DEAD;
         throw std::runtime_error(fail_str);
     }
 
     std::string response;
     try {
-        response = this -> read_message(partition_socket);
+        response = this -> read_message(partition.socket_fd);
     }
     catch(...) {
-        close(partition_socket);
+        close(partition.socket_fd);
+        partition.status = Partition_Status::PARTITION_DEAD;
         throw;
     }
 
-    close(partition_socket);
     return response;
+}
+
+bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
+    if(partition.status != Partition_Status::PARTITION_DEAD && partition.socket_fd >= 0) {
+        return true;
+    }
+
+    // else try to reconnect
+    bool success = false;
+    partition.socket_fd = this -> connect_to(partition.name, partition.port, success);
+    if(!success || partition.socket_fd < 0) {
+        return false;
+    }
+
+    partition.status = Partition_Status::PARTITION_FREE;
+    return true;
 }

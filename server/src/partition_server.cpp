@@ -178,9 +178,6 @@ int8_t Partition_Server::start() {
     return 0;
 }
 
-int8_t Partition_Server::send_error_response(socket_t socket) const {
-    return this -> send_status_response(COMMAND_CODE_ERR, socket);
-}
 
 std::string Partition_Server::extract_value(const std::string& raw_message) const {
     // read the key length
@@ -212,47 +209,7 @@ std::string Partition_Server::extract_value(const std::string& raw_message) cons
     return value_str;
 }
 
-int8_t Partition_Server::send_ok_response(socket_t socket) const {
-    return this -> send_status_response(COMMAND_CODE_OK, socket);
-}
 
-int8_t Partition_Server::send_status_response(Command_Code status, socket_t socket) const {
-    if(status != COMMAND_CODE_ERR && status != COMMAND_CODE_OK && status != COMMAND_CODE_DATA_NOT_FOUND) {
-        return -1;
-    }
-    
-    if(socket < 0) {
-        return -1;
-    }
-
-    protocol_message_len_type message_length;
-    protocol_array_len_type arr_len = 0;
-    command_code_type com_code = command_hton(status);
-    message_length = sizeof(message_length) + sizeof(arr_len) + sizeof(com_code);
-    std::string message(message_length, '\0');
-
-    protocol_message_len_type network_msg_len = protocol_msg_len_hton(message_length);
-
-    size_t curr_pos = 0;
-    memcpy(&message[0], &network_msg_len, sizeof(network_msg_len));
-    curr_pos += sizeof(network_msg_len);
-    memcpy(&message[curr_pos], &arr_len, sizeof(arr_len));
-    curr_pos += sizeof(arr_len);
-    memcpy(&message[curr_pos], &com_code, sizeof(com_code));
-
-    try {
-        this -> send_message(socket, message); 
-    }
-    catch(const std::exception& e) {
-        if(this -> verbose > 0) {
-            std::cerr << e.what() << std::endl;
-        }
-
-        return -1;
-    }
-
-    return 0;
-}
 
 int8_t Partition_Server::send_not_found_response(socket_t socket) const {
     return this -> send_status_response(COMMAND_CODE_DATA_NOT_FOUND, socket);

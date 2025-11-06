@@ -1,6 +1,7 @@
 #ifndef YSQL_PRIMARY_SERVER_H_INCLUDED
 #define YSQL_PRIMARY_SERVER_H_INCLUDED
 
+#include "protocol.h"
 #include "server.h"
 #include <utility>
 #include <vector>
@@ -28,7 +29,7 @@
 #define PRIMARY_SERVER_PARTITION_CHECK_INTERVAL 10
 #define PRIMARY_SERVER_HELLO_MSG "Hello from yesSQL server"
 
-#define PRIMARY_SERVER_DEFAULT_LISTEN_VALUE 10
+#define PRIMARY_SERVER_DEFAULT_LISTEN_VALUE 1000
 
 // comment/uncomment this line for debug
 #define PRIMARY_SERVER_DEBUG
@@ -70,10 +71,12 @@ class Primary_Server : public Server {
         // returns the first key found in the message
         // THROWS
 
-        int8_t handle_client_request(socket_t socket) const;
+        int8_t handle_client_request(socket_t socket, std::string& client_message);
 
         // THROWS
-        std::string query_partition(const Partition_Entry& partition, const std::string& raw_message) const;
+        std::string query_partition(Partition_Entry& partition, const std::string& raw_message);
+
+        bool ensure_partition_connection(Partition_Entry& partition);
 
     public:
         Primary_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);

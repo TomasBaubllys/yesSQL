@@ -15,6 +15,10 @@
 #include <stdexcept>
 #include <netdb.h>
 #include <bit>
+#include <fcntl.h>
+#include <sys/epoll.h>
+#include <unordered_map>
+#include <utility>
 
 #define SERVER_LISTENING_ON_PORT_MSG "Listening on port: "
 
@@ -47,8 +51,12 @@ class Server {
         int32_t server_fd;
         struct sockaddr_in address;
 
+        std::unordered_map<socket_t, std::pair<protocol_message_len_type , std::string>> partial_buffers;
+
         // variable decides if server prints out the messages.
         uint8_t verbose;
+
+        int8_t send_status_response(Command_Code status, socket_t socket) const;
 
     public:
         // THROWS
@@ -57,7 +65,7 @@ class Server {
         virtual int8_t start();
 
         // THROWS
-        std::string read_message(socket_t socket) const;
+        std::string read_message(socket_t socket);
 
         // THROWS
         int64_t send_message(socket_t socket, const std::string& message) const;
@@ -68,8 +76,14 @@ class Server {
 
         socket_t connect_to(const std::string& hostname, uint16_t port, bool& is_successful) const;
 
+        static void make_non_blocking(socket_t& socket);
+
         // THROWS
         std::string extract_key_str_from_msg(const std::string& raw_message) const;
+
+        int8_t send_error_response(socket_t socket) const;
+
+        int8_t send_ok_response(socket_t socket) const;
 
 };
 
