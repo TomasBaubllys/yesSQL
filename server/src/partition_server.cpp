@@ -8,7 +8,6 @@ int8_t Partition_Server::start() {
     socket_t client_socket;
     struct sockaddr_in client_addr{};
     socklen_t client_len = sizeof(client_addr);
-    const char* msg = "I'm alive\n";
 
     if (listen(this->server_fd, 3) < 0) {   
         std::string listen_failed_str(SERVER_FAILED_LISTEN_ERR_MSG);
