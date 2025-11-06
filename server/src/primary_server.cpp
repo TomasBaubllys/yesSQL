@@ -188,14 +188,7 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
             // find to which partition entry it belongs to
             Partition_Entry partition_entry = this -> get_partition_for_key(key_str);
 
-            // forward the message there
-            std::cout << "sending the message: " << raw_message << std::endl;
             std::string partition_response = this -> query_partition(partition_entry,raw_message);
-            
-            std::cout << "received response: " << std::endl;
-            for(int i = 0; i < partition_response.size(); ++i) {
-                std::cout << int(partition_response[i]) << std::endl;
-            } 
 
             try{
                 this -> send_message(client_socket, partition_response);
