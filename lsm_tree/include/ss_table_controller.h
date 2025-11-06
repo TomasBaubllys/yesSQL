@@ -22,11 +22,8 @@ class SS_Table_Controller{
         std::vector<const SS_Table*> sstables;
         level_index_type level;
         uint16_t ratio;
-        // ideally not fixed for every level (the higher the level, more tables)
         uint64_t max_size;
         uint64_t current_name_counter;
-
-
 
     public:
         SS_Table_Controller(uint16_t ratio, level_index_type current_level);
@@ -55,13 +52,6 @@ class SS_Table_Controller{
         bool empty() const; 
 
         double get_fill_ratio();
-        /*
-        for()
-        std::vector<SS_table> check_overlapping_key_range(Bits firs_index, Bits last_index, SS_Table_Controller ss_controller);
-        // SS_TABLE_VIDUJ
-
-        bool cfkjdhjkf(first, last)
-        */
 
 };
 

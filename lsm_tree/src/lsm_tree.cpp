@@ -4,11 +4,7 @@ LSM_Tree::LSM_Tree(){
     write_ahead_log = Wal();
     mem_table = Mem_Table();
     max_files_count = get_max_file_limit();
-
-
     reconstruct_tree();
-   
-
 };
 
 LSM_Tree::~LSM_Tree(){
@@ -464,7 +460,6 @@ uint64_t LSM_Tree::get_max_file_limit(){
 bool LSM_Tree::reconstruct_tree(){
     try{
 
-        
         std::filesystem::path ss_level_path = LSM_TREE_SS_LEVEL_PATH;
         if(!std::filesystem::exists(ss_level_path)){
             return true;
@@ -476,7 +471,6 @@ bool LSM_Tree::reconstruct_tree(){
         // match[2] -> file type
         // match[3] -> file ID
 
-        std::vector<std::pair<uint8_t, uint16_t>> corrupted_indexes;
         std::vector<std::pair<uint8_t, std::filesystem::path>> levels;
 
         for(const std::filesystem::directory_entry& level_path : std::filesystem::directory_iterator(ss_level_path)){
