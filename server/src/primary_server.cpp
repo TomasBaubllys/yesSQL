@@ -75,8 +75,9 @@ int8_t Primary_Server::start() {
             continue; // Skip this client and keep listening
         }
 
-        handle_client_request(new_socket);
-
+        while(true) {
+            handle_client_request(new_socket);
+        }
         // print the message received from the client
         // std::string rec_msg = this -> read_message(new_socket);
         // std::cout << rec_msg.substr(8) << std::endl;
@@ -204,7 +205,7 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
                     std::cerr << e.what() << std::endl;
                 }
             }
-            close(client_socket);
+            // close(client_socket);
             break;
         }
         case COMMAND_CODE_GET_KEYS: {

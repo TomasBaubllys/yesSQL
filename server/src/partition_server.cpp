@@ -263,7 +263,7 @@ int8_t Partition_Server::send_entries_response(const std::vector<Entry>& entry_a
     memcpy(&raw_message[curr_pos], &array_len, sizeof(array_len));
     curr_pos += sizeof(array_len);
     
-    memcpy(&raw_message[0], &com_code, sizeof(com_code));
+    memcpy(&raw_message[curr_pos], &com_code, sizeof(com_code));
     curr_pos += sizeof(com_code);
 
     for(const Entry& entry : entry_array) {
@@ -275,15 +275,16 @@ int8_t Partition_Server::send_entries_response(const std::vector<Entry>& entry_a
         memcpy(&raw_message[curr_pos], &net_key_len, sizeof(net_key_len));
         curr_pos += sizeof(net_key_len);
 
-        std::string key_bytes = entry.get_string_key_bytes();
-        memcpy(&raw_message[curr_pos], &key_bytes, key_len);
+        std::string key_bytes = entry.get_key_string();
+        memcpy(&raw_message[curr_pos], &key_bytes[0], key_len);
         curr_pos += key_len;
 
         memcpy(&raw_message[curr_pos], &net_value_len, sizeof(net_value_len));
         curr_pos += sizeof(net_value_len);
 
-        std::string value_bytes = entry.get_string_data_bytes();
-        memcpy(&raw_message[curr_pos], &value_bytes, value_len);
+        std::string value_bytes = entry.get_value_string();
+        // std::cout << "Sending value: " << value_bytes << std::endl;
+        memcpy(&raw_message[curr_pos], &value_bytes[0], value_len);
         curr_pos += value_len;
     }
 

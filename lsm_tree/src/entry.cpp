@@ -260,3 +260,11 @@ key_len_type Entry::get_key_length() const {
 value_len_type Entry::get_value_length() const {
     return this -> value.size();
 }
+
+std::string Entry::get_value_string() const {
+    return this -> value.get_string();
+}
+
+std::string Entry::get_key_string() const {
+    return this -> key.get_string();
+} 
