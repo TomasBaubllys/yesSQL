@@ -71,6 +71,7 @@ class LSM_Tree{
         uint64_t max_files_count;
 
         // returns Max open files per process
+        // THROWS
         uint64_t get_max_file_limit();
 
         struct SS_Table_Files{
@@ -88,30 +89,38 @@ class LSM_Tree{
         ~LSM_Tree();
 
         // returns an Entry object with provided key
+        // THROWS File_Exception
         Entry get(std::string key);
 
         // returns true if inserting a value was successful
+        // THROWS runtime_error
         bool set(std::string key, std::string value);
 
         // returns a vector of all keys in current database
+        // THROWS File_Exception and Runtime
         std::set<Bits> get_keys();
 
         // returns a vector of all keys with provided prefix
+        // THROWS File_Exception and Runtime
         std::set<Bits> get_keys(std::string prefix);
 
         // returns all keys forward from the provided key
+        // THROWS File_Exception and Runtime
         std::set<Entry> get_ff(std::string key);
 
         // returns all keys backwards from the provided key
+        // THROWS File_Exception and Runtime
         std::set<Entry> get_fb(std::string key);
 
         // returns true if removing an entry with provided key was successful
         bool remove(std::string key);
 
         // flushes MemTable to SStable
+        // THROWS
         void flush_mem_table();
 
         // compact level[index] with level [index + 1]
+        // THROWS???
         bool compact_level(level_index_type index);
 
         // get fill ratios of all levels. returns a sorted vector of pair <level, ratio>, where biggest ratios are in front
@@ -122,11 +131,6 @@ class LSM_Tree{
 
         // reconstructs LSM tree in case of a crash
         bool reconstruct_tree();
-
-        // returns a pair vector of corrupted files <level, file index>
-        // fills sstables
-        std::vector<std::pair<uint8_t, uint16_t>> fill_ss_tables(uint8_t level, std::vector<std::filesystem::path> data_files, std::vector<std::filesystem::path> index_files, std::vector<std::filesystem::path> offset_files);
-
 };
 
 #endif
