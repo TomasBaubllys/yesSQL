@@ -30,6 +30,10 @@ class Partition_Server : public Server {
 
         int8_t send_ok_response(socket_t socket) const; 
 
+        int8_t send_not_found_response(socket_t socket) const;
+
+        int8_t send_entries_response(const std::vector<Entry>& entry_array, socket_t socket) const;
+
         // THROWS
         std::string extract_value(const std::string& raw_message) const;
 

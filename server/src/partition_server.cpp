@@ -47,6 +47,41 @@ int8_t Partition_Server::start() {
 
         switch(com_code) {
             case COMMAND_CODE_GET: {
+                // extract the key
+                std::string key_str;
+                try {
+                    key_str = this -> extract_key_str_from_msg(raw_message);
+                }
+                catch(const std::exception& e) {
+                    if(this -> verbose > 0) {
+                       std::cerr << e.what() << std::endl; 
+                    }
+
+                    this -> send_error_response(client_socket);
+                    break;
+                }
+                // search for the value
+                bool found = false;
+                std::string value_str;
+                // REMOVE THIS TRY CATCH AFTER IT HAS BEEN FIGURED OUT!!!!
+                try {
+                    Entry entry = lsm_tree.get(key_str);
+                    if(entry.get_string_key_bytes() == ENTRY_PLACEHOLDER_KEY) {
+                        this -> send_not_found_response(client_socket);
+                        break;
+                    }
+                    else {
+                        this -> send_entries_response({entry}, client_socket);
+                    }
+                }
+                catch(const std::exception& e) {
+                    if(this -> verbose > 0) {
+                        std::cerr << e.what() << std::endl;
+                    }
+
+                    this -> send_error_response(client_socket);
+                    break;
+                }
 
                 break;
             }
@@ -62,6 +97,7 @@ int8_t Partition_Server::start() {
                     }
 
                     this -> send_error_response(client_socket);
+                    break;
                 }
 
                 // extract the data
@@ -73,6 +109,9 @@ int8_t Partition_Server::start() {
                     if(this -> verbose > 0) {
                         std::cerr << e.what() << e.what();
                     }
+
+                    this -> send_error_response(client_socket);
+                    break;
                 }
 
                 // insert the key value pair into the inner lsm tree
@@ -161,7 +200,7 @@ int8_t Partition_Server::send_ok_response(socket_t socket) const {
 }
 
 int8_t Partition_Server::send_status_response(Command_Code status, socket_t socket) const {
-    if(status != COMMAND_CODE_ERR && status != COMMAND_CODE_OK) {
+    if(status != COMMAND_CODE_ERR && status != COMMAND_CODE_OK && status != COMMAND_CODE_DATA_NOT_FOUND) {
         return -1;
     }
     
@@ -197,3 +236,68 @@ int8_t Partition_Server::send_status_response(Command_Code status, socket_t sock
 
     return 0;
 }
+
+int8_t Partition_Server::send_not_found_response(socket_t socket) const {
+    return this -> send_status_response(COMMAND_CODE_DATA_NOT_FOUND, socket);
+}
+
+int8_t Partition_Server::send_entries_response(const std::vector<Entry>& entry_array, socket_t socket) const {
+    // calculate the total amount of space needed
+    protocol_message_len_type msg_len = sizeof(protocol_message_len_type) + sizeof(protocol_array_len_type) + sizeof(command_code_type);
+    for(const Entry& entry : entry_array) {
+        msg_len += sizeof(protocol_key_len_type) + sizeof(protocol_value_len_type);
+        msg_len += entry.get_key_length() + entry.get_value_length();
+    }
+
+    protocol_array_len_type array_len = entry_array.size();
+    command_code_type com_code = COMMAND_CODE_OK;
+    array_len = protocol_arr_len_hton(array_len);
+    protocol_message_len_type net_msg_len = protocol_msg_len_hton(msg_len);
+    com_code = command_hton(com_code);
+
+    size_t curr_pos = 0;
+    std::string raw_message(msg_len, '\0');
+    memcpy(&raw_message[0], &net_msg_len, sizeof(net_msg_len));
+    curr_pos += sizeof(net_msg_len);
+    
+    memcpy(&raw_message[curr_pos], &array_len, sizeof(array_len));
+    curr_pos += sizeof(array_len);
+    
+    memcpy(&raw_message[0], &com_code, sizeof(com_code));
+    curr_pos += sizeof(com_code);
+
+    for(const Entry& entry : entry_array) {
+        protocol_key_len_type key_len = entry.get_key_length();
+        protocol_value_len_type value_len = entry.get_value_length();
+        protocol_key_len_type net_key_len = protocol_key_len_hton(key_len);
+        protocol_value_len_type net_value_len = protocol_value_len_hton(value_len);
+
+        memcpy(&raw_message[curr_pos], &net_key_len, sizeof(net_key_len));
+        curr_pos += sizeof(net_key_len);
+
+        std::string key_bytes = entry.get_string_key_bytes();
+        memcpy(&raw_message[curr_pos], &key_bytes, key_len);
+        curr_pos += key_len;
+
+        memcpy(&raw_message[curr_pos], &net_value_len, sizeof(net_value_len));
+        curr_pos += sizeof(net_value_len);
+
+        std::string value_bytes = entry.get_string_data_bytes();
+        memcpy(&raw_message[curr_pos], &value_bytes, value_len);
+        curr_pos += value_len;
+    }
+
+    try {
+        this -> send_message(socket, raw_message);
+    }
+    catch (const std::exception& e) {
+        if(this -> verbose > 0) {
+            std::cerr << e.what() << std::endl;
+        }
+
+        return -1;
+    }
+
+    return 0;
+}
+

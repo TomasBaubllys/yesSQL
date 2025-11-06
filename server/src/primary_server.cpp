@@ -167,8 +167,6 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket) const {
     // extract the command code
     Command_Code com_code = this -> extract_command_code(raw_message);
 
-    std::cout << com_code << std::endl;
-
     // decide how to handle it
     switch(com_code) {
         case COMMAND_CODE_GET:
