@@ -39,9 +39,20 @@ Mem_Table::Mem_Table(Wal& wal){
 
         try {
             Entry entry(entry_stream);
+
+            bool entry_key_exists = false;
+            Bits entry_key = entry.get_key();
+            Entry found_entry = avl_tree.search(entry_key, entry_key_exists);
+
+            if(entry_key_exists){
+                total_mem_table_size -= found_entry.get_entry_length();
+                total_mem_table_size += entry.get_entry_length();
+            }else{
+                entry_array_length++;
+                total_mem_table_size+=entry.get_entry_length();
+            }
+
             avl_tree.insert(entry);
-            entry_array_length++;
-            total_mem_table_size += entry.get_entry_length();
 
         } catch (const std::exception& e) {
             throw std::runtime_error(std::string("Error reading WAL entry: ") + e.what());

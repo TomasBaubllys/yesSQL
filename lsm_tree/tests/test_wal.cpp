@@ -44,9 +44,11 @@ bool test_empty_wal() {
     cout << "\n=== Test 1: Empty WAL File ===" << endl;
     
     Wal wal;
+    wal.clear_entries();
     Mem_Table mem_table(wal);
     
     // Verify empty memtable
+    std::cout<<mem_table.get_entry_array_length()<<std::endl;
     assert(mem_table.get_entry_array_length() == 0);
     assert(mem_table.get_total_mem_table_size() == 0);
     
