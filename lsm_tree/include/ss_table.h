@@ -101,12 +101,13 @@ class SS_Table{
 
         std::vector<Bits> get_all_keys(SS_Table_Entry_Filter key_filter) const;
 
-        void reconstruct_ss_table();
 
 
     public:
         std::filesystem::path data_path() const;
         std::filesystem::path index_path() const;
+        std::filesystem::path offset_path() const;
+
         SS_Table(const std::filesystem::path& _data_file, const std::filesystem::path& _index_file, std::filesystem::path& _index_offset_file);
 
         // no copying allowed
@@ -138,6 +139,9 @@ class SS_Table{
         // creates / fills the ss table with the given vector
         // overwrites the current files
         uint64_t fill_ss_table(const std::vector<Entry>& entry_vector);
+
+        void reconstruct_ss_table();
+
 
         class Keynator {
             private:

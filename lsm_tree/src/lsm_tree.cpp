@@ -499,7 +499,7 @@ bool LSM_Tree::reconstruct_tree(){
         
 
         for(std::vector<std::pair<uint8_t, std::filesystem::path>>::const_iterator it = levels.begin(); it != levels.end(); ++it){
-                ss_table_controllers.emplace_back(SS_TABLE_CONTROLLER_RATIO, it -> first);
+                ss_table_controllers.emplace_back(SS_TABLE_CONTROLLER_RATIO, ss_table_controllers.size());
 
                 std::map<uint16_t, LSM_Tree::SS_Table_Files> table_map;
 
@@ -532,7 +532,9 @@ bool LSM_Tree::reconstruct_tree(){
 
                     if(!set.data_file.empty() && !set.index_file.empty() && !set.offset_file.empty()){
                         SS_Table* new_table = new SS_Table(entry.second.data_file, entry.second.index_file, entry.second.offset_file);
+                        new_table -> reconstruct_ss_table();
                         ss_table_controllers.at(it -> first).add_sstable(new_table);
+                        
 
                         //std::cout << entry.second.data_file.string() << std::endl;
                         //std::cout << entry.second.index_file.string() << std::endl;
