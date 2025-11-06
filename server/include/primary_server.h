@@ -18,7 +18,6 @@
 
 #define PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING "PARTITION_COUNT"
 #define PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_UNDEF_ERR_MSG "Enviromental variable PARTITION_COUNT is undefined...\n"
-// #define PRIMARY_SERVER_MAX_PARTITION_COUNT 256
 #define PRIMARY_SERVER_PARTITION_COUNT_ZERO_ERR_MSG "Partition count is 0!\n"
 
 #define PRIMARY_SERVER_NPOS_FAILED_ERR_MSG "Could not extract the key from the message received - npos failed\n"
@@ -70,12 +69,11 @@ class Primary_Server : public Server {
 
         // returns the first key found in the message
         // THROWS
-        std::string extract_key_str_from_msg(const std::string& raw_message) const;
 
         int8_t handle_client_request(socket_t socket) const;
 
         // THROWS
-        std::string query_parition(const Partition_Entry& partition, const std::string& raw_message) const;
+        std::string query_partition(const Partition_Entry& partition, const std::string& raw_message) const;
 
     public:
         Primary_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);

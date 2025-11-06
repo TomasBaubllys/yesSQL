@@ -102,6 +102,13 @@ class Entry {
 		bool check_checksum();
 		//@returns the length of the saved key as key_len_type (uint16_t)
 		key_len_type get_key_length() const;
+
+		value_len_type get_value_length() const;
+
+		std::string get_value_string() const;
+
+		std::string get_key_string() const; 
+
 		//@brief serializes complete entry to ostringstream
 		//@returns ostringstream containing: entry_length, tombstone_flag, key_size, key data, value_size, value data, checksum
 		std::ostringstream get_ostream_bytes();

@@ -1,0 +1,1 @@
+- add a try catch block for LSM_Tree::set(), check other methods and either mark with THROW or handle the exceptiosn internally
