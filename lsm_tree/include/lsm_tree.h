@@ -31,6 +31,10 @@
 #define LSM_TREE_LEVEL_DIR "./data/val/Level_%u"
 #define LSM_TREE_SS_TABLE_MAX_LENGTH 35
 #define LSM_TREE_SS_LEVEL_PATH "./data/val/"
+#define LSM_TREE_TYPE_DATA "data"
+#define LSM_TREE_TYPE_INDEX "index"
+#define LSM_TREE_TYPE_OFFSET "offset"
+
 
 #define LSM_TREE_EMPTY_SS_TABLE_CONTROLLERS_ERR_MSG "LSM_Tree ss_table_controller vector is empty\n"
 #define LSM_TREE_EMPTY_ENTRY_VECTOR_ERR_MSG "LSM_Tree empty entries vector, could not fill ss table\n"

@@ -150,6 +150,7 @@ Entry SS_Table::get(const Bits& key, bool& found) const {
     return Entry(key_str, data_str);
 }
 
+// needs a more complicated constructor --> or a reconstruct ss_table method
 SS_Table::SS_Table(const std::filesystem::path& _data_file, const std::filesystem::path& _index_file, std::filesystem::path& _index_offset_file)
     : data_file(_data_file), index_file(_index_file), index_offset_file(_index_offset_file), first_index(ENTRY_PLACEHOLDER_KEY), last_index((ENTRY_PLACEHOLDER_KEY)), record_count(0), data_file_size(0), index_file_size(0), index_offset_file_size(0) {
 
@@ -169,6 +170,9 @@ std::filesystem::path SS_Table::index_path() const {
     return this -> index_file;
 }
 
+std::filesystem::path SS_Table::offset_path() const {
+    return this -> index_offset_file;
+}
 
 Bits SS_Table::get_last_index() const {
 	return this -> last_index;
@@ -982,4 +986,109 @@ std::vector<Entry> SS_Table::get_all_entries_alive() const {
 
 std::vector<Entry> SS_Table::get_all_entries() const {
     return this -> get_all_entries(SS_TABLE_FILTER_ALL_ENTRIES);
+}
+
+void SS_Table::reconstruct_ss_table(){
+    // atsidaryt offset filea, nuskaityt pirmo rakto offseta
+    // atsidaryt index file ir seekg tuo offsetu -> set first index
+    // atsidaryt offset filea, eit i pati gala - sizeofoffset record, nuskaityt
+    // seekg tuo offsetu index file -> set last index
+    // record count --> offset ir dalint is record size
+    // visu failu dydzius nuskaityt
+
+    uint64_t first_key_offset = 0;
+    uint64_t last_key_offset = 0;
+    key_len_type key_length = 0;
+    std::string key_str;
+
+
+    std::ifstream index_in(this -> index_file, std::ios::binary);
+    if(!index_in) {
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG, (this -> index_file).c_str());
+    }
+
+    std::ifstream index_offset_in(this -> index_offset_file, std::ios::binary);
+    if(!index_offset_in) {
+        throw File_Exception(SS_TABLE_FAILED_TO_OPEN_INDEX_OFFSET_FILE_MSG, (this -> index_file).c_str());
+    }
+
+    // FIRST INDEX
+    // SEEK the key offset
+    index_offset_in.seekg(0, std::ios::beg);
+    if(index_offset_in.fail()) {
+        throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG, this -> index_offset_file.c_str());
+    }
+
+
+    // read the keys offset
+    index_offset_in.read(reinterpret_cast<char*>(&first_key_offset), sizeof(first_key_offset));
+    if(index_offset_in.fail()) {
+        throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG, this -> index_offset_file.c_str());
+    }
+
+    // place the pointer in index_in
+    index_in.seekg(first_key_offset, index_in.beg);
+    if(index_in.fail()) {
+        throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
+    }
+
+    // read the size of the key itself
+    index_in.read(reinterpret_cast<char*>(&key_length), sizeof(key_length));
+    if(index_in.fail()) {
+        throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
+    }
+
+    // now read the key
+    key_str.resize(key_length);
+    index_in.read(&key_str[0], key_length);
+    if(index_in.fail()) {
+        throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
+    }
+
+    this -> first_index = Bits(key_str);
+
+    // LAST INDEX
+
+     // SEEK the key offset
+    index_offset_in.seekg(-SS_TABLE_KEY_OFFSET_RECORD_SIZE, std::ios::end);
+    if(index_offset_in.fail()) {
+        throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG, this -> index_offset_file.c_str());
+    }
+
+
+    // read the keys offset
+    index_offset_in.read(reinterpret_cast<char*>(&last_key_offset), sizeof(last_key_offset));
+    if(index_offset_in.fail()) {
+        throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_OFFSET_EOF_MSG, this -> index_offset_file.c_str());
+    }
+
+    // place the pointer in index_in
+    index_in.seekg(last_key_offset, index_in.beg);
+    if(index_in.fail()) {
+        throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
+    }
+
+    // read the size of the key itself
+    index_in.read(reinterpret_cast<char*>(&key_length), sizeof(key_length));
+    if(index_in.fail()) {
+        throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
+    }
+
+    // now read the key
+    key_str.resize(key_length);
+    index_in.read(&key_str[0], key_length);
+    if(index_in.fail()) {
+        throw File_Exception(SS_TABLE_UNEXPECTED_INDEX_EOF_MSG, this -> index_file.c_str());
+    }
+
+    this -> last_index = Bits(key_str);
+
+    this -> data_file_size = std::filesystem::file_size(this -> data_file);
+    this -> index_file_size = std::filesystem::file_size(this -> index_file);
+    this -> index_offset_file_size = std::filesystem::file_size(this -> index_offset_file);
+
+    this -> record_count = index_offset_file_size / SS_TABLE_KEY_OFFSET_RECORD_SIZE;
+
+
+
 }
