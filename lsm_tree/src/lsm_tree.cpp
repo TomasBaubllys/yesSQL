@@ -6,9 +6,9 @@ LSM_Tree::LSM_Tree(){
     max_files_count = get_max_file_limit();
 
 
-    if(!reconstruct_tree()){
-        // throw std::runtime_error("failed to reconstruct tree");
-    }
+    reconstruct_tree();
+   
+
 };
 
 LSM_Tree::~LSM_Tree(){
@@ -226,7 +226,6 @@ bool LSM_Tree::remove(std::string key){
 // GETFF ir GETFB turi leisti puslapiuoti, t.y. gauti po n porų ir fektyviai tęsti toliau
 // REMOVE <key>
 
-// data compression??
 void LSM_Tree::flush_mem_table(){
 
     // check for compaction
@@ -462,11 +461,14 @@ uint64_t LSM_Tree::get_max_file_limit(){
 }
 
 
-// perdaryt????? turi grazint corrupted indexes bet kaip tada catchint errorus??
 bool LSM_Tree::reconstruct_tree(){
     try{
 
+        
         std::filesystem::path ss_level_path = LSM_TREE_SS_LEVEL_PATH;
+        if(!std::filesystem::exists(ss_level_path)){
+            return true;
+        }
         
         std::regex ss_table_pattern(R"(\.sst_l(\d+)_(data|index|offset)_(\d+)\.bin)");
         std::regex folder_pattern(R"(Level_(\d+))");
@@ -495,11 +497,8 @@ bool LSM_Tree::reconstruct_tree(){
                   });
         
 
-
-        // FIX ITERATORIUS NEINA IS EILES KAIP MES NORIM!!!
         for(std::vector<std::pair<uint8_t, std::filesystem::path>>::const_iterator it = levels.begin(); it != levels.end(); ++it){
-                // CIA IRGI NEGERAI, REIKIA I SPECIFINE VIETA:()
-                ss_table_controllers.emplace_back(SS_TABLE_CONTROLLER_RATIO, it -> first);
+                ss_table_controllers.emplace_back(SS_TABLE_CONTROLLER_RATIO, ss_table_controllers.size());
 
                 std::map<uint16_t, LSM_Tree::SS_Table_Files> table_map;
 
@@ -517,15 +516,13 @@ bool LSM_Tree::reconstruct_tree(){
 
                         SS_Table_Files& set = table_map[id];
 
-                        if(type == "data")
+                        if(type == LSM_TREE_TYPE_DATA)
                             set.data_file = ss_table_file.path();
-                        else if (type == "index")
+                        else if (type == LSM_TREE_TYPE_INDEX)
                             set.index_file = ss_table_file.path();
-                        else if (type == "offset")
+                        else if (type == LSM_TREE_TYPE_OFFSET)
                             set.offset_file = ss_table_file.path();
-
                     }
-
                 }
 
                 for(std::pair<const uint16_t, SS_Table_Files>& entry : table_map){
@@ -533,15 +530,19 @@ bool LSM_Tree::reconstruct_tree(){
                     SS_Table_Files& set = entry.second;
 
                     if(!set.data_file.empty() && !set.index_file.empty() && !set.offset_file.empty()){
-
                         SS_Table* new_table = new SS_Table(entry.second.data_file, entry.second.index_file, entry.second.offset_file);
+                        new_table -> reconstruct_ss_table();
                         ss_table_controllers.at(it -> first).add_sstable(new_table);
+                        
+
+                        //std::cout << entry.second.data_file.string() << std::endl;
+                        //std::cout << entry.second.index_file.string() << std::endl;
+                        //std::cout << entry.second.offset_file.string() << std::endl;
+
                         
                     }
                     else{
-                        // create a folder to put all corrupted files in
 
-                        std::cout << "heyeyy how ya doin" << std::endl;
                         if (!std::filesystem::exists(LSM_TREE_CORRUPT_FILES_PATH)) {
                             std::filesystem::create_directories(LSM_TREE_CORRUPT_FILES_PATH);
                         }
@@ -550,44 +551,26 @@ bool LSM_Tree::reconstruct_tree(){
 
                         if(std::filesystem::exists(set.data_file)){
                             std::filesystem::path dest = LSM_TREE_CORRUPT_FILES_PATH / set.data_file.filename();
-
-                            try{
-                                std::filesystem::rename(set.data_file, dest);
-                            }
-                            catch(const std::filesystem::filesystem_error& e){
-                                std::cerr << e.what() << std::endl;
-                                return false;
-                            }
+                            std::filesystem::rename(set.data_file, dest);                         
                         }
 
                         if(std::filesystem::exists(set.index_file)){
                             std::filesystem::path dest = LSM_TREE_CORRUPT_FILES_PATH / set.index_file.filename();
-                            try{
-                                std::filesystem::rename(set.index_file, dest);
-                            }
-                            catch(const std::filesystem::filesystem_error& e){
-                                std::cerr << e.what() << std::endl;
-                                return false;
-                            }
+                            std::filesystem::rename(set.index_file, dest);
                         }
 
 
                         if(std::filesystem::exists(set.offset_file)){
                             std::filesystem::path dest = LSM_TREE_CORRUPT_FILES_PATH / set.offset_file.filename();
-                            try{
-                                std::filesystem::rename(set.offset_file, dest);
-                            }
-                            catch(const std::filesystem::filesystem_error& e){
-                                std::cerr << e.what() << std::endl;
-                                return false;
-                            }
-                            
+                            std::filesystem::rename(set.offset_file, dest);
                         }
                     }
 
                 }
 
             }
+
+            return true;
 
         }
 
