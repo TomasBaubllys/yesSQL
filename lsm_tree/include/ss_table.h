@@ -214,7 +214,6 @@ class SS_Table{
 
         // THROWS
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
-        // returns the entries in descending order by keys
         std::pair<std::vector<Entry>, Bits> get_entries_key_smaller_or_equal(const Bits& target_key, uint32_t count) const;
 
         // THROWS
@@ -223,7 +222,6 @@ class SS_Table{
 
         // THROWS
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
-        // returns the entries in descending order by keys
         std::pair<std::vector<Entry>, Bits> get_entries_key_smaller_or_equal_alive(const Bits& target_key, uint32_t count) const;
 
         // THROWS
