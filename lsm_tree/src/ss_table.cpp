@@ -678,7 +678,7 @@ uint64_t SS_Table::binary_search_nearest(std::ifstream& index_ifstream, std::ifs
     return binary_search_left;
 }
 
-std::pair<std::vector<Entry>, Bits> SS_Table::get_all_entries(SS_Table_Entry_Filter key_filter, uint32_t count) const {
+std::pair<std::vector<Entry>, Bits> SS_Table::get_n_entries(SS_Table_Entry_Filter key_filter, uint32_t count) const {
     std::vector<Entry> entries;
     
     entries.reserve(count);
@@ -742,16 +742,18 @@ std::pair<std::vector<Entry>, Bits> SS_Table::get_all_entries(SS_Table_Entry_Fil
         }
         // check the tombstone flag
         Entry current_entry(current_key, current_data);
-        if(key_filter == SS_TABLE_FILTER_ALIVE_ENTRIES  && !current_entry.is_deleted()) {
-            entries.emplace_back(current_entry);
+        bool keep = (key_filter == SS_TABLE_FILTER_ALIVE_ENTRIES  && !current_entry.is_deleted()) || key_filter == SS_TABLE_FILTER_ALL_ENTRIES;
+
+        if(!keep) {
+            continue;
         }
-        else if(entries.size() == count) {
+
+        if(entries.size() == count) {
             Bits next_key(current_key);
             return std::make_pair(entries, next_key);
         }
-        else {
-            entries.emplace_back(current_entry);
-        }
+
+        entries.emplace_back(current_entry);
     }
 
     if(!offset_ifstream.eof()) {
@@ -770,7 +772,7 @@ std::pair<std::vector<Entry>, Bits> SS_Table::get_entries_key_smaller_or_equal(c
     }
 
     if(this -> last_index <= target_key) {
-        return this -> get_all_entries(key_filter, count);
+        return this -> get_n_entries(key_filter, count);
     }
 
     entries.reserve(this -> record_count);
@@ -871,9 +873,13 @@ std::pair<std::vector<Entry>, Bits> SS_Table::get_entries_key_smaller_or_equal(c
         Bits next_key_str(ENTRY_PLACEHOLDER_KEY);
         return std::make_pair(entries, next_key_str);
     }
+    size_t start_index = entries.size() - count;
+    std::vector<Entry> entries_partial(entries.begin() + start_index, entries.end());
 
-    std::vector<Entry> entries_partial(entries.end() - count, entries.end());
-    Bits next_key(entries.at(entries.size() - count).get_key_string());
+    Bits next_key(ENTRY_PLACEHOLDER_KEY);
+    if(start_index > 0) {
+        next_key = entries.at(start_index - 1).get_key();
+    }
 
     return std::make_pair(entries_partial, next_key);
 }
@@ -886,7 +892,7 @@ std::pair<std::vector<Entry>, Bits> SS_Table::get_entries_key_larger_or_equal(co
     }
 
     if(target_key <= this -> first_index) {
-        return this -> get_all_entries(entry_filter, count);
+        return this -> get_n_entries(entry_filter, count);
     }
 
     entries.reserve(count);
@@ -965,13 +971,15 @@ std::pair<std::vector<Entry>, Bits> SS_Table::get_entries_key_larger_or_equal(co
         // check tombstone
         Entry current_entry(current_key, current_data);
         bool keep = (entry_filter == SS_TABLE_FILTER_ALIVE_ENTRIES && !current_entry.is_deleted()) || entry_filter == SS_TABLE_FILTER_ALL_ENTRIES;
-        if(keep && entries.size() == count) {
+        if(!keep) {
+            continue;
+        }
+        if(entries.size() == count) {
             Bits next_key(current_key);
             return std::make_pair(entries, next_key);
         }
-        else if (keep) {
-            entries.emplace_back(current_entry);
-        }
+        
+        entries.emplace_back(current_entry);
     }
 
     Bits next_key(ENTRY_PLACEHOLDER_KEY);
@@ -995,12 +1003,12 @@ std::pair<std::vector<Entry>, Bits> SS_Table::get_entries_key_larger_or_equal_al
     return this -> get_entries_key_larger_or_equal(target_key, SS_TABLE_FILTER_ALIVE_ENTRIES);
 }
 
-std::pair<std::vector<Entry>, Bits> SS_Table::get_all_entries_alive(uint32_t count) const {
-    return this -> get_all_entries(SS_TABLE_FILTER_ALIVE_ENTRIES, count);
+std::pair<std::vector<Entry>, Bits> SS_Table::get_n_entries_alive(uint32_t count) const {
+    return this -> get_n_entries(SS_TABLE_FILTER_ALIVE_ENTRIES, count);
 }
 
-std::pair<std::vector<Entry>, Bits> SS_Table::get_all_entries(uint32_t count) const {
-    return this -> get_all_entries(SS_TABLE_FILTER_ALL_ENTRIES, count);
+std::pair<std::vector<Entry>, Bits> SS_Table::get_n_entries(uint32_t count) const {
+    return this -> get_n_entries(SS_TABLE_FILTER_ALL_ENTRIES, count);
 }
 
 void SS_Table::reconstruct_ss_table(){
@@ -1103,11 +1111,7 @@ void SS_Table::reconstruct_ss_table(){
     this -> index_offset_file_size = std::filesystem::file_size(this -> index_offset_file);
 
     this -> record_count = index_offset_file_size / SS_TABLE_KEY_OFFSET_RECORD_SIZE;
-
-
-
 }
-
 
 std::pair<std::vector<Bits>, Bits> SS_Table::get_n_next_keys_alive(const Bits& target_key, uint32_t count) const {
     return this -> get_n_next_keys(target_key, SS_Table_Entry_Filter::SS_TABLE_FILTER_ALIVE_ENTRIES);
@@ -1200,13 +1204,17 @@ std::pair<std::vector<Bits>, Bits> SS_Table::get_n_next_keys(const Bits& target_
         // check tombstone
         Entry current_entry(current_key, current_data);
         bool keep = (entry_filter == SS_TABLE_FILTER_ALIVE_ENTRIES && !current_entry.is_deleted()) || entry_filter == SS_TABLE_FILTER_ALL_ENTRIES;
-        if(keep && keys.size() == count) {
+        if(!keep) {
+            continue;
+        }
+
+        if(keys.size() == count) {
             Bits next_key(current_key);
             return std::make_pair(keys, next_key);
         }
-        else if (keep) {
-            keys.emplace_back(current_key);
-        }
+
+        keys.emplace_back(current_key);
+        
     }
 
     Bits next_key(ENTRY_PLACEHOLDER_KEY);

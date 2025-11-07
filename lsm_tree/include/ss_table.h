@@ -96,7 +96,7 @@ class SS_Table{
         std::pair<std::vector<Entry>, Bits> get_entries_key_larger_or_equal(const Bits& target_key, SS_Table_Entry_Filter entry_filter, uint32_t count) const;
         
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
-        std::pair<std::vector<Entry>, Bits> get_all_entries(SS_Table_Entry_Filter entry_filter, uint32_t count) const;
+        std::pair<std::vector<Entry>, Bits> get_n_entries(SS_Table_Entry_Filter entry_filter, uint32_t count) const;
 
         std::vector<Bits> get_all_keys(SS_Table_Entry_Filter key_filter) const;
 
@@ -232,11 +232,11 @@ class SS_Table{
 
         // THROWS
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
-        std::pair<std::vector<Entry>, Bits> get_all_entries_alive(uint32_t count) const;
+        std::pair<std::vector<Entry>, Bits> get_n_entries_alive(uint32_t count) const;
 
         // THROWS
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
-        std::pair<std::vector<Entry>, Bits> get_all_entries(uint32_t count) const;
+        std::pair<std::vector<Entry>, Bits> get_n_entries(uint32_t count) const;
 };
 
 #endif // SS_TABLE_H_INCLUDED
