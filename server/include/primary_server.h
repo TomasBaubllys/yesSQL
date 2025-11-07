@@ -26,6 +26,10 @@
 
 #define PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG "Failed to query the partition: "
 
+#define PRIMARY_SERVER_FAILED_EPOLL_CREATE_ERR_MSG "Failed to create epoll fd\n"
+#define PRIMARY_SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG "Failed to add fd to epoll fd\n"
+#define PRIMARY_SERVER_EPOLL_WAIT_FAILED_ERR_MSG "Epoll wait failed: "
+
 #define PRIMARY_SERVER_PARTITION_CHECK_INTERVAL 10
 #define PRIMARY_SERVER_HELLO_MSG "Hello from yesSQL server"
 

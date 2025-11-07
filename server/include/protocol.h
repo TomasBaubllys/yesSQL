@@ -2,6 +2,7 @@
 #define YSQL_PROTOCOL_H_INCLUDED
 
 #include "commands.h"
+#include "socket_types.h"
 #include "../../lsm_tree/include/entry.h"
 
 using socket_t =

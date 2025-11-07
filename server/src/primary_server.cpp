@@ -67,24 +67,24 @@ int8_t Primary_Server::start() {
 
     int epoll_fd = epoll_create1(0);
     if (epoll_fd < 0)
-        throw std::runtime_error("Failed to create epoll fd");
+        throw std::runtime_error(PRIMARY_SERVER_FAILED_EPOLL_CREATE_ERR_MSG);
 
     epoll_event ev{};
     ev.events = EPOLLIN; // monitor read events
     ev.data.fd = server_fd;
     if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev) < 0)
-        throw std::runtime_error("Failed to add server_fd to epoll");
+        throw std::runtime_error(PRIMARY_SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG);
 
-    std::vector<epoll_event> events(128);
-
-    std::cout << "Primary server listening on port " << port << "..." << std::endl;
-
+    std::vector<epoll_event> events(PRIMARY_SERVER_DEFAULT_LISTEN_VALUE);
+    // std::cout << "Primary server listening on port " << port << "..." << std::endl;
     // Main event loop
     while (true) {
         int ready_fd_count = epoll_wait(epoll_fd, events.data(), events.size(), -1);
         if (ready_fd_count < 0) {
             if (errno == EINTR) continue; // interrupted by signal
-            perror("epoll_wait");
+            if(this -> verbose > 0) {
+                std::cerr << PRIMARY_SERVER_EPOLL_WAIT_FAILED_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+            }
             break;
         }
 
@@ -103,19 +103,15 @@ int8_t Primary_Server::start() {
                     ev.data.fd = client_fd;
                     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &ev);
 
-                    if (verbose > 0)
+                    if (verbose > 0) {
                         std::cout << "Client connected: fd=" << client_fd << std::endl;
+                    }
                 }
             } else if (events[i].events & EPOLLIN) {
                 // Data is ready to be read
                 try {
                     std::string message = this -> read_message(fd);
                     if (message.empty()) {
-                        // connection closed
-                        //if (verbose > 0)
-                        //    std::cout << "Client disconnected: fd=" << fd << std::endl;
-                        //epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
-                        //close(fd);
                         continue;
                     }
 
