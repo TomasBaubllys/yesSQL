@@ -57,11 +57,13 @@ void Primary_Server::start_partition_monitor_thread() const {
 
 int8_t Primary_Server::start() {
     if (listen(server_fd, PRIMARY_SERVER_DEFAULT_LISTEN_VALUE) < 0) {
-        std::string err = "listen() failed: errno=" + std::to_string(errno);
-        throw std::runtime_error(err);
+        std::string listen_failed_str(SERVER_FAILED_LISTEN_ERR_MSG);
+        listen_failed_str += SERVER_ERRNO_STR_PREFIX;
+        listen_failed_str += std::to_string(errno);
+        throw std::runtime_error(listen_failed_str);
     }
 
-    make_non_blocking(server_fd);
+    make_non_blocking(this -> server_fd);
 
     int epoll_fd = epoll_create1(0);
     if (epoll_fd < 0)
