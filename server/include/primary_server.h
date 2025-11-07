@@ -52,6 +52,8 @@
 
 class Primary_Server : public Server {
     private:
+        std::unordered_map<socket_t, Socket_Types> sockets_map;
+
         uint32_t partition_count;
 
         uint32_t partition_range_length;
@@ -66,7 +68,7 @@ class Primary_Server : public Server {
 
         uint32_t key_prefix_to_uint32(const std::string& key) const;
 
-        Partition_Entry get_partition_for_key(const std::string& key) const;
+        Partition_Entry& get_partition_for_key(const std::string& key);
 
         std::vector<Partition_Entry> get_partitions_ff(const std::string& key) const;
 

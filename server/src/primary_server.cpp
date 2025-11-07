@@ -25,6 +25,8 @@ Primary_Server::Primary_Server(uint16_t port, uint8_t verbose) : Server(port, ve
 
         bool success = false;
         partition_entry.socket_fd = this -> connect_to(partition_entry.name, partition_entry.port, success);
+        this -> sockets_map[partition_entry.socket_fd] = Socket_Types::PARTITION_SERVER_SOCKET;
+
         if(!success) {
             partition_entry.status = Partition_Status::PARTITION_DEAD;
         }
@@ -107,6 +109,8 @@ int8_t Primary_Server::start() {
                         std::cout << "Client connected: fd=" << client_fd << std::endl;
                     }
                 }
+                this -> sockets_map[client_fd] = Socket_Types::CLIENT_SOCKET;
+
             } else if (events[i].events & EPOLLIN) {
                 // Data is ready to be read
                 try {
@@ -174,7 +178,7 @@ uint32_t Primary_Server::key_prefix_to_uint32(const std::string& key) const {
     return uint32_prefix_key;
 }
 
-Partition_Entry Primary_Server::get_partition_for_key(const std::string& key) const {
+Partition_Entry& Primary_Server::get_partition_for_key(const std::string& key) {
     uint32_t uint32_key_prefix = this -> key_prefix_to_uint32(key);
 
     uint32_t partition_index = static_cast<uint32_t>(uint32_key_prefix / this -> partition_range_length);
@@ -217,7 +221,7 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket, std::string
             }
 
             // find to which partition entry it belongs to
-            Partition_Entry partition_entry = this -> get_partition_for_key(key_str);
+            Partition_Entry& partition_entry = this -> get_partition_for_key(key_str);
             std::string partition_response;
             try {
                 partition_response = this -> query_partition(partition_entry, client_message);
@@ -289,9 +293,12 @@ std::string Primary_Server::query_partition(Partition_Entry& partition, const st
 }
 
 bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
-    if(partition.status != Partition_Status::PARTITION_DEAD && partition.socket_fd >= 0) {
+    if(partition.status != Partition_Status::PARTITION_DEAD && partition.socket_fd >= 0 && this -> sockets_map[partition.socket_fd] == Socket_Types::PARTITION_SERVER_SOCKET) {
         return true;
     }
+
+    // after reconection partition socket stays the same
+    std::cout << int(partition.status) << " " << partition.socket_fd << " " << this -> sockets_map[partition.socket_fd] << std::endl; 
 
     // else try to reconnect
     bool success = false;
@@ -301,5 +308,6 @@ bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
     }
 
     partition.status = Partition_Status::PARTITION_FREE;
+    this -> sockets_map[partition.socket_fd] = Socket_Types::PARTITION_SERVER_SOCKET;
     return true;
 }
