@@ -8,7 +8,6 @@ int8_t Partition_Server::start() {
     socket_t client_socket;
     struct sockaddr_in client_addr{};
     socklen_t client_len = sizeof(client_addr);
-    const char* msg = "I'm alive\n";
 
     if (listen(this->server_fd, 3) < 0) {   
         std::string listen_failed_str(SERVER_FAILED_LISTEN_ERR_MSG);
@@ -17,12 +16,12 @@ int8_t Partition_Server::start() {
         throw std::runtime_error(listen_failed_str);
     }
 
-    // std::cout << "Partition server listening on port " << port << "..." << std::endl;
-
     while (true) {
         std::cout << "Waiting for connection..." << std::endl;
-
+        // std::cout << "Partition server listening on port " << port << "..." << std::endl;
         client_socket = accept(this -> server_fd, (struct sockaddr*)&client_addr, &client_len);
+        // std::cout << "ACCEPTED" << std::endl;
+
         if (client_socket < 0) {
             if(this -> verbose > 0) {
                 std::cerr << SERVER_FAILED_ACCEPT_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
@@ -30,140 +29,158 @@ int8_t Partition_Server::start() {
             continue; // skip this client
         }
 
-        std::string raw_message;
-        try {
-            raw_message = this -> read_message(client_socket);
-        }
-        catch (const std::exception& e) {
-            if(this -> verbose > 0) {
-                std::cerr << e.what() << std::endl;
+        while(true) {
+            std::string raw_message;
+            try {
+                raw_message = this -> read_message(client_socket);
             }
-            // skip this client
-            close(client_socket);
-            continue;
-        }
-        // extract the command code
-        Command_Code com_code = this -> extract_command_code(raw_message);
-
-        switch(com_code) {
-            case COMMAND_CODE_GET: {
-                // extract the key
-                std::string key_str;
-                try {
-                    key_str = this -> extract_key_str_from_msg(raw_message);
+            catch (const std::exception& e) {
+                if(this -> verbose > 0) {
+                    std::cerr << e.what() << std::endl;
                 }
-                catch(const std::exception& e) {
-                    if(this -> verbose > 0) {
-                       std::cerr << e.what() << std::endl; 
+                // skip this client
+                // if read message fails, because the server disconnected try to reconect
+                close(client_socket);
+                break;
+            }
+            // extract the command code
+            Command_Code com_code = this -> extract_command_code(raw_message);
+
+            switch(com_code) {
+                case COMMAND_CODE_GET: {
+                    // extract the key
+                    std::string key_str;
+                    try {
+                        key_str = this -> extract_key_str_from_msg(raw_message);
                     }
+                    catch(const std::exception& e) {
+                        if(this -> verbose > 0) {
+                        std::cerr << e.what() << std::endl;
+                        }
 
-                    this -> send_error_response(client_socket);
-                    break;
-                }
-                // search for the value
-                bool found = false;
-                std::string value_str;
-                // REMOVE THIS TRY CATCH AFTER IT HAS BEEN FIGURED OUT!!!!
-                try {
-                    Entry entry = lsm_tree.get(key_str);
-                    if(entry.get_string_key_bytes() == ENTRY_PLACEHOLDER_KEY) {
-                        this -> send_not_found_response(client_socket);
+                        this -> send_error_response(client_socket);
                         break;
                     }
-                    else {
-                        this -> send_entries_response({entry}, client_socket);
+                    // search for the value
+                    bool found = false;
+                    std::string value_str;
+                    // REMOVE THIS TRY CATCH AFTER IT HAS BEEN FIGURED OUT!!!!
+                    try {
+                        Entry entry = lsm_tree.get(key_str);
+                        if(entry.is_deleted() || entry.get_string_key_bytes() == ENTRY_PLACEHOLDER_KEY) {
+                            this -> send_not_found_response(client_socket);
+                            break;
+                        }
+                        else {
+                            this -> send_entries_response({entry}, client_socket);
+                        }
                     }
+                    catch(const std::exception& e) {
+                        if(this -> verbose > 0) {
+                            std::cerr << e.what() << std::endl;
+                        }
+
+                        this -> send_error_response(client_socket);
+                        break;
+                    }
+
+                    break;
                 }
-                catch(const std::exception& e) {
-                    if(this -> verbose > 0) {
+                case COMMAND_CODE_SET: {
+                    // extract the key
+                    std::string key_str;
+                    try {
+                        key_str = this -> extract_key_str_from_msg(raw_message);
+                    }
+                    catch(const std::exception& e) {
+                        if(this -> verbose > 0) {
                         std::cerr << e.what() << std::endl;
+                        }
+
+                        this -> send_error_response(client_socket);
+                        break;
                     }
 
-                    this -> send_error_response(client_socket);
+                    // extract the data
+                    std::string value_str;
+                    try {
+                        value_str = this -> extract_value(raw_message);
+                    }
+                    catch (const std::exception& e) {
+                        if(this -> verbose > 0) {
+                            std::cerr << e.what() << e.what();
+                        }
+
+                        this -> send_error_response(client_socket);
+                        break;
+                    }
+
+                    // insert the key value pair into the inner lsm tree
+                    if(this -> lsm_tree.set(key_str, value_str)) {
+                        this -> send_ok_response(client_socket);
+                    }
+                    else {
+                        this -> send_error_response(client_socket);
+                    }
+
                     break;
                 }
 
-                break;
-            }
-            case COMMAND_CODE_SET: {
-                // extract the key
-                std::string key_str;
-                try {
-                    key_str = this -> extract_key_str_from_msg(raw_message);
-                }
-                catch(const std::exception& e) {
-                    if(this -> verbose > 0) {
-                       std::cerr << e.what() << std::endl; 
-                    }
+                case COMMAND_CODE_GET_KEYS: {
 
-                    this -> send_error_response(client_socket);
                     break;
                 }
 
-                // extract the data
-                std::string value_str;
-                try {
-                    value_str = this -> extract_value(raw_message);
-                }
-                catch (const std::exception& e) {
-                    if(this -> verbose > 0) {
-                        std::cerr << e.what() << e.what();
-                    }
+                case COMMAND_CODE_GET_KEYS_PREFIX: {
 
-                    this -> send_error_response(client_socket);
                     break;
                 }
 
-                // insert the key value pair into the inner lsm tree
-                if(this -> lsm_tree.set(key_str, value_str)) {
-                    this -> send_ok_response(client_socket);
-                }
-                else {
-                    this -> send_error_response(client_socket);
+                case COMMAND_CODE_GET_FF: {
+
+                    break;
                 }
 
-                break;
+                case COMMAND_CODE_GET_FB: {
+
+                    break;
+                }
+
+                case COMMAND_CODE_REMOVE: {
+                    std::string key_str;
+                    try {
+                        key_str = this -> extract_key_str_from_msg(raw_message);
+                    }
+                    catch (const std::exception& e) {
+                        if(this -> verbose > 0) {
+                            std::cerr << e.what() << std::endl;
+                        }
+                        this -> send_error_response(client_socket);
+                        break;
+                    }
+
+                    if(lsm_tree.remove(key_str)) {
+                        this -> send_ok_response(client_socket);
+                    }
+                    else {
+                        this -> send_error_response(client_socket);
+                    }
+
+                    break;
+                }
+
+                default: {
+
+                }
             }
-            
-            case COMMAND_CODE_GET_KEYS: {
-                
-                break;
-            }
-            
-            case COMMAND_CODE_GET_KEYS_PREFIX: {
 
-                break;
-            }
-
-            case COMMAND_CODE_GET_FF: {
-                
-                break;
-            }
-
-            case COMMAND_CODE_GET_FB: {
-
-                break;
-            }
-
-            case COMMAND_CODE_REMOVE: {
-
-                break;
-            }
-
-            default: {
-
-            }
+            // close(client_socket);
         }
-
-        close(client_socket);
     }
 
     return 0;
 }
 
-int8_t Partition_Server::send_error_response(socket_t socket) const {
-    return this -> send_status_response(COMMAND_CODE_ERR, socket);
-}
 
 std::string Partition_Server::extract_value(const std::string& raw_message) const {
     // read the key length
@@ -195,47 +212,7 @@ std::string Partition_Server::extract_value(const std::string& raw_message) cons
     return value_str;
 }
 
-int8_t Partition_Server::send_ok_response(socket_t socket) const {
-    return this -> send_status_response(COMMAND_CODE_OK, socket);
-}
 
-int8_t Partition_Server::send_status_response(Command_Code status, socket_t socket) const {
-    if(status != COMMAND_CODE_ERR && status != COMMAND_CODE_OK && status != COMMAND_CODE_DATA_NOT_FOUND) {
-        return -1;
-    }
-    
-    if(socket < 0) {
-        return -1;
-    }
-
-    protocol_message_len_type message_length;
-    protocol_array_len_type arr_len = 0;
-    command_code_type com_code = command_hton(status);
-    message_length = sizeof(message_length) + sizeof(arr_len) + sizeof(com_code);
-    std::string message(message_length, '\0');
-
-    protocol_message_len_type network_msg_len = protocol_msg_len_hton(message_length);
-
-    size_t curr_pos = 0;
-    memcpy(&message[0], &network_msg_len, sizeof(network_msg_len));
-    curr_pos += sizeof(network_msg_len);
-    memcpy(&message[curr_pos], &arr_len, sizeof(arr_len));
-    curr_pos += sizeof(arr_len);
-    memcpy(&message[curr_pos], &com_code, sizeof(com_code));
-
-    try {
-        this -> send_message(socket, message); 
-    }
-    catch(const std::exception& e) {
-        if(this -> verbose > 0) {
-            std::cerr << e.what() << std::endl;
-        }
-
-        return -1;
-    }
-
-    return 0;
-}
 
 int8_t Partition_Server::send_not_found_response(socket_t socket) const {
     return this -> send_status_response(COMMAND_CODE_DATA_NOT_FOUND, socket);
