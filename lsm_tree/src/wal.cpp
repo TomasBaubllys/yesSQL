@@ -65,10 +65,10 @@ bool Wal::get_is_read_only(){
 void Wal::append_entry(std::ostringstream& entry){
     std::ofstream wal_file(wal_file_location, std::ios::binary | std::ios::app);
     
-    if (!wal_file.is_open()) {
-        std::cerr << "Failed to open WAL file: " << wal_file_location << std::endl;
-        return;
-    }
+    //if (!wal_file.is_open()) {
+      //  std::cerr << "Failed to open WAL file: " << wal_file_location << std::endl;
+        //return;
+    //}
     
     if (entry.tellp() == 0) {
         std::cerr << "Entry stream is empty" << std::endl;

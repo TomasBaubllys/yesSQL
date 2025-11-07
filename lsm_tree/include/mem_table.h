@@ -5,6 +5,7 @@
 #include "entry.h"
 #include "wal.h"
 #include <filesystem>
+#include <cstring>
 
 #define MEM_TABLE_BYTES_MAX_SIZE 1000000 // 1mb, (rocksDB uses 64mb)
 
@@ -36,8 +37,6 @@ class Mem_Table{
 
         // returns true if entry was removed correctly
         bool remove_entry(Entry& entry);
-
-        bool reconstruct_from_Wal();
 
         // returns an Entry with parameter key
         Entry find(Bits key, bool& found);

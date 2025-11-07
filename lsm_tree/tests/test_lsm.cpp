@@ -534,9 +534,11 @@ int main() {
     
 
     // Run tests with guaranteed non-overlapping keys
-    /*assert(test_mem_table(entriesA, lsm_tree));
+    assert(test_mem_table(entriesA, lsm_tree));
+    int temp;
+    std::cin >> temp;
     assert(test_mem_table(entriesB, lsm_tree));
-    assert(test_mem_table(entriesC, lsm_tree));
+    /*assert(test_mem_table(entriesC, lsm_tree));
     assert(test_mem_table(entriesD, lsm_tree));
     assert(test_mem_table(entriesE, lsm_tree));
     assert(test_mem_table(entriesF, lsm_tree));
@@ -550,7 +552,7 @@ int main() {
 
     cout << "Verifying that all inserted entries can be retrieved..." << endl;
    // vector<vector<Entry>*> all = {&entriesA, &entriesB, &entriesC, &entriesD, &entriesE,
-    //                              &entriesF, &entriesG, &entriesH, &entriesI, &entriesJ};
+      //                            &entriesF, &entriesG, &entriesH, &entriesI, &entriesJ};
 
     vector<vector<Entry>*> all = {&entriesA, &entriesB};
 

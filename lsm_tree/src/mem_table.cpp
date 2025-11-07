@@ -127,10 +127,6 @@ bool Mem_Table::remove_entry(Entry& entry){
     
 };
 
-bool Mem_Table::reconstruct_from_Wal(){
-
-};
-
 Entry Mem_Table::find(Bits key, bool& found){
     Entry found_entry = avl_tree.search(key, found);
 
