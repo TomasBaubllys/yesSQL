@@ -678,7 +678,7 @@ uint64_t SS_Table::binary_search_nearest(std::ifstream& index_ifstream, std::ifs
     return binary_search_left;
 }
 
-std::pair<std::vector<Entry>, std::string> SS_Table::get_all_entries(SS_Table_Entry_Filter key_filter, uint32_t count) const {
+std::pair<std::vector<Entry>, Bits> SS_Table::get_all_entries(SS_Table_Entry_Filter key_filter, uint32_t count) const {
     std::vector<Entry> entries;
     
     entries.reserve(count);
@@ -746,8 +746,8 @@ std::pair<std::vector<Entry>, std::string> SS_Table::get_all_entries(SS_Table_En
             entries.emplace_back(current_entry);
         }
         else if(entries.size() == count) {
-            std::string next_key_str = current_key;
-            return std::make_pair(entries, next_key_str);
+            Bits next_key(current_key);
+            return std::make_pair(entries, next_key);
         }
         else {
             entries.emplace_back(current_entry);
@@ -758,15 +758,15 @@ std::pair<std::vector<Entry>, std::string> SS_Table::get_all_entries(SS_Table_En
         throw std::runtime_error(SS_TABLE_PARTIAL_READ_ERR_MSG);
     }
 
-    std::string next_key_str = ENTRY_PLACEHOLDER_KEY;
-    return std::make_pair(entries, next_key_str);
+    Bits next_key(ENTRY_PLACEHOLDER_KEY);
+    return std::make_pair(entries, next_key);
 }
 
-std::pair<std::vector<Entry>, std::string> SS_Table::get_entries_key_smaller_or_equal(const Bits& target_key, SS_Table_Entry_Filter key_filter, uint32_t count) const {
+std::pair<std::vector<Entry>, Bits> SS_Table::get_entries_key_smaller_or_equal(const Bits& target_key, SS_Table_Entry_Filter key_filter, uint32_t count) const {
     std::vector<Entry> entries;
     if(target_key < this -> first_index) {
-        std::string next_key_str = ENTRY_PLACEHOLDER_KEY;
-        return std::make_pair(entries, next_key_str);
+        Bits next_key(ENTRY_PLACEHOLDER_KEY);
+        return std::make_pair(entries, next_key);
     }
 
     if(this -> last_index <= target_key) {
@@ -868,21 +868,21 @@ std::pair<std::vector<Entry>, std::string> SS_Table::get_entries_key_smaller_or_
     }
 
     if(entries.size() <= count) {
-        std::string next_key_str = ENTRY_PLACEHOLDER_KEY;
+        Bits next_key_str(ENTRY_PLACEHOLDER_KEY);
         return std::make_pair(entries, next_key_str);
     }
 
     std::vector<Entry> entries_partial(entries.end() - count, entries.end());
-    std::string next_key_str(entries.at(entries.size() - count).get_key_string());
+    Bits next_key(entries.at(entries.size() - count).get_key_string());
 
-    return std::make_pair(entries_partial, next_key_str);
+    return std::make_pair(entries_partial, next_key);
 }
 
-std::pair<std::vector<Entry>, std::string> SS_Table::get_entries_key_larger_or_equal(const Bits& target_key, SS_Table_Entry_Filter entry_filter, uint32_t count) const {
+std::pair<std::vector<Entry>, Bits> SS_Table::get_entries_key_larger_or_equal(const Bits& target_key, SS_Table_Entry_Filter entry_filter, uint32_t count) const {
     std::vector<Entry> entries;
     if(target_key > this -> last_index) {
-        std::string next_key_str = ENTRY_PLACEHOLDER_KEY;
-        return std::make_pair(entries, next_key_str);
+        Bits next_key(ENTRY_PLACEHOLDER_KEY);
+        return std::make_pair(entries, next_key);
     }
 
     if(target_key <= this -> first_index) {
@@ -968,40 +968,40 @@ std::pair<std::vector<Entry>, std::string> SS_Table::get_entries_key_larger_or_e
             entries.emplace_back(current_entry);
         }
         else if (entries.size() == count) {
-            std::string next_key_str = current_key;
-            return std::make_pair(entries, next_key_str);
+            Bits next_key(current_key);
+            return std::make_pair(entries, next_key);
         }
         else {
             entries.emplace_back(current_entry);
         }
     }
 
-    std::string next_key_str = ENTRY_PLACEHOLDER_KEY;
+    Bits next_key(ENTRY_PLACEHOLDER_KEY);
 
-    return std::make_pair(entries, next_key_str);
+    return std::make_pair(entries, next_key);
 }
 
-std::pair<std::vector<Entry>, std::string> SS_Table::get_entries_key_smaller_or_equal(const Bits& target_key, uint32_t count) const {
+std::pair<std::vector<Entry>, Bits> SS_Table::get_entries_key_smaller_or_equal(const Bits& target_key, uint32_t count) const {
     return this -> get_entries_key_smaller_or_equal(target_key, SS_TABLE_FILTER_ALL_ENTRIES, count);
 }
 
-std::pair<std::vector<Entry>, std::string> SS_Table::get_entries_key_larger_or_equal(const Bits& target_key, uint32_t count) const {
+std::pair<std::vector<Entry>, Bits> SS_Table::get_entries_key_larger_or_equal(const Bits& target_key, uint32_t count) const {
     return this -> get_entries_key_larger_or_equal(target_key, SS_TABLE_FILTER_ALL_ENTRIES, count);
 }
 
-std::pair<std::vector<Entry>, std::string> SS_Table::get_entries_key_smaller_or_equal_alive(const Bits& target_key, uint32_t count) const {
+std::pair<std::vector<Entry>, Bits> SS_Table::get_entries_key_smaller_or_equal_alive(const Bits& target_key, uint32_t count) const {
        return this -> get_entries_key_smaller_or_equal(target_key, SS_TABLE_FILTER_ALIVE_ENTRIES, count);
 }
 
-std::pair<std::vector<Entry>, std::string> SS_Table::get_entries_key_larger_or_equal_alive(const Bits& target_key, uint32_t count) const {
+std::pair<std::vector<Entry>, Bits> SS_Table::get_entries_key_larger_or_equal_alive(const Bits& target_key, uint32_t count) const {
     return this -> get_entries_key_larger_or_equal(target_key, SS_TABLE_FILTER_ALIVE_ENTRIES);
 }
 
-std::pair<std::vector<Entry>, std::string> SS_Table::get_all_entries_alive(uint32_t count) const {
+std::pair<std::vector<Entry>, Bits> SS_Table::get_all_entries_alive(uint32_t count) const {
     return this -> get_all_entries(SS_TABLE_FILTER_ALIVE_ENTRIES, count);
 }
 
-std::pair<std::vector<Entry>, std::string> SS_Table::get_all_entries(uint32_t count) const {
+std::pair<std::vector<Entry>, Bits> SS_Table::get_all_entries(uint32_t count) const {
     return this -> get_all_entries(SS_TABLE_FILTER_ALL_ENTRIES, count);
 }
 
@@ -1109,3 +1109,14 @@ void SS_Table::reconstruct_ss_table(){
 
 
 }
+
+
+std::pair<std::vector<Bits>, Bits> SS_Table::get_n_keys_larger_than_alive(const Bits& target_key, uint32_t count) const {
+
+}
+
+std::pair<std::vector<Bits>, Bits> SS_Table::get_n_keys_larger_than(const Bits& target_key, uint32_t count) const {
+
+}
+
+std::pair<std::vector<Bits>, Bits> get_n_next_keys(const Bits& target_key, SS_Table_Entry_Filter entry_filter) const;
