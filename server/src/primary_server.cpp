@@ -267,10 +267,10 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket, std::string
 
 std::string Primary_Server::query_partition(Partition_Entry& partition, const std::string &raw_message) {
     if(!ensure_partition_connection(partition)) {
-        throw std::runtime_error("lalalalalallaalalla");
+        throw std::runtime_error(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
     }
 
-    uint64_t bytes_sent = this -> send_message(partition.socket_fd, raw_message);
+    int64_t bytes_sent = this -> send_message(partition.socket_fd, raw_message);
     if(bytes_sent == 0) {
         std::string fail_str(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
         fail_str += partition.name;
@@ -282,6 +282,9 @@ std::string Primary_Server::query_partition(Partition_Entry& partition, const st
     std::string response;
     try {
         response = this -> read_message(partition.socket_fd);
+        if(response.size() == 0) {
+            throw std::runtime_error(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
+        }
     }
     catch(...) {
         close(partition.socket_fd);
@@ -298,7 +301,7 @@ bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
     }
 
     // after reconection partition socket stays the same
-    std::cout << int(partition.status) << " " << partition.socket_fd << " " << this -> sockets_map[partition.socket_fd] << std::endl; 
+    // std::cout << int(partition.status) << " " << partition.socket_fd << " " << this -> sockets_map[partition.socket_fd] << std::endl; 
 
     // else try to reconnect
     bool success = false;

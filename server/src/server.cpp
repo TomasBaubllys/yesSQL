@@ -139,8 +139,8 @@ int64_t Server::send_message(socket_t socket, const std::string& message) const 
         throw std::runtime_error(SERVER_INVALID_SOCKET_ERR_MSG);
     }
 
-    size_t total_sent = 0;
-    ssize_t sent_bytes;
+    ssize_t total_sent = 0;
+    ssize_t sent_bytes = 0;
 
     while (total_sent < message.size()) {
         sent_bytes = send(socket, message.data() + total_sent, message.size() - total_sent, 0);
@@ -155,7 +155,7 @@ int64_t Server::send_message(socket_t socket, const std::string& message) const 
         }
 
         if (sent_bytes == 0) {
-            break;
+            throw std::runtime_error("disconect");
         } 
 
         total_sent += sent_bytes;
