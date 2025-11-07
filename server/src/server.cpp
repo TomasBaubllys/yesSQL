@@ -155,7 +155,7 @@ int64_t Server::send_message(socket_t socket, const std::string& message) const 
         }
 
         if (sent_bytes == 0) {
-            throw std::runtime_error("disconect");
+            throw std::runtime_error(SERVER_SEND_0_BYTES_ERR_MSG);
         } 
 
         total_sent += sent_bytes;

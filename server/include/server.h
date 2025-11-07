@@ -33,6 +33,7 @@
 #define SERVER_FAILED_ACCEPT_ERR_MSG "Accept failed: "
 #define SERVER_FAILED_RECV_ERR_MSG "Recv failed: "
 #define SERVER_FAILED_SEND_ERR_MSG "Send failed: "
+#define SERVER_SEND_0_BYTES_ERR_MSG "0 bytes send socket likely closed\n"
 
 #define SERVER_MESSAGE_TOO_SHORT_ERR_MSG "The received message is too short to be valid\n"
 #define SERVER_INVALID_SOCKET_ERR_MSG "The socket provided is invalid\n"
