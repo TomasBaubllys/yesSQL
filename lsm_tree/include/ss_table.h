@@ -88,16 +88,15 @@ class SS_Table{
         // if ifstreams are not open, opens them
         uint64_t binary_search_nearest(std::ifstream& index_ifstream, std::ifstream& offset_ifstream, const Bits& target_key, SS_Table_Binary_Search_Type search_type) const;
 
-        std::vector<Bits> get_keys_larger_or_equal(const Bits& target_key, SS_Table_Entry_Filter key_filter) const;
-
         //THROWS
-        std::vector<Bits> get_keys_smaller_or_equal(const Bits& target_key, SS_Table_Entry_Filter key_filter) const;
+        // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
+        std::pair<std::vector<Entry>, std::string> get_entries_key_smaller_or_equal(const Bits& target_key, SS_Table_Entry_Filter key_filter, uint32_t count) const;
 
-        std::vector<Entry> get_entries_key_smaller_or_equal(const Bits& target_key, SS_Table_Entry_Filter key_filter) const;
-
-        std::vector<Entry> get_entries_key_larger_or_equal(const Bits& target_key, SS_Table_Entry_Filter key_filter) const;
-
-        std::vector<Entry> get_all_entries(SS_Table_Entry_Filter key_filter) const;
+        // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
+        std::pair<std::vector<Entry>, std::string> get_entries_key_larger_or_equal(const Bits& target_key, SS_Table_Entry_Filter key_filter, uint32_t count) const;
+        
+        // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
+        std::pair<std::vector<Entry>, std::string> get_all_entries(SS_Table_Entry_Filter key_filter, uint32_t count) const;
 
         std::vector<Bits> get_all_keys(SS_Table_Entry_Filter key_filter) const;
 
@@ -209,22 +208,28 @@ class SS_Table{
         std::vector<Bits> get_all_keys_alive() const;
 
         // THROWS
-        std::vector<Entry> get_entries_key_smaller_or_equal(const Bits& target_key) const;
+        // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
+        std::pair<std::vector<Entry>, std::string> get_entries_key_smaller_or_equal(const Bits& target_key, uint32_t count) const;
 
         // THROWS
-        std::vector<Entry> get_entries_key_larger_or_equal(const Bits& target_key) const;
+        // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
+        std::pair<std::vector<Entry>, std::string> get_entries_key_larger_or_equal(const Bits& target_key, uint32_t count) const;
 
         // THROWS
-        std::vector<Entry> get_entries_key_smaller_or_equal_alive(const Bits& target_key) const;
+        // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
+        std::pair<std::vector<Entry>, std::string> get_entries_key_smaller_or_equal_alive(const Bits& target_key, uint32_t count) const;
 
         // THROWS
-        std::vector<Entry> get_entries_key_larger_or_equal_alive(const Bits& target_key) const;
+        // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
+        std::pair<std::vector<Entry>, std::string> get_entries_key_larger_or_equal_alive(const Bits& target_key, uint32_t count) const;
 
         // THROWS
-        std::vector<Entry> get_all_entries_alive() const;
+        // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
+        std::pair<std::vector<Entry>, std::string> get_all_entries_alive(uint32_t count) const;
 
         // THROWS
-        std::vector<Entry> get_all_entries() const;
+        // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
+        std::pair<std::vector<Entry>, std::string> get_all_entries(uint32_t count) const;
 };
 
 
