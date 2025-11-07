@@ -100,7 +100,7 @@ class SS_Table{
 
         std::vector<Bits> get_all_keys(SS_Table_Entry_Filter key_filter) const;
 
-        std::pair<std::vector<Bits>, Bits> get_n_next_keys(const Bits& target_key, SS_Table_Entry_Filter entry_filter) const;
+        std::pair<std::vector<Bits>, Bits> get_n_next_keys(const Bits& target_key, SS_Table_Entry_Filter entry_filter, uint32_t count) const;
 
     public:
         std::filesystem::path data_path() const;
@@ -207,10 +207,10 @@ class SS_Table{
         // THROWS
         std::vector<Bits> get_all_keys_alive() const;
  
-        std::pair<std::vector<Bits>, Bits>get_n_keys_larger_than_alive(const Bits& target_key, uint32_t count) const;
+        std::pair<std::vector<Bits>, Bits>get_n_next_keys_alive(const Bits& target_key, uint32_t count) const;
 
         // used for testing
-        std::pair<std::vector<Bits>, Bits> get_n_keys_larger_than(const Bits& target_key, uint32_t count) const;
+        std::pair<std::vector<Bits>, Bits> get_n_next_keys(const Bits& target_key, uint32_t count) const;
 
         // THROWS
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
