@@ -47,9 +47,9 @@ using protocol_value_len_type = value_len_type;
  * <(uint64_t) number of elements in the message>
  * <(uint16_t) command number>
  *
- * [<(uint32_t) key lenght> (if command contains the key, key must be limited to the length of uint16_t, however protocol is made to handle extensions)
+ * [<(uint16_t) key lenght> (if command contains the key, key must be limited to the length of uint16_t, however protocol is made to handle extensions)
  * <string key>]
- * [<(uint64_t) value length>
+ * [<(uint32_t) value length>
  * <value string>]
  *
  *
