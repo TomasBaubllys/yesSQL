@@ -11,7 +11,7 @@ def handle_ok(raw_data: bytes) -> dict:
     total_length, num_elements = struct.unpack_from("!QQ", raw_data, offset)
     offset += COMMAND_LENGTH_TOTAL_MESSAGE + COMMAND_LENGTH_NUM_ELEMENTS
 
-    command_number = struct.unpack("!H", raw_data, offset)[0]
+    command_number = struct.unpack_from("!H", raw_data, offset)[0]
     offset += COMMAND_LENGTH_COMMAND_MESSAGE
 
     data_dict = {}
@@ -39,7 +39,7 @@ def handle_ok(raw_data: bytes) -> dict:
 def handle_err(raw_data: bytes) -> dict:
     #skip total length, num elemends, command number
     offset = COMMAND_LENGTH_TOTAL_MESSAGE + COMMAND_LENGTH_NUM_ELEMENTS + COMMAND_LENGTH_COMMAND_MESSAGE
-    error_len = struct.unpack_from("!H", raw_data, offset)
+    error_len = struct.unpack_from("!H", raw_data, offset)[0]
     offset += COMMAND_LENGTH_KEY_LENGTH
     error_bytes = raw_data[offset:offset+error_len]
     error_msg = error_bytes.decode("utf-8")

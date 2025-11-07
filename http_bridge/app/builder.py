@@ -1,6 +1,5 @@
 import struct
 import constants as cnt
-#from constants import COMMAND_CODE_GET, COMMAND_CODE_SET, COMMAND_LENGTH_COMMAND_MESSAGE, COMMAND_LENGTH_KEY_LENGTH, COMMAND_LENGTH_TOTAL_MESSAGE, COMMAND_LENGTH_VALUE_LENGTH, COMMAND_LENGTH_NUM_ELEMENTS
 
 def build_get_request(key: str) -> bytes:
     key_bytes = key.encode("utf-8")
@@ -31,7 +30,7 @@ def build_set_request(key: str, value: str) -> bytes:
 
     return header + body
 
-def builder_get_keys_request() -> bytes:
+def build_get_keys_request() -> bytes:
     body = struct.pack("!H", cnt. COMMAND_CODE_GET_KEYS)
 
     num_elements = 0
@@ -41,7 +40,7 @@ def builder_get_keys_request() -> bytes:
 
     return header + body
 
-def builder_get_keys_prefix(prefix: str) -> bytes:
+def build_get_keys_prefix(prefix: str) -> bytes:
     prefix_bytes = prefix.encode("utf-8")
     body = struct.pack("!H", cnt. COMMAND_CODE_GET_KEYS_PREFIX)
     body += struct.pack("!H", len(prefix_bytes)) + prefix_bytes
@@ -52,7 +51,7 @@ def builder_get_keys_prefix(prefix: str) -> bytes:
 
     return header + body
 
-def builder_get_ff(start_key: str = "") -> bytes:
+def build_get_ff(start_key: str = "") -> bytes:
     start_key_bytes = start_key.encode("utf-8")
     body = struct.pack("!H", cnt. COMMAND_CODE_GET_FF)
     body += struct.pack("!H", len(start_key)) + start_key_bytes
@@ -63,7 +62,7 @@ def builder_get_ff(start_key: str = "") -> bytes:
 
     return header + body
 
-def builder_get_Fb(start_key: str = "") -> bytes:
+def build_get_Fb(start_key: str = "") -> bytes:
     start_key_bytes = start_key.encode("utf-8")
     body = struct.pack("!H", cnt. COMMAND_CODE_GET_FB)
     body += struct.pack("!H", len(start_key)) + start_key_bytes
