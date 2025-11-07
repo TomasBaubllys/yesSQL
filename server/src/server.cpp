@@ -2,7 +2,7 @@
 #include <cerrno>
 #include <fcntl.h>
 
-Server::Server(uint16_t port, uint8_t verbose) : port(port), verbose(verbose) {
+Server::Server(uint16_t port, uint8_t verbose) : port(port), verbose(verbose), epoll_events(SERVER_DEFAULT_EPOLL_EVENT_VAL), thread_pool(SERVER_DEFAULT_THREAD_POOL_VAL) {
 	// create a server_fd AF_INET - ipv4, SOCKET_STREAM - TCP
 	this -> server_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(this -> server_fd < 0) {
@@ -29,6 +29,10 @@ Server::Server(uint16_t port, uint8_t verbose) : port(port), verbose(verbose) {
 		bind_failed_str += std::to_string(errno);
     	throw std::runtime_error(SERVER_BIND_FAILED_ERR_MSG);
   }
+}
+
+Server::~Server() {
+    close(this -> epoll_fd);
 }
 
 int8_t Server::start() {
@@ -298,4 +302,72 @@ int8_t Server::send_status_response(Command_Code status, socket_t socket) const 
     }
 
     return 0;
+}
+
+file_desc_t Server::init_epoll() {
+    this -> epoll_fd = epoll_create1(0);
+    return this -> epoll_fd;
+}
+
+socket_t Server::add_client_socket_to_epoll() {
+    sockaddr_in client_addr{};
+    socklen_t len = sizeof(client_addr);
+    socket_t client_fd = accept(server_fd, (sockaddr*)&client_addr, &len);
+    if(client_fd < 0) {
+        return -1;
+    }
+
+    epoll_event ep_ev{};
+    this -> make_non_blocking(client_fd);
+    
+    ep_ev.events = EPOLLIN | EPOLLET;
+    ep_ev.data.fd = client_fd;
+    epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, client_fd, &ep_ev);
+
+    return client_fd;
+}
+
+int32_t Server::server_epoll_wait() {
+    return epoll_wait(this -> epoll_fd, this -> epoll_events.data(), this -> epoll_events.size(), -1);
+}
+
+int32_t Server::add_this_to_epoll() {
+    this -> make_non_blocking(this -> server_fd);
+    epoll_event ep_ev{};
+    ep_ev.events = EPOLLIN;
+    ep_ev.data.fd = this -> server_fd;
+    return epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, this -> server_fd, &ep_ev);
+}
+
+void Server::request_to_remove_fd(socket_t socket) {
+    std::lock_guard<std::mutex> lock(this -> remove_mutex);
+    this -> remove_queue.push_back(socket);
+}
+        
+void Server::process_remove_queue() {
+    std::lock_guard<std::mutex> lock(this -> remove_mutex);
+    for(socket_t& sock : remove_queue) {
+        epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, sock, nullptr);
+        close(sock);
+    }
+    remove_queue.clear();
+}
+
+void Server::handle_client(socket_t socket_fd, const std::string& message) {
+    try{
+        if(this -> process_request(socket_fd, message) < 0) {
+            this -> request_to_remove_fd(socket_fd);
+        }
+    }   
+    catch(const std::exception& e) {
+        if(this -> verbose > 0) {
+            std::cerr << e.what() << std::endl;
+        }
+
+        this -> request_to_remove_fd(socket_fd);
+    }
+}
+
+int8_t Server::process_request(socket_t socket_fd, const std::string& message) {
+    
 }

@@ -24,7 +24,7 @@ class Partition_Server : public Server {
     public:
         Partition_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
 
-        int8_t send_not_found_response(socket_t socket) const;
+        int8_t send_not_found_response(socket_t socket_fd) const;
 
         int8_t send_entries_response(const std::vector<Entry>& entry_array, socket_t socket) const;
 
@@ -32,6 +32,10 @@ class Partition_Server : public Server {
         std::string extract_value(const std::string& raw_message) const;
 
         int8_t start() override;
+
+        // handles the client, passes it to 
+        int8_t process_request(socket_t socket_fd, const std::string& message) override;
+
 };
 
 #endif // YSQL_PARTITION_SERVER_H_INCLUDED

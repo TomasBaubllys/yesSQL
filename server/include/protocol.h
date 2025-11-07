@@ -12,6 +12,8 @@ using socket_t =
     int;
 #endif
 
+using file_desc_t = int;
+
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     #define htonll(x) __builtin_bswap64(x)
     #define ntohll(x) __builtin_bswap64(x)
