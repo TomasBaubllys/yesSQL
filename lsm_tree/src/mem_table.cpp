@@ -6,6 +6,60 @@ Mem_Table::Mem_Table(){
     total_mem_table_size = 0;
 };
 
+Mem_Table::Mem_Table(Wal& wal){
+    avl_tree = AVL_Tree();
+    entry_array_length = 0;
+    total_mem_table_size = 0;
+
+    std::string wal_path = wal.get_wal_file_location();
+    std::ifstream input(wal_path, std::ios::binary);
+    
+    if (!input.is_open()) {
+        throw std::runtime_error("Failed to open WAL file: " + wal_path);
+    }
+
+    uint64_t entry_length = 0;
+    
+    while (input.read(reinterpret_cast<char*>(&entry_length), sizeof(entry_length))) {
+        
+        if (entry_length <= sizeof(entry_length)) {
+            throw std::runtime_error("Invalid entry length in WAL file.");
+        }
+
+        std::string full_entry_bytes(entry_length, '\0');
+        
+        memcpy(full_entry_bytes.data(), &entry_length, sizeof(entry_length));
+        
+        if (!input.read(full_entry_bytes.data() + sizeof(entry_length), 
+                       entry_length - sizeof(entry_length))) {
+            throw std::runtime_error("Unexpected EOF while reading entry data.");
+        }
+
+        std::stringstream entry_stream(full_entry_bytes);
+
+        try {
+            Entry entry(entry_stream);
+
+            bool entry_key_exists = false;
+            Bits entry_key = entry.get_key();
+            Entry found_entry = avl_tree.search(entry_key, entry_key_exists);
+
+            if(entry_key_exists){
+                total_mem_table_size -= found_entry.get_entry_length();
+                total_mem_table_size += entry.get_entry_length();
+            }else{
+                entry_array_length++;
+                total_mem_table_size+=entry.get_entry_length();
+            }
+
+            avl_tree.insert(entry);
+
+        } catch (const std::exception& e) {
+            throw std::runtime_error(std::string("Error reading WAL entry: ") + e.what());
+        }
+    }
+}
+
 Mem_Table::~Mem_Table(){
     //destroy AVL
 };
@@ -20,9 +74,19 @@ uint64_t Mem_Table::get_total_mem_table_size(){
 
 bool Mem_Table::insert_entry(Entry entry){
     try{
+        bool entry_key_exists = false;
+        Bits entry_key = entry.get_key();
+        Entry found_entry = avl_tree.search(entry_key, entry_key_exists);
+
+        if(entry_key_exists){
+            total_mem_table_size -= found_entry.get_entry_length();
+            total_mem_table_size += entry.get_entry_length();
+        }else{
+            entry_array_length++;
+            total_mem_table_size+=entry.get_entry_length();
+        }
+
         avl_tree.insert(entry);
-        entry_array_length++;
-        total_mem_table_size += entry.get_entry_length();
         return true;
     }
     catch(const std::exception& e){
@@ -61,6 +125,10 @@ bool Mem_Table::remove_entry(Entry& entry){
         return false;
     }
     
+};
+
+bool Mem_Table::reconstruct_from_Wal(){
+
 };
 
 Entry Mem_Table::find(Bits key, bool& found){

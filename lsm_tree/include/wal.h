@@ -7,7 +7,7 @@
 #include <vector>
 #include <sstream>
 
-#define DEFAULT_WAL_FOLDER_LOCATION "../data/wal/"
+#define DEFAULT_WAL_FOLDER_LOCATION "/data/wal/"
 
 class Wal{
     private:
@@ -45,7 +45,7 @@ class Wal{
 		bool get_is_read_only();
 		//@brief appends an entry to the wal file
 		//@note opens file in binary append mode and writes ostringstream buffer
-		void append_entry(std::ostringstream entry);
+		void append_entry(std::ostringstream& entry);
 		//@brief removes all entries from the wal file
 		void clear_entries();
 		// -------------------------------------
