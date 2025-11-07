@@ -222,7 +222,7 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket, std::string
             Partition_Entry partition_entry = this -> get_partition_for_key(key_str);
             std::string partition_response;
             try {
-                std::string partition_response = this -> query_partition(partition_entry, client_message);
+                partition_response = this -> query_partition(partition_entry, client_message);
             }
             catch(const std::exception& e) {
                 this -> send_error_response(client_socket);
@@ -230,7 +230,9 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket, std::string
             }
 
             try{
-                std::cout << this -> send_message(client_socket, partition_response) << std::endl;
+                //int flags = fcntl(client_socket, F_GETFL, 0);
+                // fcntl(client_socket, F_SETFL, flags & ~O_NONBLOCK);
+                this -> send_message(client_socket, partition_response);
             }
             catch(const std::exception& e) {
                 if(this -> verbose > 0) {
@@ -263,7 +265,7 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket, std::string
 
 std::string Primary_Server::query_partition(Partition_Entry& partition, const std::string &raw_message) {
     if(!ensure_partition_connection(partition)) {
-        throw std::runtime_error(" ");
+        throw std::runtime_error("lalalalalallaalalla");
     }
 
     uint64_t bytes_sent = this -> send_message(partition.socket_fd, raw_message);

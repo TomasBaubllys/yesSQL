@@ -16,12 +16,12 @@ int8_t Partition_Server::start() {
         throw std::runtime_error(listen_failed_str);
     }
 
-    // std::cout << "Partition server listening on port " << port << "..." << std::endl;
-
     while (true) {
         std::cout << "Waiting for connection..." << std::endl;
-
+        // std::cout << "Partition server listening on port " << port << "..." << std::endl;
         client_socket = accept(this -> server_fd, (struct sockaddr*)&client_addr, &client_len);
+
+
         if (client_socket < 0) {
             if(this -> verbose > 0) {
                 std::cerr << SERVER_FAILED_ACCEPT_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
@@ -29,150 +29,153 @@ int8_t Partition_Server::start() {
             continue; // skip this client
         }
 
-        std::string raw_message;
-        try {
-            raw_message = this -> read_message(client_socket);
-        }
-        catch (const std::exception& e) {
-            if(this -> verbose > 0) {
-                std::cerr << e.what() << std::endl;
+        while(true) {
+            std::string raw_message;
+            try {
+                raw_message = this -> read_message(client_socket);
             }
-            // skip this client
-            close(client_socket);
-            continue;
-        }
-        // extract the command code
-        Command_Code com_code = this -> extract_command_code(raw_message);
-
-        switch(com_code) {
-            case COMMAND_CODE_GET: {
-                // extract the key
-                std::string key_str;
-                try {
-                    key_str = this -> extract_key_str_from_msg(raw_message);
+            catch (const std::exception& e) {
+                if(this -> verbose > 0) {
+                    std::cerr << e.what() << std::endl;
                 }
-                catch(const std::exception& e) {
-                    if(this -> verbose > 0) {
-                       std::cerr << e.what() << std::endl; 
+                // skip this client
+                // if read message fails, because the server disconnected try to reconect
+                close(client_socket);
+                break;
+            }
+            // extract the command code
+            Command_Code com_code = this -> extract_command_code(raw_message);
+
+            switch(com_code) {
+                case COMMAND_CODE_GET: {
+                    // extract the key
+                    std::string key_str;
+                    try {
+                        key_str = this -> extract_key_str_from_msg(raw_message);
                     }
+                    catch(const std::exception& e) {
+                        if(this -> verbose > 0) {
+                        std::cerr << e.what() << std::endl;
+                        }
 
-                    this -> send_error_response(client_socket);
-                    break;
-                }
-                // search for the value
-                bool found = false;
-                std::string value_str;
-                // REMOVE THIS TRY CATCH AFTER IT HAS BEEN FIGURED OUT!!!!
-                try {
-                    Entry entry = lsm_tree.get(key_str);
-                    if(entry.is_deleted() || entry.get_string_key_bytes() == ENTRY_PLACEHOLDER_KEY) {
-                        this -> send_not_found_response(client_socket);
+                        this -> send_error_response(client_socket);
                         break;
                     }
+                    // search for the value
+                    bool found = false;
+                    std::string value_str;
+                    // REMOVE THIS TRY CATCH AFTER IT HAS BEEN FIGURED OUT!!!!
+                    try {
+                        Entry entry = lsm_tree.get(key_str);
+                        if(entry.is_deleted() || entry.get_string_key_bytes() == ENTRY_PLACEHOLDER_KEY) {
+                            this -> send_not_found_response(client_socket);
+                            break;
+                        }
+                        else {
+                            this -> send_entries_response({entry}, client_socket);
+                        }
+                    }
+                    catch(const std::exception& e) {
+                        if(this -> verbose > 0) {
+                            std::cerr << e.what() << std::endl;
+                        }
+
+                        this -> send_error_response(client_socket);
+                        break;
+                    }
+
+                    break;
+                }
+                case COMMAND_CODE_SET: {
+                    // extract the key
+                    std::string key_str;
+                    try {
+                        key_str = this -> extract_key_str_from_msg(raw_message);
+                    }
+                    catch(const std::exception& e) {
+                        if(this -> verbose > 0) {
+                        std::cerr << e.what() << std::endl;
+                        }
+
+                        this -> send_error_response(client_socket);
+                        break;
+                    }
+
+                    // extract the data
+                    std::string value_str;
+                    try {
+                        value_str = this -> extract_value(raw_message);
+                    }
+                    catch (const std::exception& e) {
+                        if(this -> verbose > 0) {
+                            std::cerr << e.what() << e.what();
+                        }
+
+                        this -> send_error_response(client_socket);
+                        break;
+                    }
+
+                    // insert the key value pair into the inner lsm tree
+                    if(this -> lsm_tree.set(key_str, value_str)) {
+                        this -> send_ok_response(client_socket);
+                    }
                     else {
-                        this -> send_entries_response({entry}, client_socket);
-                    }
-                }
-                catch(const std::exception& e) {
-                    if(this -> verbose > 0) {
-                        std::cerr << e.what() << std::endl;
+                        this -> send_error_response(client_socket);
                     }
 
-                    this -> send_error_response(client_socket);
                     break;
                 }
 
-                break;
-            }
-            case COMMAND_CODE_SET: {
-                // extract the key
-                std::string key_str;
-                try {
-                    key_str = this -> extract_key_str_from_msg(raw_message);
-                }
-                catch(const std::exception& e) {
-                    if(this -> verbose > 0) {
-                       std::cerr << e.what() << std::endl; 
-                    }
+                case COMMAND_CODE_GET_KEYS: {
 
-                    this -> send_error_response(client_socket);
                     break;
                 }
 
-                // extract the data
-                std::string value_str;
-                try {
-                    value_str = this -> extract_value(raw_message);
-                }
-                catch (const std::exception& e) {
-                    if(this -> verbose > 0) {
-                        std::cerr << e.what() << e.what();
-                    }
+                case COMMAND_CODE_GET_KEYS_PREFIX: {
 
-                    this -> send_error_response(client_socket);
                     break;
                 }
 
-                // insert the key value pair into the inner lsm tree
-                if(this -> lsm_tree.set(key_str, value_str)) {
-                    this -> send_ok_response(client_socket);
-                }
-                else {
-                    this -> send_error_response(client_socket);
-                }
+                case COMMAND_CODE_GET_FF: {
 
-                break;
-            }
-            
-            case COMMAND_CODE_GET_KEYS: {
-                
-                break;
-            }
-            
-            case COMMAND_CODE_GET_KEYS_PREFIX: {
-
-                break;
-            }
-
-            case COMMAND_CODE_GET_FF: {
-                
-                break;
-            }
-
-            case COMMAND_CODE_GET_FB: {
-
-                break;
-            }
-
-            case COMMAND_CODE_REMOVE: {
-                std::string key_str;
-                try {
-                    key_str = this -> extract_key_str_from_msg(raw_message);
-                }
-                catch (const std::exception& e) {
-                    if(this -> verbose > 0) {
-                        std::cerr << e.what() << std::endl;
-                    }
-                    this -> send_error_response(client_socket);
                     break;
                 }
 
-                if(lsm_tree.remove(key_str)) {
-                    this -> send_ok_response(client_socket);
-                }                
-                else {
-                    this -> send_error_response(client_socket);
+                case COMMAND_CODE_GET_FB: {
+
+                    break;
                 }
 
-                break;
+                case COMMAND_CODE_REMOVE: {
+                    std::string key_str;
+                    try {
+                        key_str = this -> extract_key_str_from_msg(raw_message);
+                    }
+                    catch (const std::exception& e) {
+                        if(this -> verbose > 0) {
+                            std::cerr << e.what() << std::endl;
+                        }
+                        this -> send_error_response(client_socket);
+                        break;
+                    }
+
+                    if(lsm_tree.remove(key_str)) {
+                        this -> send_ok_response(client_socket);
+                    }
+                    else {
+                        this -> send_error_response(client_socket);
+                    }
+
+                    break;
+                }
+
+                default: {
+
+                }
             }
 
-            default: {
-
-            }
+            // close(client_socket);
         }
-
-        // close(client_socket);
     }
 
     return 0;

@@ -160,7 +160,6 @@ int64_t Server::send_message(socket_t socket, const std::string& message) const 
 
         total_sent += sent_bytes;
 
-        std::cout << message.size() << std::endl;
     }
 
     return static_cast<int64_t>(total_sent);
