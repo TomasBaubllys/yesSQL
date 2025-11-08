@@ -11,6 +11,8 @@
 #include <atomic>
 #include <stdexcept>
 
+#define THREAD_POOL_ENQUEUE_STOPPED_ERR_MSG "Thread pool enqueue stopped working\n"
+
 class Thread_Pool {
 public:
     explicit Thread_Pool(size_t num_threads = std::thread::hardware_concurrency())
@@ -58,7 +60,7 @@ public:
         {
             std::unique_lock<std::mutex> lock(queue_mutex);
             if (stop)
-                throw std::runtime_error("enqueue on stopped ThreadPool");
+                throw std::runtime_error(THREAD_POOL_ENQUEUE_STOPPED_ERR_MSG);
 
             tasks.emplace([task_ptr]() { (*task_ptr)(); });
         }

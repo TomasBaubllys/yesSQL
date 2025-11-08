@@ -369,5 +369,5 @@ void Server::handle_client(socket_t socket_fd, const std::string& message) {
 }
 
 int8_t Server::process_request(socket_t socket_fd, const std::string& message) {
-    
+
 }
