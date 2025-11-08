@@ -12,13 +12,9 @@ int8_t Partition_Server::start() {
         throw std::runtime_error(listen_failed_str);
     }
 
-    if(this -> init_epoll() < 0) {
-        throw std::runtime_error(SERVER_FAILED_EPOLL_CREATE_ERR_MSG);
-    }
+    init_epoll();
 
-    if (this -> add_this_to_epoll() < 0) {
-        throw std::runtime_error(SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG);
-    }
+    add_this_to_epoll();
 
     while (true) {
         int32_t ready_fd_count = this -> server_epoll_wait();
@@ -64,7 +60,7 @@ int8_t Partition_Server::start() {
                         this -> partial_write_buffers.erase(msg);
                         // return to listening stage
                         try {
-                            this -> modify_epoll_event(server_fd, EPOLLIN | EPOLLET);
+                            this -> modify_socket_for_receiving_epoll(socket_fd);
                         }
                         catch(const std::exception& e) {
                             ///

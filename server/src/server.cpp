@@ -36,38 +36,82 @@ Server::~Server() {
 }
 
 int8_t Server::start() {
-	uint32_t new_socket;
-	uint32_t address_length = sizeof(this -> address);
-	const char* msg = "Hello from YSQL server\n";
-	if(listen(server_fd, 3) < 0) {
-		perror("listen");
-		return -1;
-	}
+    if (listen(this->server_fd, 255) < 0) {   
+        std::string listen_failed_str(SERVER_FAILED_LISTEN_ERR_MSG);
+        listen_failed_str += SERVER_ERRNO_STR_PREFIX;
+        listen_failed_str += std::to_string(errno);
+        throw std::runtime_error(listen_failed_str);
+    }
 
-	std::cout << "Listening on port " << port << "..." << std::endl;
+    init_epoll();
 
-	while (true) {
-		// Accept one client
-		new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&address_length);
-		if (new_socket < 0) {
-			perror("accept");
-			continue; // Skip this client and keep listening
-		}
+    add_this_to_epoll();
 
-		// Print client info
-		char client_ip[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, &(address.sin_addr), client_ip, INET_ADDRSTRLEN);
-		std::cout << "Client connected from " << client_ip << ":" << ntohs(address.sin_port) << std::endl;
+    while (true) {
+        int32_t ready_fd_count = this -> server_epoll_wait();
+        if(ready_fd_count < 0) {
+            if(errno == EINTR) {
+                continue;
+            }
+            if(this -> verbose > 0) {
+                std::cerr << SERVER_EPOLL_WAIT_FAILED_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+                break;
+            }
+        }
 
-		// Send message
-		send(new_socket, msg, strlen(msg), 0);
-		std::cout << "Hello message sent!" << std::endl;
+        for(int32_t i = 0; i < ready_fd_count; ++i) {
+            socket_t socket_fd = this -> epoll_events.at(i).data.fd;
+            
+            if(socket_fd == this -> server_fd) {
+                socket_t client_fd = this -> add_client_socket_to_epoll();
+                this -> sockets_map[client_fd] = Socket_Types::MAIN_SERVER_SOCKET;
+            }
+            else if(this -> epoll_events[i].events & EPOLLIN) {
+                std::string message = this -> read_message(socket_fd);
+                if(message.empty()) {
+                    continue;
+                }
 
-		// Close client socket
-		close(new_socket);
-	}
-	
-	return 0;
+                this -> thread_pool.enqueue([this, socket_fd, message](){
+                    this -> handle_client(socket_fd, message);
+                });
+            }
+            else if(this -> epoll_events[i].events & EPOLLOUT) {
+                std::lock_guard<std::mutex> lock(this -> response_queue_mutex);
+                std::unordered_map<socket_t, Server_Response>::iterator msg = this -> partial_write_buffers.find(socket_fd);
+                
+                if(msg != this -> partial_write_buffers.end()) {
+                    std::string& data = msg -> second.message;
+                    int64_t bytes_sent = this -> send_message(socket_fd, data);
+                    if(bytes_sent > 0) {
+                        msg -> second.bytes_processed += bytes_sent;
+                    }
+
+                    if(msg -> second.bytes_to_process <= msg -> second.bytes_processed) {
+                        this -> partial_write_buffers.erase(msg);
+                        // return to listening stage
+                        try {
+                            this -> modify_socket_for_receiving_epoll(socket_fd);
+                        }
+                        catch(const std::exception& e) {
+                            ///
+                        } 
+                    }
+                }
+            }
+            else if (this -> epoll_events[i].events & (EPOLLHUP | EPOLLERR)) {
+                // Client hang-up or error
+                if (verbose > 0)
+                    std::cerr << "Client error/hang-up: fd=" << socket_fd << std::endl;
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, socket_fd, nullptr);
+                close(socket_fd);
+            }
+        }
+
+        this -> process_remove_queue();
+    }
+
+    return 0;
 }
 
 std::string Server::read_message(socket_t socket) {
@@ -400,5 +444,6 @@ void Server::add_message_to_response_queue(socket_t socket_fd, const std::string
     Server_Response s_resp;
     s_resp.message = message;
     s_resp.bytes_processed = 0;
+    s_resp.bytes_to_process = message.length();
     this -> partial_write_buffers[socket_fd] = s_resp; 
 }
