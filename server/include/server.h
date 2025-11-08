@@ -19,6 +19,7 @@
 #include <sys/epoll.h>
 #include <unordered_map>
 #include <utility>
+#include "thread_pool.h"
 
 #define SERVER_LISTENING_ON_PORT_MSG "Listening on port: "
 
@@ -40,6 +41,14 @@
 
 #define SERVER_FAILED_HOSTNAME_RESOLVE_ERR_MSG "Failed to resolve: "
 #define SERVER_CONNECT_FAILED_ERR_MSG "Failed to connect: "
+#define SERVER_FAILED_EPOLL_CREATE_ERR_MSG "Failed to create epoll fd\n"
+#define SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG "Failed to add fd to epoll fd\n"
+#define SERVER_EPOLL_WAIT_FAILED_ERR_MSG "Epoll wait failed: "
+#define SERVER_FAILED_EPOLL_CREATE_ERR_MSG "Failed to create epoll fd\n"
+#define SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG "Failed to add fd to epoll fd\n"
+#define SERVER_EPOLL_WAIT_FAILED_ERR_MSG "Epoll wait failed: "
+#define SERVER_DEFAULT_EPOLL_EVENT_VAL 255
+#define SERVER_DEFAULT_THREAD_POOL_VAL 64
 
 #define SERVER_DEFAULT_VERBOSE_VAL 0
 #define SERVER_MESSAGE_BLOCK_SIZE 1024
@@ -48,6 +57,8 @@
 
 class Server {
     protected:
+        std::unordered_map<socket_t, Socket_Types> sockets_map;
+
         uint16_t port;
         int32_t server_fd;
         struct sockaddr_in address;
@@ -59,33 +70,79 @@ class Server {
 
         int8_t send_status_response(Command_Code status, socket_t socket) const;
 
+        file_desc_t epoll_fd;
+
+        std::vector<epoll_event> epoll_events;
+
+        Thread_Pool thread_pool;
+        std::mutex remove_mutex;
+        std::vector<socket_t> remove_queue;
+        void request_to_remove_fd(socket_t socket);
+        void process_remove_queue();
+        
     public:
         // THROWS
         Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
 
+        ~Server();
+
+        // @brief virtual method to start the server
+        // overriden by other server implementations
         virtual int8_t start();
 
+        // @brief makes client_fd (the return value) non-blocking
+        // and adds it to inner epoll sockets
+        socket_t add_client_socket_to_epoll();
+        
+        // @brief initializes the epoll, (create1)
+        file_desc_t init_epoll();
+
+        // @brief adds the inner server_fd to the epoll fd list
+        // makes server_fd non blocking
+        int32_t add_this_to_epoll();
+
+        // @brief waits for epoll to spit out some sockets
+        int32_t server_epoll_wait();
+
+        // @brief reads a message of structure defined in protocol.h 
+        // should work for both blocking and non-blocking sockets
         // THROWS
         std::string read_message(socket_t socket);
 
         // THROWS
         int64_t send_message(socket_t socket, const std::string& message) const;
 
-        Command_Code extract_command_code(const std::string& raw_message) const;
+        // @brief extracts the command code from the received message
+        // defined in protocol.h
+        Command_Code extract_command_code(const std::string& message) const;
 
+        // @brief checks a connectivity to a certain socket
         bool try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec = 1) const;
 
+        // @brief connects and returns a socket descriptor 
+        // on success >=0 on error < 0
         socket_t connect_to(const std::string& hostname, uint16_t port, bool& is_successful) const;
 
+        // @brief makes a given socket non-blocking
         static void make_non_blocking(socket_t& socket);
 
+        // @brief extracts the first key that appears in the message
         // THROWS
-        std::string extract_key_str_from_msg(const std::string& raw_message) const;
+        std::string extract_key_str_from_msg(const std::string& message) const;
 
+        // @brief sends an ERR response to the provided socket
         int8_t send_error_response(socket_t socket) const;
 
+        // @brief sens an OK response to a given socket
         int8_t send_ok_response(socket_t socket) const;
 
+        // @brief handles client requests
+        // calls the handle int8_t process_request(socket_t, string);
+        // on failure pushes the socket_fd to remove_queue 
+        void handle_client(socket_t socket_fd, const std::string& message);
+
+        // @processes the clients message
+        virtual int8_t process_request(socket_t socket_fd, const std::string& message);
 };
 
 #endif // YSQL_SERVER_H_INCLUDED

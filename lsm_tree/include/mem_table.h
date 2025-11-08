@@ -5,6 +5,7 @@
 #include "entry.h"
 #include "wal.h"
 #include <filesystem>
+#include <cstring>
 
 #define MEM_TABLE_BYTES_MAX_SIZE 1000000 // 1mb, (rocksDB uses 64mb)
 

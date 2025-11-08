@@ -33,7 +33,6 @@ Primary_Server::Primary_Server(uint16_t port, uint8_t verbose) : Server(port, ve
         else {
             partition_entry.status = Partition_Status::PARTITION_FREE;
         }
-
         
         partition_entry.range.beg = this -> partition_range_length * i;
         partition_entry.range.end = this ->  partition_range_length * (i + 1);
@@ -65,53 +64,32 @@ int8_t Primary_Server::start() {
         throw std::runtime_error(listen_failed_str);
     }
 
-    make_non_blocking(this -> server_fd);
+    if(this -> init_epoll() < 0) {
+        throw std::runtime_error(SERVER_FAILED_EPOLL_CREATE_ERR_MSG);
+    }
 
-    int epoll_fd = epoll_create1(0);
-    if (epoll_fd < 0)
-        throw std::runtime_error(PRIMARY_SERVER_FAILED_EPOLL_CREATE_ERR_MSG);
+    if (this -> add_this_to_epoll() < 0) {
+        throw std::runtime_error(SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG);
+    }
 
-    epoll_event ev{};
-    ev.events = EPOLLIN; // monitor read events
-    ev.data.fd = server_fd;
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev) < 0)
-        throw std::runtime_error(PRIMARY_SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG);
-
-    std::vector<epoll_event> events(PRIMARY_SERVER_DEFAULT_LISTEN_VALUE);
-    // std::cout << "Primary server listening on port " << port << "..." << std::endl;
-    // Main event loop
     while (true) {
-        int ready_fd_count = epoll_wait(epoll_fd, events.data(), events.size(), -1);
+        int32_t ready_fd_count = this -> server_epoll_wait();
         if (ready_fd_count < 0) {
             if (errno == EINTR) continue; // interrupted by signal
             if(this -> verbose > 0) {
-                std::cerr << PRIMARY_SERVER_EPOLL_WAIT_FAILED_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+                std::cerr << SERVER_EPOLL_WAIT_FAILED_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
             }
             break;
         }
 
         for (int i = 0; i < ready_fd_count; ++i) {
-            int fd = events[i].data.fd;
+            file_desc_t fd = this -> epoll_events[i].data.fd;
 
             if (fd == server_fd) {
-                // Accept new client connection
-                sockaddr_in client_addr{};
-                socklen_t len = sizeof(client_addr);
-                socket_t client_fd = accept(server_fd, (sockaddr*)&client_addr, &len);
-                if (client_fd >= 0) {
-                    make_non_blocking(client_fd);
-
-                    ev.events = EPOLLIN | EPOLLET; // edge-triggered for efficiency
-                    ev.data.fd = client_fd;
-                    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &ev);
-
-                    if (verbose > 0) {
-                        std::cout << "Client connected: fd=" << client_fd << std::endl;
-                    }
-                }
+                socket_t client_fd = this -> add_client_socket_to_epoll(); 
                 this -> sockets_map[client_fd] = Socket_Types::CLIENT_SOCKET;
 
-            } else if (events[i].events & EPOLLIN) {
+            } else if (this -> epoll_events[i].events & EPOLLIN) {
                 // Data is ready to be read
                 try {
                     std::string message = this -> read_message(fd);
@@ -132,7 +110,7 @@ int8_t Primary_Server::start() {
                     epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
                     close(fd);
                 }
-            } else if (events[i].events & (EPOLLHUP | EPOLLERR)) {
+            } else if (this -> epoll_events[i].events & (EPOLLHUP | EPOLLERR)) {
                 // Client hang-up or error
                 if (verbose > 0)
                     std::cerr << "Client error/hang-up: fd=" << fd << std::endl;
@@ -142,7 +120,6 @@ int8_t Primary_Server::start() {
         }
     }
 
-    close(epoll_fd);
     return 0;
 }
 
