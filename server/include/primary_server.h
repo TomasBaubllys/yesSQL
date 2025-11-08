@@ -68,20 +68,15 @@ class Primary_Server : public Server {
 
         std::vector<Partition_Entry> get_partitions_fb(const std::string& key) const;
 
-        // returns the first key found in the message
-        // THROWS
-
-        int8_t handle_client_request(socket_t socket, std::string& client_message);
-
         // THROWS
         std::string query_partition(Partition_Entry& partition, const std::string& raw_message);
 
         bool ensure_partition_connection(Partition_Entry& partition);
 
+        int8_t process_request(socket_t socket_fd, const  std::string& message) override;
+
     public:
         Primary_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
-
-        int8_t start() override;
 };
 
 #endif // YSQL_PRIMARY_SERVER_H_INCLUDED

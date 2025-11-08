@@ -72,7 +72,7 @@ class Server {
         // variable decides if server prints out the messages.
         uint8_t verbose;
 
-        int8_t send_status_response(Command_Code status, socket_t socket) const;
+        std::string create_status_response(Command_Code status) const;
 
         file_desc_t epoll_fd;
 
@@ -83,6 +83,8 @@ class Server {
         std::vector<socket_t> remove_queue;
         void request_to_remove_fd(socket_t socket);
         void process_remove_queue();
+
+        virtual int8_t process_request(socket_t socket_fd, const std::string& message);
         
     public:
         // THROWS
@@ -92,7 +94,7 @@ class Server {
 
         // @brief virtual method to start the server
         // overriden by other server implementations
-        virtual int8_t start();
+        int8_t start();
 
         // @brief makes client_fd (the return value) non-blocking
         // and adds it to inner epoll sockets
@@ -144,18 +146,21 @@ class Server {
         std::string extract_key_str_from_msg(const std::string& message) const;
 
         // @brief sends an ERR response to the provided socket
-        int8_t send_error_response(socket_t socket) const;
+        std::string create_error_response() const;
 
         // @brief sens an OK response to a given socket
-        int8_t send_ok_response(socket_t socket) const;
+        std::string create_ok_response() const;
+
+        void prepare_socket_for_response(socket_t socket_fd, const std::string& message);
+        
+        void prepare_socket_for_ok_response(socket_t socket_fd);
+
+        void prepare_socket_for_err_response(socket_t socket_fd);
 
         // @brief handles client requests
         // calls the handle int8_t process_request(socket_t, string);
         // on failure pushes the socket_fd to remove_queue 
         void handle_client(socket_t socket_fd, const std::string& message);
-
-        // @processes the clients message
-        virtual int8_t process_request(socket_t socket_fd, const std::string& message);
 };
 
 #endif // YSQL_SERVER_H_INCLUDED

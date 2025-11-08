@@ -30,17 +30,12 @@ class Partition_Server : public Server {
     public:
         Partition_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
 
-        // sends a response to the provided socket, that data was not found
-        int8_t send_not_found_response(socket_t socket_fd) const;
-
         // send a response of all the entries contained in the vector
-        int8_t send_entries_response(const std::vector<Entry>& entry_array, socket_t socket) const;
+        std::string create_entries_response(const std::vector<Entry>& entry_array) const;
 
         // THROWS
         // extracts the first value string contained in the message
         std::string extract_value(const std::string& raw_message) const;
-
-        int8_t start() override;
 
         // Processes the clients request GET SET etc...
         int8_t process_request(socket_t socket_fd, const std::string& message) override;
@@ -53,6 +48,8 @@ class Partition_Server : public Server {
 
         // handles REMOVE, responds to the socket_fd, upon failure returns <0 on success >= 0 
         int8_t handle_remove_request(socket_t socket_fd, const std::string& message);
+
+        void prepare_socket_for_not_found_response(socket_t socket_fd);
 };
 
 #endif // YSQL_PARTITION_SERVER_H_INCLUDED

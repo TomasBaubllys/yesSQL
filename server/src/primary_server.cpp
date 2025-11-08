@@ -46,7 +46,8 @@ Primary_Server::Primary_Server(uint16_t port, uint8_t verbose) : Server(port, ve
     }
 }
 
-void Primary_Server::start_partition_monitor_thread() const {
+void Primary_Server::start_partition_monitor_thread() const
+{
     std::thread status_thread([this]() {
         while(true) {
             this -> display_partitions_status();
@@ -55,76 +56,6 @@ void Primary_Server::start_partition_monitor_thread() const {
     });
     status_thread.detach();
 }
-
-int8_t Primary_Server::start() {
-    if (listen(server_fd, PRIMARY_SERVER_DEFAULT_LISTEN_VALUE) < 0) {
-        std::string listen_failed_str(SERVER_FAILED_LISTEN_ERR_MSG);
-        listen_failed_str += SERVER_ERRNO_STR_PREFIX;
-        listen_failed_str += std::to_string(errno);
-        throw std::runtime_error(listen_failed_str);
-    }
-
-    if(this -> init_epoll() < 0) {
-        throw std::runtime_error(SERVER_FAILED_EPOLL_CREATE_ERR_MSG);
-    }
-
-    this -> add_this_to_epoll();
-
-    /*if (this -> add_this_to_epoll() < 0) {
-        throw std::runtime_error(SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG);
-    }*/
-
-    while (true) {
-        int32_t ready_fd_count = this -> server_epoll_wait();
-        if (ready_fd_count < 0) {
-            if (errno == EINTR) continue; // interrupted by signal
-            if(this -> verbose > 0) {
-                std::cerr << SERVER_EPOLL_WAIT_FAILED_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
-            }
-            break;
-        }
-
-        for (int i = 0; i < ready_fd_count; ++i) {
-            file_desc_t fd = this -> epoll_events[i].data.fd;
-
-            if (fd == server_fd) {
-                socket_t client_fd = this -> add_client_socket_to_epoll(); 
-                this -> sockets_map[client_fd] = Socket_Types::CLIENT_SOCKET;
-
-            } else if (this -> epoll_events[i].events & EPOLLIN) {
-                // Data is ready to be read
-                try {
-                    std::string message = this -> read_message(fd);
-                    if (message.empty()) {
-                        continue;
-                    }
-
-                    // Handle the full message
-                    int8_t result = this -> handle_client_request(fd, message);
-                    if (result < 0) {
-                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
-                        close(fd);
-                    }
-                }
-                catch (const std::exception& e) {
-                    if (verbose > 0)
-                        std::cerr << "Error reading from fd=" << fd << ": " << e.what() << std::endl;
-                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
-                    close(fd);
-                }
-            } else if (this -> epoll_events[i].events & (EPOLLHUP | EPOLLERR)) {
-                // Client hang-up or error
-                if (verbose > 0)
-                    std::cerr << "Client error/hang-up: fd=" << fd << std::endl;
-                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
-                close(fd);
-            }
-        }
-    }
-
-    return 0;
-}
-
 
 void Primary_Server::display_partitions_status() const {
     std::vector<bool> status = this -> get_partitions_status();
@@ -177,8 +108,8 @@ std::vector<Partition_Entry> Primary_Server::get_partitions_fb(const std::string
     return std::vector<Partition_Entry>();
 }
 
-int8_t Primary_Server::handle_client_request(socket_t client_socket, std::string& client_message) {
-    Command_Code com_code = this -> extract_command_code(client_message);
+int8_t Primary_Server::process_request(socket_t socket_fd, const std::string& message) {
+    Command_Code com_code = this -> extract_command_code(message);
 
     // decide how to handle it
     switch(com_code) {
@@ -188,39 +119,41 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket, std::string
             // extract the key string
             std::string key_str;
             try {
-                key_str = this -> extract_key_str_from_msg(client_message);
+                key_str = this -> extract_key_str_from_msg(message);
             }
             catch(const std::exception& e) {
                 if(this -> verbose) {
                     std::cerr << e.what() << std::endl;
                 }
                 // send a message to the client about invalid operation
-                this -> send_error_response(client_socket);
-                return -1;
+                this -> prepare_socket_for_err_response(socket_fd);
+                return 0;
             }
 
             // find to which partition entry it belongs to
             Partition_Entry& partition_entry = this -> get_partition_for_key(key_str);
             std::string partition_response;
             try {
-                partition_response = this -> query_partition(partition_entry, client_message);
-            }
-            catch(const std::exception& e) {
-                this -> send_error_response(client_socket);
-                break;
-            }
-
-            try{
-                //int flags = fcntl(client_socket, F_GETFL, 0);
-                // fcntl(client_socket, F_SETFL, flags & ~O_NONBLOCK);
-                this -> send_message(client_socket, partition_response);
+                partition_response = this -> query_partition(partition_entry, message);
             }
             catch(const std::exception& e) {
                 if(this -> verbose > 0) {
                     std::cerr << e.what() << std::endl;
                 }
+                this -> prepare_socket_for_err_response(socket_fd);
+                return 0;
             }
-            break;
+
+            try{
+                this -> prepare_socket_for_response(socket_fd, partition_response);
+                return 0;
+            }
+            catch(const std::exception& e) {
+                if(this -> verbose > 0) {
+                    std::cerr << e.what() << std::endl;
+                }
+                return -1;
+            }
         }
         case COMMAND_CODE_GET_KEYS: {
             break;

@@ -94,7 +94,9 @@ int8_t Server::start() {
                             this -> modify_socket_for_receiving_epoll(socket_fd);
                         }
                         catch(const std::exception& e) {
-                            ///
+                            if(this -> verbose > 0) {
+                                std::cerr << e.what() << std::endl;
+                            }
                         } 
                     }
                 }
@@ -143,9 +145,7 @@ std::string Server::read_message(socket_t socket) {
                 close(socket);
                 return "";
             }
-
         }
-
         if (bytes_read == 0) {
             partial_read_buffers.erase(socket);
             close(socket);
@@ -174,7 +174,7 @@ std::string Server::read_message(socket_t socket) {
     
     if (bytes_to_read > 0 && buffer.size() >= bytes_to_read) {
         std::string msg = buffer.substr(0, bytes_to_read);
-        buffer.erase(0, bytes_to_read); // remove processed message
+        buffer.erase(0, bytes_to_read);
         return msg;
     }
 
@@ -183,7 +183,7 @@ std::string Server::read_message(socket_t socket) {
 }
 
 int64_t Server::send_message(socket_t socket_fd, const std::string& message) const {
-    if(socket < 0) {
+    if(socket_fd < 0) {
         throw std::runtime_error(SERVER_INVALID_SOCKET_ERR_MSG);
     }
 
@@ -304,21 +304,17 @@ void Server::make_non_blocking(socket_t& socket) {
     fcntl(socket, F_SETFL, flags | O_NONBLOCK);
 }
 
-int8_t Server::send_ok_response(socket_t socket) const {
-    return this -> send_status_response(COMMAND_CODE_OK, socket);
+std::string Server::create_ok_response() const {
+    return this -> create_status_response(COMMAND_CODE_OK);
 }
 
-int8_t Server::send_error_response(socket_t socket) const {
-    return this -> send_status_response(COMMAND_CODE_ERR, socket);
+std::string Server::create_error_response() const {
+    return this -> create_status_response(COMMAND_CODE_ERR);
 }
 
-int8_t Server::send_status_response(Command_Code status, socket_t socket) const {
+std::string Server::create_status_response(Command_Code status) const {
     if(status != COMMAND_CODE_ERR && status != COMMAND_CODE_OK && status != COMMAND_CODE_DATA_NOT_FOUND) {
-        return -1;
-    }
-
-    if(socket < 0) {
-        return -1;
+        return "";
     }
 
     protocol_message_len_type message_length;
@@ -336,18 +332,7 @@ int8_t Server::send_status_response(Command_Code status, socket_t socket) const 
     curr_pos += sizeof(arr_len);
     memcpy(&message[curr_pos], &com_code, sizeof(com_code));
 
-    try {
-        this -> send_message(socket, message);
-    }
-    catch(const std::exception& e) {
-        if(this -> verbose > 0) {
-            std::cerr << e.what() << std::endl;
-        }
-
-        return -1;
-    }
-
-    return 0;
+    return message;
 }
 
 void Server::init_epoll() {
@@ -419,7 +404,7 @@ void Server::handle_client(socket_t socket_fd, const std::string& message) {
 }
 
 int8_t Server::process_request(socket_t socket_fd, const std::string& message) {
-
+    return -1;
 }
 
 void Server::modify_epoll_event(socket_t socket_fd, uint32_t new_events) {
@@ -446,4 +431,20 @@ void Server::add_message_to_response_queue(socket_t socket_fd, const std::string
     s_resp.bytes_processed = 0;
     s_resp.bytes_to_process = message.length();
     this -> partial_write_buffers[socket_fd] = s_resp; 
+}
+
+void Server::prepare_socket_for_response(socket_t socket_fd, const std::string& message) {
+    this -> modify_socket_for_sending_epoll(socket_fd);
+    this -> add_message_to_response_queue(socket_fd, message);
+}
+
+void Server::prepare_socket_for_ok_response(socket_t socket_fd) {
+    this -> modify_socket_for_sending_epoll(socket_fd);
+    std::string ok_resp_str = this -> create_ok_response();
+    this -> add_message_to_response_queue(socket_fd, ok_resp_str);
+}
+void Server::prepare_socket_for_err_response(socket_t socket_fd) {
+    this -> modify_socket_for_sending_epoll(socket_fd);
+    std::string err_resp_str = this -> create_error_response();
+    this -> add_message_to_response_queue(socket_fd, err_resp_str);
 }
