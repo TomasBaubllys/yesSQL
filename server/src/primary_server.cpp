@@ -186,6 +186,7 @@ std::string Primary_Server::query_partition(Partition_Entry& partition, const st
     if(bytes_sent == 0) {
         std::string fail_str(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
         fail_str += partition.name;
+        epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, partition.socket_fd, nullptr);
         close(partition.socket_fd);
         partition.status = Partition_Status::PARTITION_DEAD;
         throw std::runtime_error(fail_str);
@@ -199,6 +200,7 @@ std::string Primary_Server::query_partition(Partition_Entry& partition, const st
         }
     }
     catch(...) {
+        epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, partition.socket_fd, nullptr);
         close(partition.socket_fd);
         partition.status = Partition_Status::PARTITION_DEAD;
         throw;

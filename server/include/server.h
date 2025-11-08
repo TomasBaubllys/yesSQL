@@ -65,7 +65,7 @@ class Server {
         int32_t server_fd;
         struct sockaddr_in address;
 
-        std::unordered_map<socket_t, std::pair<protocol_message_len_type , std::string>> partial_read_buffers;
+        std::unordered_map<socket_t, Server_Request> partial_read_buffers;
         
         std::mutex response_queue_mutex;
         std::unordered_map<socket_t, Server_Response> partial_write_buffers;

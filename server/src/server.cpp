@@ -116,22 +116,26 @@ int8_t Server::start() {
     return 0;
 }
 
-std::string Server::read_message(socket_t socket) {
-    if(socket < 0) {
+std::string Server::read_message(socket_t socket_fd) {
+    if(socket_fd < 0) {
         throw std::runtime_error(SERVER_INVALID_SOCKET_ERR_MSG);
     }
     char block[SERVER_MESSAGE_BLOCK_SIZE];
 
-    std::string &buffer = this -> partial_read_buffers[socket].second;
-    protocol_message_len_type& bytes_to_read = this -> partial_read_buffers[socket].first;
+    // Server_Request serv_req = this -> partial_read_buffers[socket_fd];
+    std::unordered_map<socket_t, Server_Request>::iterator serv_req_iter = this -> partial_read_buffers.find(socket_fd);
+    if(serv_req_iter == this -> partial_read_buffers.end()) {
+         std::pair<std::unordered_map<socket_t, Server_Request>::iterator, bool> new_iter = this -> partial_read_buffers.emplace(socket_fd, Server_Request{});
+        serv_req_iter = new_iter.first;
+    }
 
     // new instance, bytes to read must be a trash value
-    if(buffer.size() < sizeof(protocol_message_len_type)) {
-        bytes_to_read = 0;
+    if(serv_req_iter -> second.message.size() < sizeof(protocol_message_len_type)) {
+        serv_req_iter -> second.bytes_to_process = 0;
     }
 
     while (true) {
-        int32_t bytes_read = recv(socket, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
+        int32_t bytes_read = recv(socket_fd, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
         if (bytes_read < 0) {
             if(errno == EAGAIN || errno == EWOULDBLOCK) {
                 break;
@@ -141,40 +145,37 @@ std::string Server::read_message(socket_t socket) {
                     std::cerr << SERVER_FAILED_RECV_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
                 }
 
-                partial_read_buffers.erase(socket);
-                close(socket);
+                partial_read_buffers.erase(socket_fd);
+                epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, socket_fd, nullptr);
+                close(socket_fd);
                 return "";
             }
         }
         if (bytes_read == 0) {
-            partial_read_buffers.erase(socket);
-            close(socket);
+            partial_read_buffers.erase(socket_fd);
+            epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, socket_fd, nullptr);
+            close(socket_fd);
             // somehow indicate that client quit
-            return buffer;
+            return ""; // buffer;
         }
 
-        buffer.append(block, bytes_read);
+        serv_req_iter -> second.message.append(block, bytes_read);
 
-        if(bytes_to_read == 0 && buffer.size() >= sizeof(protocol_message_len_type)) {
-            memcpy(&bytes_to_read, buffer.data(), sizeof(protocol_message_len_type));
-            bytes_to_read = ntohll(bytes_to_read);
+        if(serv_req_iter -> second.bytes_to_process == 0 && serv_req_iter -> second.message.size() >= sizeof(protocol_message_len_type)) {
+            memcpy(&serv_req_iter -> second.bytes_to_process, serv_req_iter -> second.message.data(), sizeof(protocol_message_len_type));
+            serv_req_iter -> second.bytes_to_process = ntohll(serv_req_iter -> second.bytes_to_process);
         }
 
-        if(bytes_to_read > 0 && buffer.size() >= bytes_to_read) {
-            break;
-        }
-
-        if(!(fcntl(socket, F_GETFL) & O_NONBLOCK)) {
-            continue;
-        }
-        else {
+        if(serv_req_iter -> second.bytes_to_process > 0 && serv_req_iter -> second.message.size() >= serv_req_iter -> second.bytes_to_process) {
             break;
         }
     }
     
-    if (bytes_to_read > 0 && buffer.size() >= bytes_to_read) {
-        std::string msg = buffer.substr(0, bytes_to_read);
-        buffer.erase(0, bytes_to_read);
+    if (serv_req_iter -> second.bytes_to_process > 0 && serv_req_iter -> second.message.size() >= serv_req_iter -> second.bytes_to_process) {
+        std::string msg = serv_req_iter -> second.message.substr(0, serv_req_iter -> second.bytes_to_process);
+        serv_req_iter -> second.bytes_processed = 0;
+        serv_req_iter -> second.bytes_to_process = 0;
+        serv_req_iter -> second.message.clear();
         return msg;
     }
 
@@ -188,31 +189,6 @@ int64_t Server::send_message(socket_t socket_fd, const std::string& message) con
     }
 
     return send(socket_fd, message.data(), message.size(), 0);
-
-    /*ssize_t total_sent = 0;
-    ssize_t sent_bytes = 0;
-
-    while (total_sent < message.size()) {
-        sent_bytes = send(socket, message.data() + total_sent, message.size() - total_sent, 0);
-        if (sent_bytes < 0) {
-            if (errno == EINTR) {
-                continue; 
-            }
-            std::string send_failed_str(SERVER_FAILED_SEND_ERR_MSG);
-            send_failed_str += SERVER_ERRNO_STR_PREFIX;
-            send_failed_str += std::to_string(errno);
-            throw std::runtime_error(send_failed_str);
-        }
-
-        if (sent_bytes == 0) {
-            throw std::runtime_error(SERVER_SEND_0_BYTES_ERR_MSG);
-        } 
-
-        total_sent += sent_bytes;
-
-    }
-
-    return static_cast<int64_t>(total_sent);*/
 }
 
 Command_Code Server::extract_command_code(const std::string& message) const {
@@ -412,7 +388,10 @@ void Server::modify_epoll_event(socket_t socket_fd, uint32_t new_events) {
     ev.data.fd = socket_fd;
     ev.events = new_events;
     if(epoll_ctl(this -> epoll_fd, EPOLL_CTL_MOD, socket_fd, &ev) < 0) {
-        throw std::runtime_error(SERVER_EPOLL_MOD_FAILED_ERR_MSG);
+        std::string epoll_fail_str = SERVER_EPOLL_MOD_FAILED_ERR_MSG;
+        epoll_fail_str += SERVER_ERRNO_STR_PREFIX;
+        epoll_fail_str += std::to_string(errno); 
+        throw std::runtime_error(epoll_fail_str);
     }
 }
 
