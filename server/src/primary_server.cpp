@@ -146,7 +146,6 @@ std::vector<bool> Primary_Server::get_partitions_status() const {
 uint32_t Primary_Server::key_prefix_to_uint32(const std::string& key) const {
     uint32_t uint32_prefix_key = 0;
 
-                    std::cout << "KEYY" << key << std::endl;
     uint32_t key_limit = std::min<uint32_t>(PRIMARY_SERVER_BYTES_IN_KEY_PREFIX, key.length());
 
     for(uint32_t i = 0; i < key_limit; ++i) {
