@@ -68,9 +68,11 @@ int8_t Primary_Server::start() {
         throw std::runtime_error(SERVER_FAILED_EPOLL_CREATE_ERR_MSG);
     }
 
-    if (this -> add_this_to_epoll() < 0) {
+    this -> add_this_to_epoll();
+
+    /*if (this -> add_this_to_epoll() < 0) {
         throw std::runtime_error(SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG);
-    }
+    }*/
 
     while (true) {
         int32_t ready_fd_count = this -> server_epoll_wait();

@@ -306,9 +306,11 @@ int8_t Server::send_status_response(Command_Code status, socket_t socket) const 
     return 0;
 }
 
-file_desc_t Server::init_epoll() {
+void Server::init_epoll() {
     this -> epoll_fd = epoll_create1(0);
-    return this -> epoll_fd;
+    if(this -> epoll_fd < 0) {
+        throw std::runtime_error(SERVER_FAILED_EPOLL_CREATE_ERR_MSG);
+    }
 }
 
 socket_t Server::add_client_socket_to_epoll() {
@@ -394,5 +396,9 @@ void Server::modify_socket_for_receiving_epoll(socket_t socket_fd) {
 }
 
 void Server::add_message_to_response_queue(socket_t socket_fd, const std::string& message) {
-
+    std::unique_lock<std::mutex> lock(this -> response_queue_mutex);
+    Server_Response s_resp;
+    s_resp.message = message;
+    s_resp.bytes_processed = 0;
+    this -> partial_write_buffers[socket_fd] = s_resp; 
 }

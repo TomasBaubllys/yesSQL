@@ -20,7 +20,7 @@
 #include <unordered_map>
 #include <utility>
 #include "thread_pool.h"
-#include "server_response.h"
+#include "server_message.h"
 
 #define SERVER_LISTENING_ON_PORT_MSG "Listening on port: "
 
@@ -99,7 +99,7 @@ class Server {
         socket_t add_client_socket_to_epoll();
         
         // @brief initializes the epoll, (create1)
-        file_desc_t init_epoll();
+        void init_epoll();
 
         // @brief adds the inner server_fd to the epoll fd list
         // makes server_fd non blocking
