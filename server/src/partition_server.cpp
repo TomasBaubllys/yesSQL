@@ -49,6 +49,29 @@ int8_t Partition_Server::start() {
                     this -> handle_client(socket_fd, message);
                 });
             }
+            else if(this -> epoll_events[i].events & EPOLLOUT) {
+                std::lock_guard<std::mutex> lock(this -> response_queue_mutex);
+                std::unordered_map<socket_t, Server_Response>::iterator msg = this -> partial_write_buffers.find(socket_fd);
+                
+                if(msg != this -> partial_write_buffers.end()) {
+                    std::string& data = msg -> second.message;
+                    int64_t bytes_sent = this -> send_message(socket_fd, data);
+                    if(bytes_sent > 0) {
+                        msg -> second.bytes_processed += bytes_sent;
+                    }
+
+                    if(msg -> second.bytes_to_process <= msg -> second.bytes_processed) {
+                        this -> partial_write_buffers.erase(msg);
+                        // return to listening stage
+                        try {
+                            this -> modify_epoll_event(server_fd, EPOLLIN | EPOLLET);
+                        }
+                        catch(const std::exception& e) {
+                            ///
+                        } 
+                    }
+                }
+            }
             else if (this -> epoll_events[i].events & (EPOLLHUP | EPOLLERR)) {
                 // Client hang-up or error
                 if (verbose > 0)
