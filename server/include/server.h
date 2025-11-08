@@ -72,7 +72,7 @@ class Server {
 
         file_desc_t epoll_fd;
 
-        std::vector<epoll_event> epoll_events;\
+        std::vector<epoll_event> epoll_events;
 
         Thread_Pool thread_pool;
         std::mutex remove_mutex;
@@ -86,43 +86,62 @@ class Server {
 
         ~Server();
 
+        // @brief virtual method to start the server
+        // overriden by other server implementations
         virtual int8_t start();
 
-        // makes client_fd (the return value) non-blocking
+        // @brief makes client_fd (the return value) non-blocking
+        // and adds it to inner epoll sockets
         socket_t add_client_socket_to_epoll();
         
+        // @brief initializes the epoll, (create1)
         file_desc_t init_epoll();
 
+        // @brief adds the inner server_fd to the epoll fd list
         // makes server_fd non blocking
         int32_t add_this_to_epoll();
 
+        // @brief waits for epoll to spit out some sockets
         int32_t server_epoll_wait();
 
+        // @brief reads a message of structure defined in protocol.h 
+        // should work for both blocking and non-blocking sockets
         // THROWS
         std::string read_message(socket_t socket);
 
         // THROWS
         int64_t send_message(socket_t socket, const std::string& message) const;
 
-        Command_Code extract_command_code(const std::string& raw_message) const;
+        // @brief extracts the command code from the received message
+        // defined in protocol.h
+        Command_Code extract_command_code(const std::string& message) const;
 
+        // @brief checks a connectivity to a certain socket
         bool try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec = 1) const;
 
+        // @brief connects and returns a socket descriptor 
+        // on success >=0 on error < 0
         socket_t connect_to(const std::string& hostname, uint16_t port, bool& is_successful) const;
 
+        // @brief makes a given socket non-blocking
         static void make_non_blocking(socket_t& socket);
 
+        // @brief extracts the first key that appears in the message
         // THROWS
-        std::string extract_key_str_from_msg(const std::string& raw_message) const;
+        std::string extract_key_str_from_msg(const std::string& message) const;
 
+        // @brief sends an ERR response to the provided socket
         int8_t send_error_response(socket_t socket) const;
 
+        // @brief sens an OK response to a given socket
         int8_t send_ok_response(socket_t socket) const;
 
+        // @brief handles client requests
         // calls the handle int8_t process_request(socket_t, string);
         // on failure pushes the socket_fd to remove_queue 
         void handle_client(socket_t socket_fd, const std::string& message);
 
+        // @processes the clients message
         virtual int8_t process_request(socket_t socket_fd, const std::string& message);
 };
 

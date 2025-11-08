@@ -169,13 +169,13 @@ int64_t Server::send_message(socket_t socket, const std::string& message) const 
     return static_cast<int64_t>(total_sent);
 }
 
-Command_Code Server::extract_command_code(const std::string& raw_message) const {
-    if(PROTOCOL_COMMAND_NUMBER_POS + sizeof(command_code_type) > raw_message.size()) {
+Command_Code Server::extract_command_code(const std::string& message) const {
+    if(PROTOCOL_COMMAND_NUMBER_POS + sizeof(command_code_type) > message.size()) {
         return INVALID_COMMAND_CODE;
     }
 
     command_code_type com_code;
-    memcpy(&com_code, &raw_message[PROTOCOL_COMMAND_NUMBER_POS], sizeof(command_code_type));
+    memcpy(&com_code, &message[PROTOCOL_COMMAND_NUMBER_POS], sizeof(command_code_type));
     com_code = command_ntoh(com_code);
 
     return static_cast<Command_Code>(com_code);
@@ -231,22 +231,22 @@ socket_t Server::connect_to(const std::string& hostname, uint16_t port, bool& is
     return sock;
 }
 
-std::string Server::extract_key_str_from_msg(const std::string& raw_message) const {
+std::string Server::extract_key_str_from_msg(const std::string& message) const {
     // check if the command is long enough
-    if(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type)  > raw_message.size()) {
+    if(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type)  > message.size()) {
         throw std::runtime_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
     }
 
     protocol_key_len_type key_len = 0;
-    memcpy(&key_len, &raw_message[PROTOCOL_FIRST_KEY_LEN_POS], sizeof(key_len));
+    memcpy(&key_len, &message[PROTOCOL_FIRST_KEY_LEN_POS], sizeof(key_len));
     key_len = ntohs(key_len);
 
     // check if msg is long enough
-    if(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type) + key_len > raw_message.size()) {
+    if(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type) + key_len > message.size()) {
         throw std::runtime_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
     }
 
-    return raw_message.substr(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type), key_len);
+    return message.substr(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type), key_len);
 }
 
 void Server::make_non_blocking(socket_t& socket) {
