@@ -21,6 +21,7 @@
 #include <utility>
 #include "thread_pool.h"
 #include "server_message.h"
+#include "fd_context.h"
 
 #define SERVER_LISTENING_ON_PORT_MSG "Listening on port: "
 
@@ -59,15 +60,18 @@
 
 class Server {
     protected:
-        std::unordered_map<socket_t, Socket_Types> sockets_map;
+        std::unordered_map<socket_t, Socket_Types> sockets_type_map;
+        std::unordered_map<socket_t, Fd_Context*> socket_context_map;
 
         uint16_t port;
         int32_t server_fd;
         struct sockaddr_in address;
 
+        // client id - request
         std::unordered_map<socket_t, Server_Request> partial_read_buffers;
         
         std::mutex response_queue_mutex;
+        // socket - response
         std::unordered_map<socket_t, Server_Response> partial_write_buffers;
         // variable decides if server prints out the messages.
         uint8_t verbose;
@@ -83,8 +87,6 @@ class Server {
         std::vector<socket_t> remove_queue;
         void request_to_remove_fd(socket_t socket);
         void process_remove_queue();
-
-        virtual int8_t process_request(socket_t socket_fd, const std::string& message);
         
     public:
         // THROWS
@@ -94,11 +96,11 @@ class Server {
 
         // @brief virtual method to start the server
         // overriden by other server implementations
-        int8_t start();
+        virtual int8_t start();
 
         // @brief makes client_fd (the return value) non-blocking
         // and adds it to inner epoll sockets
-        socket_t add_client_socket_to_epoll();
+        socket_t add_client_socket_to_epoll(Fd_Context* context = nullptr);
         
         // @brief initializes the epoll, (create1)
         void init_epoll();
@@ -118,12 +120,12 @@ class Server {
         // @brief reads a message of structure defined in protocol.h 
         // should work for both blocking and non-blocking sockets
         // THROWS
-        std::string read_message(socket_t socket);
+        Server_Message read_message(socket_t socket);
 
         void add_message_to_response_queue(socket_t socket_fd, const std::string& message);
 
         // THROWS
-        int64_t send_message(socket_t socket, const std::string& message) const;
+        int64_t send_message(socket_t socket, Server_Response& server_response);
 
         // @brief extracts the command code from the received message
         // defined in protocol.h
@@ -157,10 +159,6 @@ class Server {
 
         void prepare_socket_for_err_response(socket_t socket_fd);
 
-        // @brief handles client requests
-        // calls the handle int8_t process_request(socket_t, string);
-        // on failure pushes the socket_fd to remove_queue 
-        void handle_client(socket_t socket_fd, const std::string& message);
 };
 
 #endif // YSQL_SERVER_H_INCLUDED

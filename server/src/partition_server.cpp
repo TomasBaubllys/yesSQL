@@ -4,6 +4,89 @@ Partition_Server::Partition_Server(uint16_t port, uint8_t verbose) : Server(port
 
 }
 
+int8_t Partition_Server::start() {
+    if (listen(this->server_fd, 255) < 0) {   
+        std::string listen_failed_str(SERVER_FAILED_LISTEN_ERR_MSG);
+        listen_failed_str += SERVER_ERRNO_STR_PREFIX;
+        listen_failed_str += std::to_string(errno);
+        throw std::runtime_error(listen_failed_str);
+    }
+
+    init_epoll();
+
+    add_this_to_epoll();
+
+    while (true) {
+        int32_t ready_fd_count = this -> server_epoll_wait();
+        if(ready_fd_count < 0) {
+            if(errno == EINTR) {
+                continue;
+            }
+            if(this -> verbose > 0) {
+                std::cerr << SERVER_EPOLL_WAIT_FAILED_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+                break;
+            }
+        }
+
+        for(int32_t i = 0; i < ready_fd_count; ++i) {
+            socket_t socket_fd = this -> epoll_events.at(i).data.fd;
+            
+            if(socket_fd == this -> server_fd) {
+                socket_t client_fd = this -> add_client_socket_to_epoll();
+                this -> sockets_type_map[client_fd] = Socket_Types::MAIN_SERVER_SOCKET;
+            }
+            else if(this -> epoll_events[i].events & EPOLLIN) {
+                std::string message = this -> read_message(socket_fd);
+                if(message.empty()) {
+                    continue;
+                }
+
+                this -> thread_pool.enqueue([this, socket_fd, message](){
+                    this -> handle_client(socket_fd, message);
+                });
+            }
+            else if(this -> epoll_events[i].events & EPOLLOUT) {
+                std::lock_guard<std::mutex> lock(this -> response_queue_mutex);
+                std::unordered_map<socket_t, Server_Response>::iterator msg = this -> partial_write_buffers.find(socket_fd);
+                
+                if(msg != this -> partial_write_buffers.end()) {
+                    Server_Request& data = msg -> second;
+                    int64_t bytes_sent = this -> send_message(socket_fd, data);
+                    if(bytes_sent < 0) {
+                        this -> request_to_remove_fd(socket_fd);
+                        continue;
+                    }
+
+                    if(msg -> second.bytes_to_process <= msg -> second.bytes_processed) {
+                        this -> partial_write_buffers.erase(msg);
+                        // return to listening stage
+                        try {
+                            this -> modify_socket_for_receiving_epoll(socket_fd);
+                        }
+                        catch(const std::exception& e) {
+                            if(this -> verbose > 0) {
+                                std::cerr << e.what() << std::endl;
+                            }
+                        } 
+                    }
+                }
+            }
+            else if (this -> epoll_events[i].events & (EPOLLHUP | EPOLLERR)) {
+                // Client hang-up or error
+                if (verbose > 0)
+                    std::cerr << "Client error/hang-up: fd=" << socket_fd << std::endl;
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, socket_fd, nullptr);
+                close(socket_fd);
+            }
+        }
+
+        this -> process_remove_queue();
+    }
+
+    return 0;
+}
+
+
 std::string Partition_Server::extract_value(const std::string& raw_message) const {
     // read the key length
     size_t curr_pos = PROTOCOL_FIRST_KEY_LEN_POS;
@@ -240,4 +323,19 @@ void Partition_Server::prepare_socket_for_not_found_response(socket_t socket_fd)
     std::string resp_nf_str = this -> create_status_response(Command_Code::COMMAND_CODE_DATA_NOT_FOUND);
     this -> modify_socket_for_sending_epoll(socket_fd);
     this -> add_message_to_response_queue(socket_fd, resp_nf_str);
+}
+
+void Partition_Server::handle_client(socket_t socket_fd, const std::string& message) {
+    try{
+        if(this -> process_request(socket_fd, message) < 0) {
+            this -> request_to_remove_fd(socket_fd);
+        }
+    }   
+    catch(const std::exception& e) {
+        if(this -> verbose > 0) {
+            std::cerr << e.what() << std::endl;
+        }
+
+        this -> request_to_remove_fd(socket_fd);
+    }
 }

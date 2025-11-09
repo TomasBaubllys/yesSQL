@@ -38,7 +38,7 @@ class Partition_Server : public Server {
         std::string extract_value(const std::string& raw_message) const;
 
         // Processes the clients request GET SET etc...
-        int8_t process_request(socket_t socket_fd, const std::string& message) override;
+        int8_t process_request(socket_t socket_fd, const std::string& message);
 
         // handles SET, responds to the socket_fd, upon failure returns <0 on success >= 0 
         int8_t handle_set_request(socket_t socket_fd, const std::string& message);
@@ -50,6 +50,13 @@ class Partition_Server : public Server {
         int8_t handle_remove_request(socket_t socket_fd, const std::string& message);
 
         void prepare_socket_for_not_found_response(socket_t socket_fd);
+
+        // @brief handles client requests
+        // calls the handle int8_t process_request(socket_t, string);
+        // on failure pushes the socket_fd to remove_queue 
+        void handle_client(socket_t socket_fd, const std::string& message);
+
+        int8_t start() override;
 };
 
 #endif // YSQL_PARTITION_SERVER_H_INCLUDED

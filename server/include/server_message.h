@@ -7,6 +7,7 @@ typedef struct Server_Message {
     std::string message;
     protocol_message_len_type bytes_processed;
     protocol_message_len_type bytes_to_process;
+    uint64_t client_id;
 } Server_Message;
 
 using Server_Request = Server_Message;
