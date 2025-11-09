@@ -100,10 +100,10 @@ class LSM_Tree{
         std::set<Bits> get_keys(std::string prefix);
 
         // returns all keys forward from the provided key
-        std::set<Entry> get_ff(std::string key);
+        std::pair<std::set<Entry>, std::string> get_ff(std::string key);
 
         // returns all keys backwards from the provided key
-        std::set<Entry> get_fb(std::string key);
+        std::pair<std::set<Entry>, std::string> get_fb(std::string key);
 
         // returns true if removing an entry with provided key was successful
         bool remove(std::string key);

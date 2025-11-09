@@ -123,7 +123,7 @@ std::set<Bits> LSM_Tree::get_keys(std::string prefix){
     return keys;
 };
 
-std::set<Entry> LSM_Tree::get_ff(std::string _key){
+std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key){
     std::set<Entry> ff_entries;
     Bits key_bits = Bits(_key);
 
@@ -152,7 +152,7 @@ std::set<Entry> LSM_Tree::get_ff(std::string _key){
     return ff_entries;
 };
 
-std::set<Entry> LSM_Tree::get_fb(std::string _key){
+std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key){
     std::set<Entry> fb_entries;
     Bits key_bits = Bits(_key);
 
