@@ -114,109 +114,6 @@ std::vector<Partition_Entry> Primary_Server::get_partitions_fb(const std::string
     return std::vector<Partition_Entry>();
 }
 
-/*int8_t Primary_Server::process_request(socket_t socket_fd, const std::string& message) {
-    Command_Code com_code = this -> extract_command_code(message);
-
-    // decide how to handle it
-    switch(com_code) {
-        case COMMAND_CODE_GET:
-        case COMMAND_CODE_SET: 
-        case COMMAND_CODE_REMOVE: {
-            // extract the key string
-            std::string key_str;
-            try {
-                key_str = this -> extract_key_str_from_msg(message);
-            }
-            catch(const std::exception& e) {
-                if(this -> verbose) {
-                    std::cerr << e.what() << std::endl;
-                }
-                // send a message to the client about invalid operation
-                this -> prepare_socket_for_err_response(socket_fd);
-                return 0;
-            }
-
-            // find to which partition entry it belongs to
-            Partition_Entry& partition_entry = this -> get_partition_for_key(key_str);
-            std::string partition_response;
-            try {
-                partition_response = this -> query_partition(partition_entry, message);
-            }
-            catch(const std::exception& e) {
-                if(this -> verbose > 0) {
-                    std::cerr << e.what() << std::endl;
-                }
-                this -> prepare_socket_for_err_response(socket_fd);
-                return 0;
-            }
-
-            try{
-                this -> prepare_socket_for_response(socket_fd, partition_response);
-                return 0;
-            }
-            catch(const std::exception& e) {
-                if(this -> verbose > 0) {
-                    std::cerr << e.what() << std::endl;
-                }
-                return -1;
-            }
-        }
-        case COMMAND_CODE_GET_KEYS: {
-            break;
-        }
-        case COMMAND_CODE_GET_KEYS_PREFIX: {
-            break;
-        }
-        case COMMAND_CODE_GET_FF: {
-            break;
-        }
-        case COMMAND_CODE_GET_FB: {
-            break;
-        }
-        default: {
-
-            break;
-        }
-
-    }
-
-    return 0;
-}*/
-
-/*std::string Primary_Server::query_partition(Partition_Entry& partition, const std::string &raw_message) {
-    if(!ensure_partition_connection(partition)) {
-        throw std::runtime_error(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
-    }
-
-    Server_Request serv_req;
-    serv_req.bytes_to_process = this. 
-    int64_t bytes_sent = this -> send_message(partition.socket_fd, raw_message);
-    if(bytes_sent == 0) {
-        std::string fail_str(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
-        fail_str += partition.name;
-        epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, partition.socket_fd, nullptr);
-        close(partition.socket_fd);
-        partition.status = Partition_Status::PARTITION_DEAD;
-        throw std::runtime_error(fail_str);
-    }
-
-    std::string response;
-    try {
-        response = this -> read_message(partition.socket_fd);
-        if(response.size() == 0) {
-            throw std::runtime_error(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
-        }
-    }
-    catch(...) {
-        epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, partition.socket_fd, nullptr);
-        close(partition.socket_fd);
-        partition.status = Partition_Status::PARTITION_DEAD;
-        throw;
-    }
-
-    return response;
-}
-*/
 bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
     if(partition.status != Partition_Status::PARTITION_DEAD && partition.socket_fd >= 0 && this -> sockets_type_map[partition.socket_fd] == Socket_Types::PARTITION_SERVER_SOCKET) {
         return true;
@@ -451,7 +348,7 @@ int8_t Primary_Server::process_client_in(socket_t socket_fd, const Server_Messag
                     std::cerr << e.what() << std::endl;
                 }
                 // send a message to the client about invalid operation
-                this -> prepare_socket_for_err_response(socket_fd);
+                this -> prepare_socket_for_err_response(socket_fd, msg.client_id);
                 return 0;
             }
 
