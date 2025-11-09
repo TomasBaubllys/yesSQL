@@ -22,6 +22,7 @@
 #include "thread_pool.h"
 #include "server_message.h"
 #include "fd_context.h"
+#include <shared_mutex>
 
 #define SERVER_LISTENING_ON_PORT_MSG "Listening on port: "
 
@@ -60,8 +61,7 @@
 
 class Server {
     protected:
-        std::unordered_map<socket_t, Socket_Types> sockets_type_map;
-        std::unordered_map<socket_t, Fd_Context*> socket_context_map;
+        std::unordered_map<socket_t, Fd_Type> sockets_type_map;
 
         uint16_t port;
         int32_t server_fd;
@@ -70,13 +70,18 @@ class Server {
         // client id - request
         std::unordered_map<socket_t, Server_Request> partial_read_buffers;
         
-        std::mutex response_queue_mutex;
+        std::mutex partial_buffer_mutex;
         // socket - response
         std::unordered_map<socket_t, Server_Response> partial_write_buffers;
+
+        // parittion -> queue of client ids
+        std::shared_mutex partition_queues_mutex;
+        std::unordered_map<socket_t, std::queue<Server_Message>> partition_queues;
+
         // variable decides if server prints out the messages.
         uint8_t verbose;
 
-        std::string create_status_response(Command_Code status, protocol_id_type client_id) const;
+        Server_Message create_status_response(Command_Code status, bool contain_cid, protocol_id_t client_id = 0) const;
 
         file_desc_t epoll_fd;
 
@@ -100,7 +105,7 @@ class Server {
 
         // @brief makes client_fd (the return value) non-blocking
         // and adds it to inner epoll sockets
-        socket_t add_client_socket_to_epoll(Fd_Context* context = nullptr);
+        std::vector<socket_t> add_client_socket_to_epoll();
         
         // @brief initializes the epoll, (create1)
         void init_epoll();
@@ -122,14 +127,14 @@ class Server {
         // THROWS
         Server_Message read_message(socket_t socket);
 
-        void add_message_to_response_queue(socket_t socket_fd, const std::string& message);
+        void add_message_to_response_queue(socket_t socket_fd, const Server_Message& message);
 
         // THROWS
         int64_t send_message(socket_t socket, Server_Response& server_response);
 
         // @brief extracts the command code from the received message
         // defined in protocol.h
-        Command_Code extract_command_code(const std::string& message) const;
+        Command_Code extract_command_code(const std::string& message, bool contains_cid) const;
 
         // @brief checks a connectivity to a certain socket
         bool try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec = 1) const;
@@ -145,20 +150,25 @@ class Server {
 
         // @brief extracts the first key that appears in the message
         // THROWS
-        std::string extract_key_str_from_msg(const std::string& message) const;
+        std::string extract_key_str_from_msg(const std::string& message, bool contains_cid) const;
 
         // @brief sends an ERR response to the provided socket
-        std::string create_error_response(protocol_id_type client_id)const;
+        Server_Message create_error_response(bool contain_cid, protocol_id_t client_id)const;
 
         // @brief sens an OK response to a given socket
-        std::string create_ok_response(protocol_id_type client_id) const;
+        Server_Message create_ok_response(bool contain_cid, protocol_id_t client_id) const;
 
         void prepare_socket_for_response(socket_t socket_fd, const Server_Message& serv_msg);
         
-        void prepare_socket_for_ok_response(socket_t socket_fd, protocol_id_type client_id);
+        void prepare_socket_for_ok_response(socket_t socket_fd, bool contain_cid, protocol_id_t client_id);
 
-        void prepare_socket_for_err_response(socket_t socket_fd, protocol_id_type client_id);
+        void prepare_socket_for_err_response(socket_t socket_fd, bool contain_cid, protocol_id_t client_id);
 
+        bool tactical_reload_partition(socket_t socket_fd);
+
+        bool add_cid_tag(Server_Message& serv_msg);
+
+        bool remove_cid_tag(Server_Message& serv_msg);
 };
 
 #endif // YSQL_SERVER_H_INCLUDED

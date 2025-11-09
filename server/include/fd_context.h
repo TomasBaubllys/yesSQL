@@ -15,11 +15,6 @@ enum class Query_Direction : uint8_t {
     PARTITION_TO_CLIENT
 };
 
-typedef struct Fd_Context {
-    Fd_Type fd_type;
-    socket_t socket_fd;
-} Fd_Context;
-
 typedef struct Query_Context {
     std::vector<socket_t> partition_sockets;
     socket_t client_socket;

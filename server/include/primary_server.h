@@ -49,19 +49,11 @@
 
 class Primary_Server : public Server {
     private:
-        // id -> query
-        std::unordered_map<uint64_t, Query_Context> query_map;
-        std::shared_mutex query_map_mutex;
-
         std::unordered_map<uint64_t, socket_t> id_client_map;
         std::shared_mutex id_client_map_mutex;
 
         std::unordered_map<socket_t, uint64_t> client_id_map;
         std::shared_mutex client_id_map_mutex;
-
-        // parittion -> queue of client ids
-        std::shared_mutex partition_queues_mutex;
-        std::unordered_map<socket_t, std::queue<uint64_t>> partition_queues;
 
         std::atomic<uint64_t> req_id{1};
 
@@ -92,14 +84,13 @@ class Primary_Server : public Server {
 
         // int8_t process_request(socket_t socket_fd, const  std::string& message);
 
-        socket_t add_client_socket_to_epoll_ctx(Fd_Type fd_type);
+        void add_client_socket_to_epoll_ctx();
 
         int8_t process_client_in(socket_t socket_fd, const Server_Message& msg);
 
         int8_t process_partition_in(socket_t socket_fd, const Server_Message& msg);
 
-        // if partition has jobs in its queue it adds a new one to the partial buffers
-        bool tactical_reload_partition(socket_t socket_fd);
+        void add_paritions_to_epoll();
 
     public:
         Primary_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
