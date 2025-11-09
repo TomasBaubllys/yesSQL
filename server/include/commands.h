@@ -19,6 +19,7 @@ using command_code_type = uint16_t;
 
 typedef enum Command_Code : command_code_type {
     COMMAND_CODE_OK,
+    // send error message isntead of key
     COMMAND_CODE_ERR,
     COMMAND_CODE_GET,
     COMMAND_CODE_SET,
@@ -26,10 +27,13 @@ typedef enum Command_Code : command_code_type {
     COMMAND_CODE_GET_KEYS_PREFIX,
     COMMAND_CODE_GET_FF,
     COMMAND_CODE_GET_FB,
+    // send value+key what was removed
     COMMAND_CODE_REMOVE,
 
+    // send nothing but header + code
     COMMAND_CODE_DATA_NOT_FOUND,
     INVALID_COMMAND_CODE
 } Command_Code;
 
 #endif // YSQL_COMMANDS_H_INCLUDED
+
