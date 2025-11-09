@@ -149,6 +149,8 @@ bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
  */
 
 int8_t Primary_Server::start() {
+    uint64_t counter = 0;
+
     if (listen(this->server_fd, 255) < 0) {   
         std::string listen_failed_str(SERVER_FAILED_LISTEN_ERR_MSG);
         listen_failed_str += SERVER_ERRNO_STR_PREFIX;
@@ -163,7 +165,9 @@ int8_t Primary_Server::start() {
     add_paritions_to_epoll();
 
     while (true) {
+        std::cout << "EPOLLWAIT" << std::endl;
         int32_t ready_fd_count = this -> server_epoll_wait();
+        std::cout << "EPOLLREADY" << std::endl;
         if(ready_fd_count < 0) {
             if(errno == EINTR) {
                 continue;
@@ -195,9 +199,11 @@ int8_t Primary_Server::start() {
 
                 case Fd_Type::CLIENT: {
                     if(ev.events & EPOLLIN) {
+                        std::cout << "CLIENT_EPOLLIN" << std::endl;
                         // read the message from the client
                         Server_Message serv_msg = this -> read_message(socket_fd);
                         if(serv_msg.message.empty()) {
+                            std::cout << "msg was empty" << std::endl;
                             continue;
                         }
 
@@ -208,11 +214,14 @@ int8_t Primary_Server::start() {
                         }
 
                         // get the partitions number
+                        std::cout << "here" << std::endl;
                         this -> thread_pool.enqueue([this, socket_fd, serv_msg](){
                             this -> process_client_in(socket_fd, serv_msg);
                         });
                     }
                     else if(ev.events & EPOLLOUT) {
+                        std::cout << "CLIENT_EPOLLOUT" << std::endl;
+                        std::cout << "CLIENT_REQUEST: " << counter++ << std::endl;
                         std::lock_guard<std::mutex> lock(this -> partial_buffer_mutex);
                         std::unordered_map<socket_t, Server_Response>::iterator msg = this -> partial_write_buffers.find(socket_fd);
                         
@@ -258,6 +267,7 @@ int8_t Primary_Server::start() {
                 }
 
                 case Fd_Type::PARTITION: {
+                    std::cout << "PARTITION_EPOLLIN" << std::endl;
                     if(ev.events & EPOLLIN) {
                         // read the message
                         Server_Message serv_msg = this -> read_message(socket_fd);
@@ -277,9 +287,9 @@ int8_t Primary_Server::start() {
                         this -> thread_pool.enqueue([this, client_fd, serv_msg]() {
                             this -> process_partition_in(client_fd, serv_msg);
                         });
-
                     }
                     else if (ev.events & EPOLLOUT) {
+                        std::cout << "PARTITION_EPOLLOUT" << std::endl;
                         Server_Request serv_req;
                         bool has_data = false;
                         {
@@ -417,25 +427,12 @@ int8_t Primary_Server::process_client_in(socket_t socket_fd, const Server_Messag
             serv_req.client_id = cid;
             this -> add_cid_tag(serv_req);
 
-            bool was_empty = false;
             if(!ensure_partition_connection(partition_entry)) {
                 this -> prepare_socket_for_err_response(socket_fd, false, 0);
                 return -1;
             }
 
-            // add the request id to the partition queues
-            {
-                std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
-                was_empty = partition_queues[partition_fd].empty();
-                if(!was_empty) {
-                    partition_queues[partition_fd].push(serv_req);
-                }
-            }
-
-            if(was_empty) {
-                std::unique_lock<std::mutex> lock(partial_buffer_mutex);
-                this -> partial_write_buffers[partition_fd] = serv_req;
-            }
+            this -> add_message_to_response_queue(partition_fd, serv_req);
 
             // mark the partition as EPOLLOUT
             try {
@@ -485,7 +482,18 @@ int8_t Primary_Server::process_partition_in(socket_t socket_fd, const Server_Mes
         partial_write_buffers[socket_fd] = msg;
     }
 
-    this -> modify_socket_for_sending_epoll(socket_fd);
+    try {
+        this -> modify_socket_for_sending_epoll(socket_fd);
+    }
+    catch(const std::exception& e){
+        if(this -> verbose > 0) {
+            std::cerr << e.what() << std::endl;
+            std::cerr << "Fd = " << socket_fd << "Fd type: " << int(this ->sockets_type_map[socket_fd]) << std::endl;
+        }
+
+        return -1;
+    }
+
     return 0;
 }
 

@@ -41,7 +41,7 @@ int8_t Partition_Server::start() {
             }
             else if(this -> epoll_events[i].events & EPOLLIN) {
                 Server_Message serv_msg = this -> read_message(socket_fd);
-                std::cout << "CLIENT_SENT MESSAGE: " << serv_msg.client_id << std::endl;
+                // std::cout << "CLIENT_SENT MESSAGE: " << serv_msg.client_id << std::endl;
 
                 if(serv_msg.message.empty()) {
                     continue;
@@ -82,9 +82,9 @@ int8_t Partition_Server::start() {
                 if(has_data) {
                     int64_t bytes_sent = this -> send_message(socket_fd, serv_req);
                     for(int i = 0; i < bytes_sent; ++i) {
-                        std::cout << int(serv_req.message[i]) << " ";
+                        // std::cout << int(serv_req.message[i]) << " ";
                     }
-                    std::cout << std::endl << "CID" << serv_req.client_id << std::endl;
+                    // std::cout << std::endl << "CID" << serv_req.client_id << std::endl;
                     if (bytes_sent < 0) {
                         this -> request_to_remove_fd(socket_fd);
                         continue;

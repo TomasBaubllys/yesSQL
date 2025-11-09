@@ -77,6 +77,7 @@ Server_Message Server::read_message(socket_t socket_fd) {
 
     while (true) {
         int32_t bytes_read = recv(socket_fd, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
+        std::cout << "bytes received" << bytes_read <<  std::endl;
 
         if (bytes_read < 0) {
             if(errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -427,39 +428,17 @@ void Server::modify_epoll_event(socket_t socket_fd, uint32_t new_events) {
 }
 
 void Server::modify_socket_for_sending_epoll(socket_t socket_fd) {
-    this -> modify_epoll_event(socket_fd, EPOLLOUT | EPOLLET);
+    this -> modify_epoll_event(socket_fd, EPOLLOUT);// | EPOLLET);
 }
 
 void Server::modify_socket_for_receiving_epoll(socket_t socket_fd) {
-    this -> modify_epoll_event(socket_fd, EPOLLIN | EPOLLET);
+    this -> modify_epoll_event(socket_fd, EPOLLIN);// | EPOLLET);
 }
 
 void Server::add_message_to_response_queue(socket_t socket_fd, const Server_Message& message) {
-    // check if resp_buffer is empty, add it to resp buffer otherwise add it to the queue
-    bool write_bff_empty = false;
-    // check if writting buffer is empty
-    {
-        std::unique_lock<std::mutex> lock(this -> partial_buffer_mutex);
-        std::unordered_map<socket_t, Server_Message>::iterator it = this -> partial_write_buffers.find(socket_fd);
-        write_bff_empty = (it == partial_write_buffers.end());
-    }
-
-    // check if queue is empty yes -> add response to the queue no -> add response to the buffer
-    bool queue_was_empty = false;
-    {
-        std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
-        std::unordered_map<socket_t, std::queue<Server_Message>>::iterator it = this -> partition_queues.find(socket_fd);
-        queue_was_empty = (it == this -> partition_queues.end()) || (it -> second.empty());
-        // add it to the queue
-        if(!queue_was_empty) {
-            this -> partition_queues[socket_fd].push(message);
-        }
-    }
-    
-    if(queue_was_empty) {
-        std::unique_lock<std::mutex> lock(this -> partial_buffer_mutex);
-        this -> partial_write_buffers[socket_fd] = message;
-    }
+    std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
+    // std::unordered_map<socket_t, std::queue<Server_Message>>::iterator it = this -> partition_queues.find(socket_fd);
+    this -> partition_queues[socket_fd].push(message);
 }
 
 void Server::prepare_socket_for_response(socket_t socket_fd, const Server_Message& serv_msg) {
@@ -468,8 +447,8 @@ void Server::prepare_socket_for_response(socket_t socket_fd, const Server_Messag
 }
 
 void Server::prepare_socket_for_ok_response(socket_t socket_fd, bool contain_cid, protocol_id_t client_id) {
-                            std::cout << "CLIENT_ID: " << client_id << std::endl;
-                        std::cout << "CLIENT_ID: " << client_id << std::endl;
+    // std::cout << "CLIENT_ID: " << client_id << std::endl;
+    // std::cout << "CLIENT_ID: " << client_id << std::endl;
 
     this -> modify_socket_for_sending_epoll(socket_fd);
     Server_Message serv_msg = this -> create_ok_response(contain_cid, client_id);
@@ -484,6 +463,7 @@ void Server::prepare_socket_for_err_response(socket_t socket_fd, bool contain_ci
 }
 
 bool Server::tactical_reload_partition(socket_t socket_fd) {
+    std::cout << "here" << std::endl;
     Server_Message pending_msg; 
     bool loaded = false;
     {
@@ -496,7 +476,7 @@ bool Server::tactical_reload_partition(socket_t socket_fd) {
     }
 
     if (loaded) {
-        std::lock_guard<std::mutex> resp_lock(partial_buffer_mutex);
+        // std::lock_guard<std::mutex> resp_lock(partial_buffer_mutex);
         this -> partial_write_buffers[socket_fd] = std::move(pending_msg);
     }
 
