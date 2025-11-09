@@ -18,6 +18,7 @@ typedef struct Partition_Entry {
     uint16_t port;
     socket_t socket_fd;
     int8_t status;
+    int16_t id;
 } Partition_Entry;
 
 #endif // YSQL_PARTITION_ENTRY_H_INCLUDED

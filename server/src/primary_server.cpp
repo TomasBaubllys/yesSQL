@@ -16,7 +16,7 @@ Primary_Server::Primary_Server(uint16_t port, uint8_t verbose) : Server(port, ve
     }
 
     this -> partition_count = atoi(partition_count_str);
-    if(this -> partition_count == 0) { // || this -> partition_count >= PRIMARY_SERVER_MAX_PARTITION_COUNT) {
+    if(this -> partition_count == 0) {
         throw std::runtime_error(PRIMARY_SERVER_PARTITION_COUNT_ZERO_ERR_MSG);
     }
 
@@ -47,6 +47,8 @@ Primary_Server::Primary_Server(uint16_t port, uint8_t verbose) : Server(port, ve
         if(i == this -> partition_count - 1) {
             partition_entry.range.end = std::numeric_limits<uint32_t>::max();
         }
+
+        partition_entry.id = i;
 
         this -> partitions.push_back(partition_entry);
     }
@@ -128,10 +130,11 @@ bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
 
     epoll_event ev{};
     ev.data.fd = partition.socket_fd;
+    this -> partitions[partition.id].socket_fd = partition.socket_fd;
+    this -> partitions[partition.id].status = Partition_Status::PARTITION_FREE;
     ev.events = EPOLLOUT | EPOLLET;
     std::cout << "EPOLL" << epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, partition.socket_fd, &ev) <<  std::endl;
 
-    partition.status = Partition_Status::PARTITION_FREE;
     this -> sockets_type_map[partition.socket_fd] = Fd_Type::PARTITION;
     return true;
 }
@@ -262,8 +265,6 @@ int8_t Primary_Server::start() {
                             continue;
                         }
 
-                        // std::cout << "RECEIVED DATTA????" << std::endl;
-
                         // get the client id and set it up to EPOLLOUT
                         socket_t client_fd;
                         {
@@ -306,7 +307,6 @@ int8_t Primary_Server::start() {
                                 serv_req = partial_write_buffers[socket_fd];
                             }
                         }
-                        // std::cout << "SENDING MSG: " << serv_req.message.size() << std::endl;
 
                         if(has_data) {
                             int64_t bytes_sent = this -> send_message(socket_fd, serv_req);
@@ -328,9 +328,6 @@ int8_t Primary_Server::start() {
                                 this -> request_to_remove_fd(socket_fd);
                                 continue;
                             }
-
-                            //std::cout << bytes_sent << std::endl;
-                            //std::cout << serv_req.bytes_to_process << std::endl;
 
                             if (serv_req.bytes_processed >= serv_req.bytes_to_process) {
 
@@ -366,7 +363,6 @@ void Primary_Server::add_client_socket_to_epoll_ctx() {
 
     for(socket_t& socket_fd : client_fds) {
         uint64_t cid = this -> req_id.fetch_add(1, std::memory_order_relaxed);
-        std::cout << "New client:" << cid << std::endl; 
         {
             std::unique_lock<std::shared_mutex> lock(this -> id_client_map_mutex);
             this -> id_client_map[cid] = socket_fd;
@@ -384,9 +380,6 @@ void Primary_Server::add_client_socket_to_epoll_ctx() {
 int8_t Primary_Server::process_client_in(socket_t socket_fd, const Server_Message& msg) {
     // extract the command code
     Command_Code com_code = this -> extract_command_code(msg.message, false);
-    std::cout << "HERE" << std::endl;
-    std::cout << "HERE" << std::endl;
-    std::cout << "HERE" << std::endl; 
 
     // decide how to handle it
     switch(com_code) {
@@ -445,7 +438,17 @@ int8_t Primary_Server::process_client_in(socket_t socket_fd, const Server_Messag
             }
 
             // mark the partition as EPOLLOUT
-            this -> modify_socket_for_sending_epoll(partition_fd);
+            try {
+                this -> modify_socket_for_sending_epoll(partition_fd);
+            }
+            catch(const std::exception& e) {
+                if(this -> verbose > 0) {
+                    std::cerr << e.what() << std::endl;
+                }
+                this -> partitions[partition_entry.id].status = Partition_Status::PARTITION_DEAD;
+                this -> prepare_socket_for_err_response(socket_fd, false, 0);
+            }
+
             break;
 
         }
