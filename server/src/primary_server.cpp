@@ -203,8 +203,6 @@ int8_t Primary_Server::start() {
                             serv_msg.client_id = this -> client_id_map[socket_fd];
                         }
 
-                        // std::cout << "CID:" << serv_msg.client_id << "\n" << serv_msg.bytes_to_process << std::endl;
-
                         // get the partitions number
                         this -> thread_pool.enqueue([this, socket_fd, serv_msg](){
                             this -> process_client_in(socket_fd, serv_msg);
@@ -362,8 +360,6 @@ void Primary_Server::add_client_socket_to_epoll_ctx() {
 }
 
 int8_t Primary_Server::process_client_in(socket_t socket_fd, const Server_Message& msg) {
-    // std::cout << "PCIN MSG SIZE" << msg.message.size() << std::endl;
-
     // extract the command code
     Command_Code com_code = this -> extract_command_code(msg.message, false);
 
@@ -397,13 +393,11 @@ int8_t Primary_Server::process_client_in(socket_t socket_fd, const Server_Messag
             }
 
             Server_Request serv_req;
-            // must include the id in the message!!!!!
             serv_req.message = msg.message;
             serv_req.bytes_to_process = msg.bytes_to_process;
             serv_req.bytes_processed = 0;
             serv_req.client_id = cid;
             this -> add_cid_tag(serv_req);
-            // std::cout << "BYTES OT PROC" << serv_req.bytes_to_process << std::endl;
 
             bool was_empty = false;
             // add the request id to the partition queues
