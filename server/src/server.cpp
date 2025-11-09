@@ -519,5 +519,8 @@ bool Server::add_cid_tag(Server_Message& serv_msg) {
 bool Server::remove_cid_tag(Server_Message& serv_msg) {
     serv_msg.message.erase(sizeof(protocol_message_len_type), sizeof(protocol_id_t));
     serv_msg.bytes_to_process -= sizeof(protocol_id_t);
+    protocol_message_len_type net_len = protocol_msg_len_hton(serv_msg.bytes_to_process);
+    memcpy(&serv_msg.message[0], &net_len, sizeof(net_len));
+
     return true;
 }

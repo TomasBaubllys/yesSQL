@@ -114,6 +114,7 @@ std::vector<Partition_Entry> Primary_Server::get_partitions_fb(const std::string
     return std::vector<Partition_Entry>();
 }
 
+// add a mutex for this
 bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
     if(partition.status != Partition_Status::PARTITION_DEAD && partition.socket_fd >= 0 && this -> sockets_type_map[partition.socket_fd] == Fd_Type::PARTITION) {
         return true;
@@ -128,7 +129,7 @@ bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
     epoll_event ev{};
     ev.data.fd = partition.socket_fd;
     ev.events = EPOLLOUT | EPOLLET;
-    epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, partition.socket_fd, &ev);
+    std::cout << "EPOLL" << epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, partition.socket_fd, &ev) <<  std::endl;
 
     partition.status = Partition_Status::PARTITION_FREE;
     this -> sockets_type_map[partition.socket_fd] = Fd_Type::PARTITION;
@@ -218,6 +219,13 @@ int8_t Primary_Server::start() {
 
                             std::cout << "sending_to: " << data.client_id << "FD: " << socket_fd << std::endl;
                             std::cout << bytes_sent << "/" << data.bytes_to_process << std::endl;
+                            std::cout << bytes_sent << "/" << data.message.size() << std::endl;
+
+                            for(int i = 0; i < bytes_sent; ++i) {
+                                std::cout << int(data.message[i]) << " ";
+                            }
+
+                            std::cout << std::endl;
 
                             if(bytes_sent < 0) {
                                 this -> request_to_remove_fd(socket_fd);
@@ -303,6 +311,20 @@ int8_t Primary_Server::start() {
                         if(has_data) {
                             int64_t bytes_sent = this -> send_message(socket_fd, serv_req);
                             if (bytes_sent < 0) {
+                                // get the clients socket
+                                socket_t client_fd;
+                                {
+                                    std::shared_lock<std::shared_mutex> lock(this -> id_client_map_mutex);
+                                    client_fd = this -> id_client_map[serv_req.client_id];
+                                }
+
+                                if(client_fd < 0) {
+
+                                }
+                                else {
+                                    this -> prepare_socket_for_err_response(client_fd, false, serv_req.client_id);
+                                }
+
                                 this -> request_to_remove_fd(socket_fd);
                                 continue;
                             }
@@ -362,6 +384,9 @@ void Primary_Server::add_client_socket_to_epoll_ctx() {
 int8_t Primary_Server::process_client_in(socket_t socket_fd, const Server_Message& msg) {
     // extract the command code
     Command_Code com_code = this -> extract_command_code(msg.message, false);
+    std::cout << "HERE" << std::endl;
+    std::cout << "HERE" << std::endl;
+    std::cout << "HERE" << std::endl; 
 
     // decide how to handle it
     switch(com_code) {
@@ -378,7 +403,7 @@ int8_t Primary_Server::process_client_in(socket_t socket_fd, const Server_Messag
                     std::cerr << e.what() << std::endl;
                 }
                 // send a message to the client about invalid operation
-                this -> prepare_socket_for_err_response(socket_fd, msg.client_id, false);
+                this -> prepare_socket_for_err_response(socket_fd, false, msg.client_id);
                 return 0;
             }
 
@@ -400,6 +425,11 @@ int8_t Primary_Server::process_client_in(socket_t socket_fd, const Server_Messag
             this -> add_cid_tag(serv_req);
 
             bool was_empty = false;
+            if(!ensure_partition_connection(partition_entry)) {
+                this -> prepare_socket_for_err_response(socket_fd, false, 0);
+                return -1;
+            }
+
             // add the request id to the partition queues
             {
                 std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
