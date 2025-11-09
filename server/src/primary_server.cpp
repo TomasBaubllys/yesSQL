@@ -303,9 +303,30 @@ int8_t Primary_Server::start() {
                         });
                     }
                     else if(ev.events & EPOLLOUT) {
-                        // single client has a single connection, simple forward the message saved in query context
+                       std::lock_guard<std::mutex> lock(this -> response_queue_mutex);
+                        std::unordered_map<socket_t, Server_Response>::iterator msg = this -> partial_write_buffers.find(socket_fd);
+                        
+                        if(msg != this -> partial_write_buffers.end()) {
+                            Server_Request& data = msg -> second;
+                            int64_t bytes_sent = this -> send_message(socket_fd, data);
+                            if(bytes_sent < 0) {
+                                this -> request_to_remove_fd(socket_fd);
+                                continue;
+                            }
 
-
+                            if(msg -> second.bytes_to_process <= msg -> second.bytes_processed) {
+                                this -> partial_write_buffers.erase(msg);
+                                // return to listening stage
+                                try {
+                                    this -> modify_socket_for_receiving_epoll(socket_fd);
+                                }
+                                catch(const std::exception& e) {
+                                    if(this -> verbose > 0) {
+                                        std::cerr << e.what() << std::endl;
+                                    }
+                                } 
+                            }
+                        }
                     }
                     else {
                         // figure this one client prob disconected

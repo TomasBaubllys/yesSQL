@@ -31,30 +31,30 @@ class Partition_Server : public Server {
         Partition_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
 
         // send a response of all the entries contained in the vector
-        std::string create_entries_response(const std::vector<Entry>& entry_array) const;
+        std::string create_entries_response(const std::vector<Entry>& entry_array, protocol_id_type client_id)const;
 
         // THROWS
         // extracts the first value string contained in the message
         std::string extract_value(const std::string& raw_message) const;
 
         // Processes the clients request GET SET etc...
-        int8_t process_request(socket_t socket_fd, const std::string& message);
+        int8_t process_request(socket_t socket_fd, const Server_Message& serv_msg);
 
         // handles SET, responds to the socket_fd, upon failure returns <0 on success >= 0 
-        int8_t handle_set_request(socket_t socket_fd, const std::string& message);
+        int8_t handle_set_request(socket_t socket_fd, const Server_Message& message);
 
         // handles GET, responds to the socket_fd, upon failure returns <0 on success >= 0 
-        int8_t handle_get_request(socket_t socket_fd, const std::string& message);
+        int8_t handle_get_request(socket_t socket_fd, const Server_Message& message);
 
         // handles REMOVE, responds to the socket_fd, upon failure returns <0 on success >= 0 
-        int8_t handle_remove_request(socket_t socket_fd, const std::string& message);
+        int8_t handle_remove_request(socket_t socket_fd, const Server_Message& message);
 
-        void prepare_socket_for_not_found_response(socket_t socket_fd);
+        void prepare_socket_for_not_found_response(socket_t socket_fd, protocol_id_type client_id);
 
         // @brief handles client requests
         // calls the handle int8_t process_request(socket_t, string);
         // on failure pushes the socket_fd to remove_queue 
-        void handle_client(socket_t socket_fd, const std::string& message);
+        void handle_client(socket_t socket_fd, const Server_Message& message);
 
         int8_t start() override;
 };

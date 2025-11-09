@@ -276,23 +276,24 @@ void Server::make_non_blocking(socket_t& socket) {
     fcntl(socket, F_SETFL, flags | O_NONBLOCK);
 }
 
-std::string Server::create_ok_response() const {
-    return this -> create_status_response(COMMAND_CODE_OK);
+std::string Server::create_ok_response(protocol_id_type client_id) const {
+    return this -> create_status_response(COMMAND_CODE_OK, client_id);
 }
 
-std::string Server::create_error_response() const {
-    return this -> create_status_response(COMMAND_CODE_ERR);
+std::string Server::create_error_response(protocol_id_type client_id) const {
+    return this -> create_status_response(COMMAND_CODE_ERR, client_id);
 }
 
-std::string Server::create_status_response(Command_Code status) const {
+std::string Server::create_status_response(Command_Code status, protocol_id_type client_id) const {
     if(status != COMMAND_CODE_ERR && status != COMMAND_CODE_OK && status != COMMAND_CODE_DATA_NOT_FOUND) {
         return "";
     }
 
     protocol_message_len_type message_length;
     protocol_array_len_type arr_len = 0;
+    protocol_id_type net_cid = protocol_id_hton(client_id);
     command_code_type com_code = command_hton(status);
-    message_length = sizeof(message_length) + sizeof(arr_len) + sizeof(com_code);
+    message_length = sizeof(message_length) + sizeof(arr_len) + sizeof(com_code) + sizeof(net_cid);
     std::string message(message_length, '\0');
 
     protocol_message_len_type network_msg_len = protocol_msg_len_hton(message_length);
@@ -300,6 +301,8 @@ std::string Server::create_status_response(Command_Code status) const {
     size_t curr_pos = 0;
     memcpy(&message[0], &network_msg_len, sizeof(network_msg_len));
     curr_pos += sizeof(network_msg_len);
+    memcpy(&message[curr_pos], &net_cid, sizeof(net_cid));
+    curr_pos += sizeof(net_cid);
     memcpy(&message[curr_pos], &arr_len, sizeof(arr_len));
     curr_pos += sizeof(arr_len);
     memcpy(&message[curr_pos], &com_code, sizeof(com_code));
@@ -408,18 +411,18 @@ void Server::add_message_to_response_queue(socket_t socket_fd, const std::string
     this -> partial_write_buffers[socket_fd] = s_resp; 
 }
 
-void Server::prepare_socket_for_response(socket_t socket_fd, const std::string& message) {
+void Server::prepare_socket_for_response(socket_t socket_fd, const Server_Message& serv_msg) {
     this -> modify_socket_for_sending_epoll(socket_fd);
-    this -> add_message_to_response_queue(socket_fd, message);
+    this -> add_message_to_response_queue(socket_fd, serv_msg.message);
 }
 
-void Server::prepare_socket_for_ok_response(socket_t socket_fd) {
+void Server::prepare_socket_for_ok_response(socket_t socket_fd, protocol_id_type client_id) {
     this -> modify_socket_for_sending_epoll(socket_fd);
-    std::string ok_resp_str = this -> create_ok_response();
+    std::string ok_resp_str = this -> create_ok_response(client_id);
     this -> add_message_to_response_queue(socket_fd, ok_resp_str);
 }
-void Server::prepare_socket_for_err_response(socket_t socket_fd) {
+void Server::prepare_socket_for_err_response(socket_t socket_fd, protocol_id_type client_id) {
     this -> modify_socket_for_sending_epoll(socket_fd);
-    std::string err_resp_str = this -> create_error_response();
+    std::string err_resp_str = this -> create_error_response(client_id);
     this -> add_message_to_response_queue(socket_fd, err_resp_str);
 }

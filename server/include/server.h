@@ -76,7 +76,7 @@ class Server {
         // variable decides if server prints out the messages.
         uint8_t verbose;
 
-        std::string create_status_response(Command_Code status) const;
+        std::string create_status_response(Command_Code status, protocol_id_type client_id) const;
 
         file_desc_t epoll_fd;
 
@@ -148,16 +148,16 @@ class Server {
         std::string extract_key_str_from_msg(const std::string& message) const;
 
         // @brief sends an ERR response to the provided socket
-        std::string create_error_response() const;
+        std::string create_error_response(protocol_id_type client_id)const;
 
         // @brief sens an OK response to a given socket
-        std::string create_ok_response() const;
+        std::string create_ok_response(protocol_id_type client_id) const;
 
-        void prepare_socket_for_response(socket_t socket_fd, const std::string& message);
+        void prepare_socket_for_response(socket_t socket_fd, const Server_Message& serv_msg);
         
-        void prepare_socket_for_ok_response(socket_t socket_fd);
+        void prepare_socket_for_ok_response(socket_t socket_fd, protocol_id_type client_id);
 
-        void prepare_socket_for_err_response(socket_t socket_fd);
+        void prepare_socket_for_err_response(socket_t socket_fd, protocol_id_type client_id);
 
 };
 

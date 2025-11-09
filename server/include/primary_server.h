@@ -96,7 +96,7 @@ class Primary_Server : public Server {
 
         int8_t process_client_in(socket_t socket_fd, const Server_Message& msg);
 
-        int8_t process_partition_in(socket_t socket_fd, const Server_Messafe& msg);
+        int8_t process_partition_in(socket_t socket_fd, const Server_Message& msg);
 
         // if partition has jobs in its queue it adds a new one to the partial buffers
         bool tactical_reload_partition(socket_t socket_fd);
