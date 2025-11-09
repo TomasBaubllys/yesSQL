@@ -40,12 +40,19 @@ using protocol_value_len_type = value_len_type;
 #define protocol_value_len_hton(x) htonl(x)
 #define protocol_value_len_ntoh(x) ntohl(x)
 
-#define PROTOCOL_COMMAND_NUMBER_POS (sizeof(protocol_message_len_type) + sizeof(protocol_array_len_type))
+using protocol_id_t = uint64_t;
+#define protocol_id_hton(x) htonll(x)
+#define protocol_id_ntoh(x) ntohll(x)
 
+#define PROTOCOL_COMMAND_NUMBER_POS_NOCID (sizeof(protocol_message_len_type) + sizeof(protocol_array_len_type))
+#define PROTOCOL_COMMAND_NUMBER_POS (sizeof(protocol_id_t) + sizeof(protocol_message_len_type) + sizeof(protocol_array_len_type))
+
+#define PROTOCOL_FIRST_KEY_LEN_POS_NOCID (PROTOCOL_COMMAND_NUMBER_POS_NOCID + sizeof(command_code_type))
 #define PROTOCOL_FIRST_KEY_LEN_POS (PROTOCOL_COMMAND_NUMBER_POS + sizeof(command_code_type))
+
 /* General command exchange
- *
  * <(uint64_t) length of the whole message>
+ * [uint64_t] client_id - only for the internal messages
  * <(uint64_t) number of elements in the message>
  * <(uint16_t) command number>
  *

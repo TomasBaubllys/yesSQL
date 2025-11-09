@@ -2,6 +2,12 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <sys/epoll.h>
+#include <system_error>
+
+/*
+FIX THE BUG FOR ENQUEUING SENDING MESSAGES
+
+*/
 
 Primary_Server::Primary_Server(uint16_t port, uint8_t verbose) : Server(port, verbose) {
     const char* partition_count_str = std::getenv(PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING);
@@ -25,7 +31,7 @@ Primary_Server::Primary_Server(uint16_t port, uint8_t verbose) : Server(port, ve
 
         bool success = false;
         partition_entry.socket_fd = this -> connect_to(partition_entry.name, partition_entry.port, success);
-        this -> sockets_map[partition_entry.socket_fd] = Socket_Types::PARTITION_SERVER_SOCKET;
+        this -> sockets_type_map[partition_entry.socket_fd] = Fd_Type::PARTITION;
 
         if(!success) {
             partition_entry.status = Partition_Status::PARTITION_DEAD;
@@ -46,7 +52,8 @@ Primary_Server::Primary_Server(uint16_t port, uint8_t verbose) : Server(port, ve
     }
 }
 
-void Primary_Server::start_partition_monitor_thread() const {
+void Primary_Server::start_partition_monitor_thread() const
+{
     std::thread status_thread([this]() {
         while(true) {
             this -> display_partitions_status();
@@ -55,74 +62,6 @@ void Primary_Server::start_partition_monitor_thread() const {
     });
     status_thread.detach();
 }
-
-int8_t Primary_Server::start() {
-    if (listen(server_fd, PRIMARY_SERVER_DEFAULT_LISTEN_VALUE) < 0) {
-        std::string listen_failed_str(SERVER_FAILED_LISTEN_ERR_MSG);
-        listen_failed_str += SERVER_ERRNO_STR_PREFIX;
-        listen_failed_str += std::to_string(errno);
-        throw std::runtime_error(listen_failed_str);
-    }
-
-    if(this -> init_epoll() < 0) {
-        throw std::runtime_error(SERVER_FAILED_EPOLL_CREATE_ERR_MSG);
-    }
-
-    if (this -> add_this_to_epoll() < 0) {
-        throw std::runtime_error(SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG);
-    }
-
-    while (true) {
-        int32_t ready_fd_count = this -> server_epoll_wait();
-        if (ready_fd_count < 0) {
-            if (errno == EINTR) continue; // interrupted by signal
-            if(this -> verbose > 0) {
-                std::cerr << SERVER_EPOLL_WAIT_FAILED_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
-            }
-            break;
-        }
-
-        for (int i = 0; i < ready_fd_count; ++i) {
-            file_desc_t fd = this -> epoll_events[i].data.fd;
-
-            if (fd == server_fd) {
-                socket_t client_fd = this -> add_client_socket_to_epoll(); 
-                this -> sockets_map[client_fd] = Socket_Types::CLIENT_SOCKET;
-
-            } else if (this -> epoll_events[i].events & EPOLLIN) {
-                // Data is ready to be read
-                try {
-                    std::string message = this -> read_message(fd);
-                    if (message.empty()) {
-                        continue;
-                    }
-
-                    // Handle the full message
-                    int8_t result = this -> handle_client_request(fd, message);
-                    if (result < 0) {
-                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
-                        close(fd);
-                    }
-                }
-                catch (const std::exception& e) {
-                    if (verbose > 0)
-                        std::cerr << "Error reading from fd=" << fd << ": " << e.what() << std::endl;
-                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
-                    close(fd);
-                }
-            } else if (this -> epoll_events[i].events & (EPOLLHUP | EPOLLERR)) {
-                // Client hang-up or error
-                if (verbose > 0)
-                    std::cerr << "Client error/hang-up: fd=" << fd << std::endl;
-                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
-                close(fd);
-            }
-        }
-    }
-
-    return 0;
-}
-
 
 void Primary_Server::display_partitions_status() const {
     std::vector<bool> status = this -> get_partitions_status();
@@ -175,8 +114,279 @@ std::vector<Partition_Entry> Primary_Server::get_partitions_fb(const std::string
     return std::vector<Partition_Entry>();
 }
 
-int8_t Primary_Server::handle_client_request(socket_t client_socket, std::string& client_message) {
-    Command_Code com_code = this -> extract_command_code(client_message);
+// add a mutex for this
+bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
+    if(partition.status != Partition_Status::PARTITION_DEAD && partition.socket_fd >= 0 && this -> sockets_type_map[partition.socket_fd] == Fd_Type::PARTITION) {
+        return true;
+    }
+
+    bool success = false;
+    partition.socket_fd = this -> connect_to(partition.name, partition.port, success);
+    if(!success || partition.socket_fd < 0) {
+        return false;
+    }
+
+    epoll_event ev{};
+    ev.data.fd = partition.socket_fd;
+    ev.events = EPOLLOUT | EPOLLET;
+    std::cout << "EPOLL" << epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, partition.socket_fd, &ev) <<  std::endl;
+
+    partition.status = Partition_Status::PARTITION_FREE;
+    this -> sockets_type_map[partition.socket_fd] = Fd_Type::PARTITION;
+    return true;
+}
+
+/**
+ *  TODO IN START LOOP
+ *  SEPERATE CURRENT THREADS INTO 
+ *  SEND DATA TO PARTITION
+ *  RECEIVE DATA FROM PARTITION
+ *  ADD CONTEXT TO KNOW WHATS HAPPENING
+ *  PARTITIONS NEVER ASK TO CONNECT TO US, WE ALWAYS CONNECT TO THEM, SO ACCEPT A SOCKEY IS ALWAYS A CLIENT
+ */
+
+int8_t Primary_Server::start() {
+    if (listen(this->server_fd, 255) < 0) {   
+        std::string listen_failed_str(SERVER_FAILED_LISTEN_ERR_MSG);
+        listen_failed_str += SERVER_ERRNO_STR_PREFIX;
+        listen_failed_str += std::to_string(errno);
+        throw std::runtime_error(listen_failed_str);
+    }
+
+    init_epoll();
+
+    add_this_to_epoll();
+
+    add_paritions_to_epoll();
+
+    while (true) {
+        int32_t ready_fd_count = this -> server_epoll_wait();
+        if(ready_fd_count < 0) {
+            if(errno == EINTR) {
+                continue;
+            }
+            if(this -> verbose > 0) {
+                std::cerr << SERVER_EPOLL_WAIT_FAILED_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+                break;
+            }
+        }
+
+        for(int32_t i = 0; i < ready_fd_count; ++i) {
+            epoll_event ev = this -> epoll_events.at(i);
+            socket_t socket_fd = ev.data.fd;
+            Fd_Type sock_type = this -> sockets_type_map[socket_fd];
+            if(ev.events & (EPOLLHUP | EPOLLERR)) {
+                if (verbose > 0) {
+                    std::cerr << "Client error/hang-up: fd=" << socket_fd << std::endl;
+                }
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, socket_fd, nullptr);
+                this -> sockets_type_map.erase(socket_fd);
+                close(socket_fd);
+            }
+
+            switch(sock_type) {
+                case Fd_Type::LISTENER: {
+                    this -> add_client_socket_to_epoll_ctx();
+                    break;
+                }
+
+                case Fd_Type::CLIENT: {
+                    if(ev.events & EPOLLIN) {
+                        // read the message from the client
+                        Server_Message serv_msg = this -> read_message(socket_fd);
+                        if(serv_msg.message.empty()) {
+                            continue;
+                        }
+
+                        // give an id to the client
+                        {   
+                            std::shared_lock<std::shared_mutex> lock(this -> client_id_map_mutex);
+                            serv_msg.client_id = this -> client_id_map[socket_fd];
+                        }
+
+                        // get the partitions number
+                        this -> thread_pool.enqueue([this, socket_fd, serv_msg](){
+                            this -> process_client_in(socket_fd, serv_msg);
+                        });
+                    }
+                    else if(ev.events & EPOLLOUT) {
+                        std::lock_guard<std::mutex> lock(this -> partial_buffer_mutex);
+                        std::unordered_map<socket_t, Server_Response>::iterator msg = this -> partial_write_buffers.find(socket_fd);
+                        
+                        if(msg != this -> partial_write_buffers.end()) {
+                            Server_Request& data = msg -> second;
+                            int64_t bytes_sent = this -> send_message(socket_fd, data);
+
+                            std::cout << "sending_to: " << data.client_id << "FD: " << socket_fd << std::endl;
+                            std::cout << bytes_sent << "/" << data.bytes_to_process << std::endl;
+                            std::cout << bytes_sent << "/" << data.message.size() << std::endl;
+
+                            for(int i = 0; i < bytes_sent; ++i) {
+                                std::cout << int(data.message[i]) << " ";
+                            }
+
+                            std::cout << std::endl;
+
+                            if(bytes_sent < 0) {
+                                this -> request_to_remove_fd(socket_fd);
+                                continue;
+                            }
+
+                            if(msg -> second.bytes_to_process <= msg -> second.bytes_processed) {
+                                this -> partial_write_buffers.erase(msg);
+                                // return to listening stage
+                                try {
+                                    this -> modify_socket_for_receiving_epoll(socket_fd);
+                                }
+                                catch(const std::exception& e) {
+                                    if(this -> verbose > 0) {
+                                        std::cerr << e.what() << std::endl;
+                                    }
+                                }
+                                
+                                continue;
+                            }
+                        }
+                    }
+                    else {
+                        // figure this one client prob disconected
+                    }
+                    break;
+                }
+
+                case Fd_Type::PARTITION: {
+                    if(ev.events & EPOLLIN) {
+                        // read the message
+                        Server_Message serv_msg = this -> read_message(socket_fd);
+                        if(serv_msg.message.empty()) {
+                            continue;
+                        }
+
+                        // std::cout << "RECEIVED DATTA????" << std::endl;
+
+                        // get the client id and set it up to EPOLLOUT
+                        socket_t client_fd;
+                        {
+                            std::shared_lock<std::shared_mutex> lock(id_client_map_mutex);
+                            client_fd = this -> id_client_map[serv_msg.client_id];
+                        }
+
+                        this -> remove_cid_tag(serv_msg);
+
+                        this -> thread_pool.enqueue([this, client_fd, serv_msg]() {
+                            this -> process_partition_in(client_fd, serv_msg);
+                        });
+
+                    }
+                    else if (ev.events & EPOLLOUT) {
+                        Server_Request serv_req;
+                        bool has_data = false;
+                        {
+
+                            std::lock_guard<std::mutex> lock(this -> partial_buffer_mutex);
+                            std::unordered_map<socket_t, Server_Request>::iterator it = this -> partial_write_buffers.find(socket_fd);
+
+                            if (it == this -> partial_write_buffers.end()) {
+                                // Try to reload a pending request
+                                bool loaded = this -> tactical_reload_partition(socket_fd);
+                                if (!loaded) {
+                                    // Nothing to write, return to EPOLLIN
+                                    this -> modify_socket_for_receiving_epoll(socket_fd);
+                                    continue;
+                                }
+                                // reload created a buffer entry, refetch iterator
+                                it = this -> partial_write_buffers.find(socket_fd);
+                                if (it != this -> partial_write_buffers.end()) {
+                                    serv_req = it -> second;
+                                    has_data = true;
+                                }
+                            }
+                            else {
+                                has_data = true;
+                                serv_req = partial_write_buffers[socket_fd];
+                            }
+                        }
+                        // std::cout << "SENDING MSG: " << serv_req.message.size() << std::endl;
+
+                        if(has_data) {
+                            int64_t bytes_sent = this -> send_message(socket_fd, serv_req);
+                            if (bytes_sent < 0) {
+                                // get the clients socket
+                                socket_t client_fd;
+                                {
+                                    std::shared_lock<std::shared_mutex> lock(this -> id_client_map_mutex);
+                                    client_fd = this -> id_client_map[serv_req.client_id];
+                                }
+
+                                if(client_fd < 0) {
+
+                                }
+                                else {
+                                    this -> prepare_socket_for_err_response(client_fd, false, serv_req.client_id);
+                                }
+
+                                this -> request_to_remove_fd(socket_fd);
+                                continue;
+                            }
+
+                            //std::cout << bytes_sent << std::endl;
+                            //std::cout << serv_req.bytes_to_process << std::endl;
+
+                            if (serv_req.bytes_processed >= serv_req.bytes_to_process) {
+
+                                {
+                                    std::unique_lock<std::mutex> lock(partial_buffer_mutex);
+                                    this -> partial_write_buffers.erase(socket_fd);
+                                }
+                                this -> modify_socket_for_receiving_epoll(socket_fd);
+                            }
+                        }
+                    }
+
+                    else {
+                        // figure this one client prob disconected
+                    }
+
+                    break;
+                }
+                default:
+                    break;
+            }
+
+        }
+
+        this -> process_remove_queue();
+    }
+
+    return 0;
+}
+
+void Primary_Server::add_client_socket_to_epoll_ctx() {
+    std::vector<socket_t> client_fds = this -> add_client_socket_to_epoll();
+
+    for(socket_t& socket_fd : client_fds) {
+        uint64_t cid = this -> req_id.fetch_add(1, std::memory_order_relaxed);
+        std::cout << "New client:" << cid << std::endl; 
+        {
+            std::unique_lock<std::shared_mutex> lock(this -> id_client_map_mutex);
+            this -> id_client_map[cid] = socket_fd;
+        }
+
+        {
+            std::unique_lock<std::shared_mutex> lock(this -> client_id_map_mutex);
+            this -> client_id_map[socket_fd] = cid; 
+        }
+
+        this -> sockets_type_map[socket_fd] = Fd_Type::CLIENT;
+    }
+}
+
+int8_t Primary_Server::process_client_in(socket_t socket_fd, const Server_Message& msg) {
+    // extract the command code
+    Command_Code com_code = this -> extract_command_code(msg.message, false);
+    std::cout << "HERE" << std::endl;
+    std::cout << "HERE" << std::endl;
+    std::cout << "HERE" << std::endl; 
 
     // decide how to handle it
     switch(com_code) {
@@ -186,39 +396,58 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket, std::string
             // extract the key string
             std::string key_str;
             try {
-                std::string key_str = this -> extract_key_str_from_msg(client_message);
+                key_str = this -> extract_key_str_from_msg(msg.message, false);
             }
             catch(const std::exception& e) {
                 if(this -> verbose) {
                     std::cerr << e.what() << std::endl;
                 }
                 // send a message to the client about invalid operation
-                this -> send_error_response(client_socket);
-                return -1;
+                this -> prepare_socket_for_err_response(socket_fd, false, msg.client_id);
+                return 0;
             }
 
             // find to which partition entry it belongs to
             Partition_Entry& partition_entry = this -> get_partition_for_key(key_str);
-            std::string partition_response;
-            try {
-                partition_response = this -> query_partition(partition_entry, client_message);
-            }
-            catch(const std::exception& e) {
-                this -> send_error_response(client_socket);
-                break;
+            socket_t partition_fd = partition_entry.socket_fd;
+
+            uint64_t cid;
+            {
+                std::shared_lock<std::shared_mutex> lock(this -> client_id_map_mutex);
+                cid = this -> client_id_map[socket_fd];
             }
 
-            try{
-                //int flags = fcntl(client_socket, F_GETFL, 0);
-                // fcntl(client_socket, F_SETFL, flags & ~O_NONBLOCK);
-                this -> send_message(client_socket, partition_response);
+            Server_Request serv_req;
+            serv_req.message = msg.message;
+            serv_req.bytes_to_process = msg.bytes_to_process;
+            serv_req.bytes_processed = 0;
+            serv_req.client_id = cid;
+            this -> add_cid_tag(serv_req);
+
+            bool was_empty = false;
+            if(!ensure_partition_connection(partition_entry)) {
+                this -> prepare_socket_for_err_response(socket_fd, false, 0);
+                return -1;
             }
-            catch(const std::exception& e) {
-                if(this -> verbose > 0) {
-                    std::cerr << e.what() << std::endl;
+
+            // add the request id to the partition queues
+            {
+                std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
+                was_empty = partition_queues[partition_fd].empty();
+                if(!was_empty) {
+                    partition_queues[partition_fd].push(serv_req);
                 }
             }
+
+            if(was_empty) {
+                std::unique_lock<std::mutex> lock(partial_buffer_mutex);
+                this -> partial_write_buffers[partition_fd] = serv_req;
+            }
+
+            // mark the partition as EPOLLOUT
+            this -> modify_socket_for_sending_epoll(partition_fd);
             break;
+
         }
         case COMMAND_CODE_GET_KEYS: {
             break;
@@ -240,54 +469,31 @@ int8_t Primary_Server::handle_client_request(socket_t client_socket, std::string
     }
 
     return 0;
+
+    // find which partition the client belongs to
+    // set that partition socket to EPOLOUT
+    // quit thread
 }
 
-std::string Primary_Server::query_partition(Partition_Entry& partition, const std::string &raw_message) {
-    if(!ensure_partition_connection(partition)) {
-        throw std::runtime_error(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
+// create a message for the client with no id in it, 
+int8_t Primary_Server::process_partition_in(socket_t socket_fd, const Server_Message& msg) {
+    {
+        std::unique_lock<std::mutex> lock(partial_buffer_mutex);
+        partial_write_buffers[socket_fd] = msg;
     }
 
-    int64_t bytes_sent = this -> send_message(partition.socket_fd, raw_message);
-    if(bytes_sent == 0) {
-        std::string fail_str(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
-        fail_str += partition.name;
-        close(partition.socket_fd);
-        partition.status = Partition_Status::PARTITION_DEAD;
-        throw std::runtime_error(fail_str);
-    }
+    this -> modify_socket_for_sending_epoll(socket_fd);
+    return 0;
+}
 
-    std::string response;
-    try {
-        response = this -> read_message(partition.socket_fd);
-        if(response.size() == 0) {
-            throw std::runtime_error(PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG);
+void Primary_Server::add_paritions_to_epoll() {
+    for(Partition_Entry& pe : this -> partitions) {
+        this -> make_non_blocking(pe.socket_fd);
+        epoll_event ev{};
+        ev.data.fd = pe.socket_fd;
+        ev.events = EPOLLIN | EPOLLET;
+        if(epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, pe.socket_fd, &ev) < 0) {
+            std::cerr << "PARTITION NOT ADDED ERRNO " << errno << std::endl;; 
         }
     }
-    catch(...) {
-        close(partition.socket_fd);
-        partition.status = Partition_Status::PARTITION_DEAD;
-        throw;
-    }
-
-    return response;
-}
-
-bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
-    if(partition.status != Partition_Status::PARTITION_DEAD && partition.socket_fd >= 0 && this -> sockets_map[partition.socket_fd] == Socket_Types::PARTITION_SERVER_SOCKET) {
-        return true;
-    }
-
-    // after reconection partition socket stays the same
-    // std::cout << int(partition.status) << " " << partition.socket_fd << " " << this -> sockets_map[partition.socket_fd] << std::endl; 
-
-    // else try to reconnect
-    bool success = false;
-    partition.socket_fd = this -> connect_to(partition.name, partition.port, success);
-    if(!success || partition.socket_fd < 0) {
-        return false;
-    }
-
-    partition.status = Partition_Status::PARTITION_FREE;
-    this -> sockets_map[partition.socket_fd] = Socket_Types::PARTITION_SERVER_SOCKET;
-    return true;
 }

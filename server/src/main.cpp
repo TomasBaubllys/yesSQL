@@ -1,6 +1,7 @@
 #include "../include/partition_server.h"
 #include "../include/primary_server.h"
 #include <cstdlib>
+#include <system_error>
 
 #define BAD_ARGUMENT_COUNT_ERR_MSG ""
 #define REQUIRED_ARGUMENT_COUNT "2"
@@ -61,6 +62,10 @@ int main(int argc, char* argv[]) {
                 break;
             }
         }
+    }
+    catch(const std::system_error& e) {
+        std::cerr << e.what() << std::endl;
+        std::cerr << e.code() << std::endl;
     }
     catch(const std::exception& e) {
         std::cerr << e.what() << std::endl;

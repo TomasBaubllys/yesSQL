@@ -20,6 +20,9 @@
 #include <unordered_map>
 #include <utility>
 #include "thread_pool.h"
+#include "server_message.h"
+#include "fd_context.h"
+#include <shared_mutex>
 
 #define SERVER_LISTENING_ON_PORT_MSG "Listening on port: "
 
@@ -47,6 +50,7 @@
 #define SERVER_FAILED_EPOLL_CREATE_ERR_MSG "Failed to create epoll fd\n"
 #define SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG "Failed to add fd to epoll fd\n"
 #define SERVER_EPOLL_WAIT_FAILED_ERR_MSG "Epoll wait failed: "
+#define SERVER_EPOLL_MOD_FAILED_ERR_MSG "Epoll mod failed\n"
 #define SERVER_DEFAULT_EPOLL_EVENT_VAL 255
 #define SERVER_DEFAULT_THREAD_POOL_VAL 64
 
@@ -57,18 +61,27 @@
 
 class Server {
     protected:
-        std::unordered_map<socket_t, Socket_Types> sockets_map;
+        std::unordered_map<socket_t, Fd_Type> sockets_type_map;
 
         uint16_t port;
         int32_t server_fd;
         struct sockaddr_in address;
 
-        std::unordered_map<socket_t, std::pair<protocol_message_len_type , std::string>> partial_buffers;
+        // client id - request
+        std::unordered_map<socket_t, Server_Request> partial_read_buffers;
+        
+        std::mutex partial_buffer_mutex;
+        // socket - response
+        std::unordered_map<socket_t, Server_Response> partial_write_buffers;
+
+        // parittion -> queue of client ids
+        std::shared_mutex partition_queues_mutex;
+        std::unordered_map<socket_t, std::queue<Server_Message>> partition_queues;
 
         // variable decides if server prints out the messages.
         uint8_t verbose;
 
-        int8_t send_status_response(Command_Code status, socket_t socket) const;
+        Server_Message create_status_response(Command_Code status, bool contain_cid, protocol_id_t client_id = 0) const;
 
         file_desc_t epoll_fd;
 
@@ -92,29 +105,36 @@ class Server {
 
         // @brief makes client_fd (the return value) non-blocking
         // and adds it to inner epoll sockets
-        socket_t add_client_socket_to_epoll();
+        std::vector<socket_t> add_client_socket_to_epoll();
         
         // @brief initializes the epoll, (create1)
-        file_desc_t init_epoll();
+        void init_epoll();
 
         // @brief adds the inner server_fd to the epoll fd list
         // makes server_fd non blocking
-        int32_t add_this_to_epoll();
+        // THROWS
+        void add_this_to_epoll();
 
         // @brief waits for epoll to spit out some sockets
         int32_t server_epoll_wait();
 
+        void modify_socket_for_sending_epoll(socket_t socket_fd);
+
+        void modify_socket_for_receiving_epoll(socket_t socket_fd);
+
         // @brief reads a message of structure defined in protocol.h 
         // should work for both blocking and non-blocking sockets
         // THROWS
-        std::string read_message(socket_t socket);
+        Server_Message read_message(socket_t socket);
+
+        void add_message_to_response_queue(socket_t socket_fd, const Server_Message& message);
 
         // THROWS
-        int64_t send_message(socket_t socket, const std::string& message) const;
+        int64_t send_message(socket_t socket, Server_Response& server_response);
 
         // @brief extracts the command code from the received message
         // defined in protocol.h
-        Command_Code extract_command_code(const std::string& message) const;
+        Command_Code extract_command_code(const std::string& message, bool contains_cid) const;
 
         // @brief checks a connectivity to a certain socket
         bool try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec = 1) const;
@@ -126,23 +146,29 @@ class Server {
         // @brief makes a given socket non-blocking
         static void make_non_blocking(socket_t& socket);
 
+        void modify_epoll_event(socket_t socket_fd, uint32_t new_events);
+
         // @brief extracts the first key that appears in the message
         // THROWS
-        std::string extract_key_str_from_msg(const std::string& message) const;
+        std::string extract_key_str_from_msg(const std::string& message, bool contains_cid) const;
 
         // @brief sends an ERR response to the provided socket
-        int8_t send_error_response(socket_t socket) const;
+        Server_Message create_error_response(bool contain_cid, protocol_id_t client_id)const;
 
         // @brief sens an OK response to a given socket
-        int8_t send_ok_response(socket_t socket) const;
+        Server_Message create_ok_response(bool contain_cid, protocol_id_t client_id) const;
 
-        // @brief handles client requests
-        // calls the handle int8_t process_request(socket_t, string);
-        // on failure pushes the socket_fd to remove_queue 
-        void handle_client(socket_t socket_fd, const std::string& message);
+        void prepare_socket_for_response(socket_t socket_fd, const Server_Message& serv_msg);
+        
+        void prepare_socket_for_ok_response(socket_t socket_fd, bool contain_cid, protocol_id_t client_id);
 
-        // @processes the clients message
-        virtual int8_t process_request(socket_t socket_fd, const std::string& message);
+        void prepare_socket_for_err_response(socket_t socket_fd, bool contain_cid, protocol_id_t client_id);
+
+        bool tactical_reload_partition(socket_t socket_fd);
+
+        bool add_cid_tag(Server_Message& serv_msg);
+
+        bool remove_cid_tag(Server_Message& serv_msg);
 };
 
 #endif // YSQL_SERVER_H_INCLUDED

@@ -29,153 +29,187 @@ Server::Server(uint16_t port, uint8_t verbose) : port(port), verbose(verbose), e
 		bind_failed_str += std::to_string(errno);
     	throw std::runtime_error(SERVER_BIND_FAILED_ERR_MSG);
   }
+
 }
 
 Server::~Server() {
-    close(this -> epoll_fd);
+    /*
+    CLOSE ALL SOCKETS
+    
+    */
+    if (this -> epoll_fd >= 0) {
+        close(this -> epoll_fd);
+    }
+
+    if(this -> server_fd > 0) {
+        close(this -> server_fd);
+    }
+    this -> sockets_type_map.clear();
 }
 
 int8_t Server::start() {
-	uint32_t new_socket;
-	uint32_t address_length = sizeof(this -> address);
-	const char* msg = "Hello from YSQL server\n";
-	if(listen(server_fd, 3) < 0) {
-		perror("listen");
-		return -1;
-	}
 
-	std::cout << "Listening on port " << port << "..." << std::endl;
-
-	while (true) {
-		// Accept one client
-		new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&address_length);
-		if (new_socket < 0) {
-			perror("accept");
-			continue; // Skip this client and keep listening
-		}
-
-		// Print client info
-		char client_ip[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, &(address.sin_addr), client_ip, INET_ADDRSTRLEN);
-		std::cout << "Client connected from " << client_ip << ":" << ntohs(address.sin_port) << std::endl;
-
-		// Send message
-		send(new_socket, msg, strlen(msg), 0);
-		std::cout << "Hello message sent!" << std::endl;
-
-		// Close client socket
-		close(new_socket);
-	}
-	
-	return 0;
+    return 0;
 }
 
-std::string Server::read_message(socket_t socket) {
-    if(socket < 0) {
+Server_Message Server::read_message(socket_t socket_fd) {
+    if(socket_fd < 0) {
         throw std::runtime_error(SERVER_INVALID_SOCKET_ERR_MSG);
     }
     char block[SERVER_MESSAGE_BLOCK_SIZE];
 
-    std::string &buffer = this -> partial_buffers[socket].second;
-    protocol_message_len_type& bytes_to_read = this -> partial_buffers[socket].first;
+    // Server_Request serv_req = this -> partial_read_buffers[socket_fd];
+    std::unordered_map<socket_t, Server_Request>::iterator serv_req_iter = this -> partial_read_buffers.find(socket_fd);
+    if(serv_req_iter == this -> partial_read_buffers.end()) {
+         std::pair<std::unordered_map<socket_t, Server_Request>::iterator, bool> new_iter = this -> partial_read_buffers.emplace(socket_fd, Server_Request{});
+        serv_req_iter = new_iter.first;
+    }
 
-    // new instance, bytes to read must be a trash value
-    if(buffer.size() < sizeof(protocol_message_len_type)) {
-        bytes_to_read = 0;
+    bool header_has_client_id = false;
+    std::unordered_map<socket_t, Fd_Type>::iterator sit = this -> sockets_type_map.find(socket_fd);
+    if(sit != this -> sockets_type_map.end() && sit -> second != Fd_Type::CLIENT) {
+        header_has_client_id = true;
+    }
+
+    if(serv_req_iter -> second.message.size() < sizeof(protocol_message_len_type) + sizeof(protocol_id_t)) {
+        serv_req_iter -> second.bytes_to_process = 0;
     }
 
     while (true) {
-        int32_t bytes_read = recv(socket, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
+        int32_t bytes_read = recv(socket_fd, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
+
         if (bytes_read < 0) {
             if(errno == EAGAIN || errno == EWOULDBLOCK) {
                 break;
             }
             else {
-                if(this ->verbose > 0) {
+                if(this -> verbose > 0) {
                     std::cerr << SERVER_FAILED_RECV_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
                 }
 
-                partial_buffers.erase(socket);
-                close(socket);
-                return "";
+                /** if by context its a partition type clean eveyrything up
+                 * 
+                 * 
+                 */
+
+                partial_read_buffers.erase(socket_fd);
+                epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, socket_fd, nullptr);
+                close(socket_fd);
+                Server_Message serv_msg;
+                serv_msg.message = "";
+                return serv_msg;
             }
-
         }
-
         if (bytes_read == 0) {
-            partial_buffers.erase(socket);
-            close(socket);
+                /** if by context its a partition type clean eveyrything up
+                 * 
+                 * 
+                 */
+
+            partial_read_buffers.erase(socket_fd);
+            epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, socket_fd, nullptr);
+            close(socket_fd);
             // somehow indicate that client quit
-            return buffer;
+            Server_Message serv_msg;
+            serv_msg.message = "";
+            return serv_msg; // buffer;
         }
 
-        buffer.append(block, bytes_read);
+        // std::cout << bytes_read << std::endl;
+        /*for(int i = 0; i < bytes_read; ++i) {
+            std::cout << int(block[i]) << " ";
+        }
+        std::cout << std::endl;*/
 
-        if(bytes_to_read == 0 && buffer.size() >= sizeof(protocol_message_len_type)) {
-            memcpy(&bytes_to_read, buffer.data(), sizeof(protocol_message_len_type));
-            bytes_to_read = ntohll(bytes_to_read);
+        serv_req_iter -> second.message.append(block, bytes_read);
+        // std::cout << serv_req_iter -> second.message.size() << ",_____" << std::endl;
+        //for(int i = 0; i < bytes_read; ++i) {
+        //    std::cout << int(serv_req_iter -> second.message[i]) << " ";
+        //}
+        //        std::cout << std::endl;
+
+
+        if(serv_req_iter -> second.bytes_to_process == 0 && serv_req_iter -> second.message.size() >= sizeof(protocol_message_len_type) + sizeof(protocol_id_t)) {
+            const char* data = serv_req_iter -> second.message.data();
+            memcpy(&serv_req_iter -> second.bytes_to_process, data, sizeof(protocol_message_len_type));
+            serv_req_iter -> second.bytes_to_process = ntohll(serv_req_iter -> second.bytes_to_process);
+            if(header_has_client_id) {
+                std::cout << 
+                memcpy(&serv_req_iter -> second.client_id, serv_req_iter -> second.message.data() + sizeof(protocol_message_len_type), sizeof(protocol_id_t));
+                serv_req_iter -> second.client_id = protocol_id_ntoh(serv_req_iter -> second.client_id);
+                // serv_req_iter -> second.message.erase(sizeof(protocol_message_len_type), sizeof(protocol_id_t));
+            }
         }
 
-        if(bytes_to_read > 0 && buffer.size() >= bytes_to_read) {
-            break;
-        }
 
-        if(!(fcntl(socket, F_GETFL) & O_NONBLOCK)) {
-            continue;
-        }
-        else {
+        if(serv_req_iter -> second.bytes_to_process > 0 && serv_req_iter -> second.message.size() >= serv_req_iter -> second.bytes_to_process) {
             break;
         }
     }
-    
-    if (bytes_to_read > 0 && buffer.size() >= bytes_to_read) {
-        std::string msg = buffer.substr(0, bytes_to_read);
-        buffer.erase(0, bytes_to_read); // remove processed message
+
+    if (serv_req_iter -> second.bytes_to_process > 0 && serv_req_iter -> second.message.size() >= serv_req_iter -> second.bytes_to_process) {
+        Server_Message msg = serv_req_iter -> second;
+        serv_req_iter -> second.bytes_processed = 0;
+        serv_req_iter -> second.bytes_to_process = 0;
+        serv_req_iter -> second.message.clear();
+        serv_req_iter -> second.client_id = 0;
+        /*for(int i = 0; i < 34; ++i) {
+            std::cout << int(msg.message[i]) << " ";
+        }
+                std::cout << std::endl;
+        */
         return msg;
     }
 
-    return ""; // message not complete yet
+    Server_Message serv_msg;
+    serv_msg.message = "";
+    return serv_msg; // message not complete yet
 
 }
 
-int64_t Server::send_message(socket_t socket, const std::string& message) const {
-    if(socket < 0) {
+int64_t Server::send_message(socket_t socket_fd, Server_Response& server_response) {
+    if (socket_fd < 0) {
         throw std::runtime_error(SERVER_INVALID_SOCKET_ERR_MSG);
     }
 
-    ssize_t total_sent = 0;
-    ssize_t sent_bytes = 0;
+    size_t offset = server_response.bytes_processed;
+    size_t remaining = 0;
 
-    while (total_sent < message.size()) {
-        sent_bytes = send(socket, message.data() + total_sent, message.size() - total_sent, 0);
-        if (sent_bytes < 0) {
-            if (errno == EINTR) {
-                continue; 
-            }
-            std::string send_failed_str(SERVER_FAILED_SEND_ERR_MSG);
-            send_failed_str += SERVER_ERRNO_STR_PREFIX;
-            send_failed_str += std::to_string(errno);
-            throw std::runtime_error(send_failed_str);
-        }
-
-        if (sent_bytes == 0) {
-            throw std::runtime_error(SERVER_SEND_0_BYTES_ERR_MSG);
-        } 
-
-        total_sent += sent_bytes;
-
+    if (server_response.bytes_to_process > server_response.bytes_processed) {
+        remaining = server_response.bytes_to_process - server_response.bytes_processed;
+    }
+    else {
+        return 0; // nothing left to send
     }
 
-    return static_cast<int64_t>(total_sent);
+    const char* data_ptr = server_response.message.data() + offset;
+    ssize_t bytes_sent = send(socket_fd, data_ptr, remaining, MSG_NOSIGNAL);
+    //std::cout << "bytes sent" << std::endl;
+
+    if (bytes_sent < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return 0; // try again later
+        } else {
+            if (verbose > 0)
+                std::cerr << SERVER_FAILED_SEND_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+            return -1; // fatal error, caller should close socket
+        }
+    }
+
+    server_response.bytes_processed += bytes_sent;
+    return bytes_sent;
 }
 
-Command_Code Server::extract_command_code(const std::string& message) const {
-    if(PROTOCOL_COMMAND_NUMBER_POS + sizeof(command_code_type) > message.size()) {
+
+Command_Code Server::extract_command_code(const std::string& message, bool contains_cid) const {
+    uint64_t pos = contains_cid? PROTOCOL_COMMAND_NUMBER_POS : PROTOCOL_COMMAND_NUMBER_POS_NOCID;
+
+    if(pos + sizeof(command_code_type) > message.size()) {
         return INVALID_COMMAND_CODE;
     }
 
     command_code_type com_code;
-    memcpy(&com_code, &message[PROTOCOL_COMMAND_NUMBER_POS], sizeof(command_code_type));
+    memcpy(&com_code, &message[pos], sizeof(command_code_type));
     com_code = command_ntoh(com_code);
 
     return static_cast<Command_Code>(com_code);
@@ -231,22 +265,24 @@ socket_t Server::connect_to(const std::string& hostname, uint16_t port, bool& is
     return sock;
 }
 
-std::string Server::extract_key_str_from_msg(const std::string& message) const {
+std::string Server::extract_key_str_from_msg(const std::string& message, bool contains_cid) const {
     // check if the command is long enough
-    if(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type)  > message.size()) {
+    uint64_t pos = contains_cid? PROTOCOL_FIRST_KEY_LEN_POS : PROTOCOL_FIRST_KEY_LEN_POS_NOCID;
+
+    if(pos + sizeof(protocol_key_len_type)  > message.size()) {
         throw std::runtime_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
     }
 
     protocol_key_len_type key_len = 0;
-    memcpy(&key_len, &message[PROTOCOL_FIRST_KEY_LEN_POS], sizeof(key_len));
+    memcpy(&key_len, &message[pos], sizeof(key_len));
     key_len = ntohs(key_len);
 
     // check if msg is long enough
-    if(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type) + key_len > message.size()) {
+    if(pos + sizeof(protocol_key_len_type) + key_len > message.size()) {
         throw std::runtime_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
     }
 
-    return message.substr(PROTOCOL_FIRST_KEY_LEN_POS + sizeof(protocol_key_len_type), key_len);
+    return message.substr(pos + sizeof(protocol_key_len_type), key_len);
 }
 
 void Server::make_non_blocking(socket_t& socket) {
@@ -258,27 +294,28 @@ void Server::make_non_blocking(socket_t& socket) {
     fcntl(socket, F_SETFL, flags | O_NONBLOCK);
 }
 
-int8_t Server::send_ok_response(socket_t socket) const {
-    return this -> send_status_response(COMMAND_CODE_OK, socket);
+Server_Message Server::create_ok_response(bool contain_cid, protocol_id_t client_id) const {
+    return this -> create_status_response(COMMAND_CODE_OK, contain_cid, client_id);
 }
 
-int8_t Server::send_error_response(socket_t socket) const {
-    return this -> send_status_response(COMMAND_CODE_ERR, socket);
+Server_Message Server::create_error_response(bool contain_cid, protocol_id_t client_id) const {
+    return this -> create_status_response(COMMAND_CODE_ERR, contain_cid, client_id);
 }
 
-int8_t Server::send_status_response(Command_Code status, socket_t socket) const {
+Server_Message Server::create_status_response(Command_Code status, bool contain_cid, protocol_id_t client_id) const {
     if(status != COMMAND_CODE_ERR && status != COMMAND_CODE_OK && status != COMMAND_CODE_DATA_NOT_FOUND) {
-        return -1;
-    }
-
-    if(socket < 0) {
-        return -1;
+        Server_Message empty_msg;
+        empty_msg.message = "";
+        return empty_msg;
     }
 
     protocol_message_len_type message_length;
     protocol_array_len_type arr_len = 0;
     command_code_type com_code = command_hton(status);
     message_length = sizeof(message_length) + sizeof(arr_len) + sizeof(com_code);
+    if(contain_cid) {
+        message_length += sizeof(protocol_id_t);
+    }
     std::string message(message_length, '\0');
 
     protocol_message_len_type network_msg_len = protocol_msg_len_hton(message_length);
@@ -286,57 +323,75 @@ int8_t Server::send_status_response(Command_Code status, socket_t socket) const 
     size_t curr_pos = 0;
     memcpy(&message[0], &network_msg_len, sizeof(network_msg_len));
     curr_pos += sizeof(network_msg_len);
+    if(contain_cid) {
+        protocol_id_t net_cid = protocol_id_hton(client_id);
+        memcpy(&message[curr_pos], &net_cid, sizeof(net_cid));
+        curr_pos += sizeof(net_cid);
+    }
     memcpy(&message[curr_pos], &arr_len, sizeof(arr_len));
     curr_pos += sizeof(arr_len);
     memcpy(&message[curr_pos], &com_code, sizeof(com_code));
 
-    try {
-        this -> send_message(socket, message);
+    Server_Message resp;
+    resp.client_id = client_id;
+    resp.bytes_processed = 0;
+    resp.bytes_to_process = message.size();
+    resp.message = message;
+
+    return resp;
+}
+
+void Server::init_epoll() {
+    this -> epoll_fd = epoll_create1(0);
+    if(this -> epoll_fd < 0) {
+        throw std::runtime_error(SERVER_FAILED_EPOLL_CREATE_ERR_MSG);
     }
-    catch(const std::exception& e) {
-        if(this -> verbose > 0) {
-            std::cerr << e.what() << std::endl;
+}
+
+std::vector<socket_t> Server::add_client_socket_to_epoll() {
+    std::vector<socket_t> client_fds;
+
+    while(true) {
+        sockaddr_in client_addr{};
+        socklen_t len = sizeof(client_addr);
+
+        socket_t client_fd = accept(server_fd, (sockaddr*)&client_addr, &len);
+        if(client_fd < 0) {
+            if(errno == EAGAIN || errno == EWOULDBLOCK) {
+                break;
+            }
+
+            return {};
         }
 
-        return -1;
+        epoll_event ep_ev{};
+        this -> make_non_blocking(client_fd);
+        
+        ep_ev.events = EPOLLIN | EPOLLET;
+        ep_ev.data.fd = client_fd;
+        if(epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, client_fd, &ep_ev) < 0) {
+            throw std::runtime_error(SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG);
+        };
+
+        client_fds.push_back(client_fd);
     }
 
-    return 0;
-}
-
-file_desc_t Server::init_epoll() {
-    this -> epoll_fd = epoll_create1(0);
-    return this -> epoll_fd;
-}
-
-socket_t Server::add_client_socket_to_epoll() {
-    sockaddr_in client_addr{};
-    socklen_t len = sizeof(client_addr);
-    socket_t client_fd = accept(server_fd, (sockaddr*)&client_addr, &len);
-    if(client_fd < 0) {
-        return -1;
-    }
-
-    epoll_event ep_ev{};
-    this -> make_non_blocking(client_fd);
-    
-    ep_ev.events = EPOLLIN | EPOLLET;
-    ep_ev.data.fd = client_fd;
-    epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, client_fd, &ep_ev);
-
-    return client_fd;
+    return client_fds;
 }
 
 int32_t Server::server_epoll_wait() {
     return epoll_wait(this -> epoll_fd, this -> epoll_events.data(), this -> epoll_events.size(), -1);
 }
 
-int32_t Server::add_this_to_epoll() {
+void Server::add_this_to_epoll() {
     this -> make_non_blocking(this -> server_fd);
+    this -> sockets_type_map[this -> server_fd] = Fd_Type::LISTENER;
     epoll_event ep_ev{};
     ep_ev.events = EPOLLIN;
     ep_ev.data.fd = this -> server_fd;
-    return epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, this -> server_fd, &ep_ev);
+    if(epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, this -> server_fd, &ep_ev) < 0) {
+        throw std::runtime_error(SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG);
+    }
 }
 
 void Server::request_to_remove_fd(socket_t socket) {
@@ -347,27 +402,125 @@ void Server::request_to_remove_fd(socket_t socket) {
 void Server::process_remove_queue() {
     std::lock_guard<std::mutex> lock(this -> remove_mutex);
     for(socket_t& sock : remove_queue) {
-        epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, sock, nullptr);
+        this -> sockets_type_map.erase(sock);
+
+        if(epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, sock, nullptr) < 0) {
+
+        }
+        
         close(sock);
     }
     remove_queue.clear();
 }
 
-void Server::handle_client(socket_t socket_fd, const std::string& message) {
-    try{
-        if(this -> process_request(socket_fd, message) < 0) {
-            this -> request_to_remove_fd(socket_fd);
-        }
-    }   
-    catch(const std::exception& e) {
-        if(this -> verbose > 0) {
-            std::cerr << e.what() << std::endl;
-        }
-
-        this -> request_to_remove_fd(socket_fd);
+void Server::modify_epoll_event(socket_t socket_fd, uint32_t new_events) {
+    epoll_event ev{};
+    ev.data.fd = socket_fd;
+    ev.events = new_events;
+    if(epoll_ctl(this -> epoll_fd, EPOLL_CTL_MOD, socket_fd, &ev) < 0) {
+        std::string epoll_fail_str = SERVER_EPOLL_MOD_FAILED_ERR_MSG;
+        epoll_fail_str += SERVER_ERRNO_STR_PREFIX;
+        epoll_fail_str += std::to_string(errno); 
+        std::cout << epoll_fail_str << std::endl;
+        throw std::runtime_error(epoll_fail_str);
     }
 }
 
-int8_t Server::process_request(socket_t socket_fd, const std::string& message) {
+void Server::modify_socket_for_sending_epoll(socket_t socket_fd) {
+    this -> modify_epoll_event(socket_fd, EPOLLOUT | EPOLLET);
+}
 
+void Server::modify_socket_for_receiving_epoll(socket_t socket_fd) {
+    this -> modify_epoll_event(socket_fd, EPOLLIN | EPOLLET);
+}
+
+void Server::add_message_to_response_queue(socket_t socket_fd, const Server_Message& message) {
+    // check if resp_buffer is empty, add it to resp buffer otherwise add it to the queue
+    bool write_bff_empty = false;
+    // check if writting buffer is empty
+    {
+        std::unique_lock<std::mutex> lock(this -> partial_buffer_mutex);
+        std::unordered_map<socket_t, Server_Message>::iterator it = this -> partial_write_buffers.find(socket_fd);
+        write_bff_empty = (it == partial_write_buffers.end());
+    }
+
+    // check if queue is empty yes -> add response to the queue no -> add response to the buffer
+    bool queue_was_empty = false;
+    {
+        std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
+        std::unordered_map<socket_t, std::queue<Server_Message>>::iterator it = this -> partition_queues.find(socket_fd);
+        queue_was_empty = (it == this -> partition_queues.end()) || (it -> second.empty());
+        // add it to the queue
+        if(!queue_was_empty) {
+            this -> partition_queues[socket_fd].push(message);
+        }
+    }
+    
+    if(queue_was_empty) {
+        std::unique_lock<std::mutex> lock(this -> partial_buffer_mutex);
+        this -> partial_write_buffers[socket_fd] = message;
+    }
+}
+
+void Server::prepare_socket_for_response(socket_t socket_fd, const Server_Message& serv_msg) {
+    this -> modify_socket_for_sending_epoll(socket_fd);
+    this -> add_message_to_response_queue(socket_fd, serv_msg);
+}
+
+void Server::prepare_socket_for_ok_response(socket_t socket_fd, bool contain_cid, protocol_id_t client_id) {
+                            std::cout << "CLIENT_ID: " << client_id << std::endl;
+                        std::cout << "CLIENT_ID: " << client_id << std::endl;
+
+    this -> modify_socket_for_sending_epoll(socket_fd);
+    Server_Message serv_msg = this -> create_ok_response(contain_cid, client_id);
+    this -> add_message_to_response_queue(socket_fd, serv_msg);
+}     
+
+void Server::prepare_socket_for_err_response(socket_t socket_fd, bool contain_cid, protocol_id_t client_id) {
+    this -> modify_socket_for_sending_epoll(socket_fd);
+    Server_Message serv_msg = this -> create_error_response(contain_cid, client_id);
+    
+    this -> add_message_to_response_queue(socket_fd, serv_msg);
+}
+
+bool Server::tactical_reload_partition(socket_t socket_fd) {
+    Server_Message pending_msg; 
+    bool loaded = false;
+    {
+        std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
+        if (!this -> partition_queues[socket_fd].empty()) {
+            pending_msg = this -> partition_queues[socket_fd].front();
+            this -> partition_queues[socket_fd].pop();
+            loaded = true;
+        }
+    }
+
+    if (loaded) {
+        std::lock_guard<std::mutex> resp_lock(partial_buffer_mutex);
+        this -> partial_write_buffers[socket_fd] = std::move(pending_msg);
+    }
+
+    return loaded;
+}
+
+// updates bytes to process also
+bool Server::add_cid_tag(Server_Message& serv_msg) {
+    protocol_message_len_type b_to_prcs = serv_msg.bytes_to_process + sizeof(protocol_id_t);
+    serv_msg.bytes_to_process = b_to_prcs;
+    b_to_prcs = protocol_msg_len_hton(b_to_prcs);
+    protocol_id_t net_cid = protocol_id_hton(serv_msg.client_id);
+
+    serv_msg.message.insert(sizeof(protocol_message_len_type), sizeof(net_cid),'\0');
+    memcpy(&serv_msg.message[sizeof(protocol_message_len_type)], &net_cid, sizeof(net_cid));
+    memcpy(&serv_msg.message[0], &b_to_prcs, sizeof(b_to_prcs));
+    return true;
+}
+
+bool Server::remove_cid_tag(Server_Message& serv_msg) {
+    serv_msg.message.erase(sizeof(protocol_message_len_type), sizeof(protocol_id_t));
+    serv_msg.bytes_to_process -= sizeof(protocol_id_t);
+    protocol_message_len_type net_len = protocol_msg_len_hton(serv_msg.bytes_to_process);
+    memcpy(&serv_msg.message[0], &net_len, sizeof(net_len));
+
+    return true;
 }

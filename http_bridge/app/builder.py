@@ -1,5 +1,5 @@
 import struct
-import constants as cnt
+from . import constants as cnt
 
 def build_get_request(key: str) -> bytes:
     key_bytes = key.encode("utf-8")

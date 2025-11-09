@@ -16,6 +16,7 @@
 #include "../include/partition_entry.h"
 #include <limits>
 #include <unistd.h>
+#include "fd_context.h"
 
 #define PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING "PARTITION_COUNT"
 #define PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_UNDEF_ERR_MSG "Enviromental variable PARTITION_COUNT is undefined...\n"
@@ -48,6 +49,14 @@
 
 class Primary_Server : public Server {
     private:
+        std::unordered_map<uint64_t, socket_t> id_client_map;
+        std::shared_mutex id_client_map_mutex;
+
+        std::unordered_map<socket_t, uint64_t> client_id_map;
+        std::shared_mutex client_id_map_mutex;
+
+        std::atomic<uint64_t> req_id{1};
+
         uint32_t partition_count;
 
         uint32_t partition_range_length;
@@ -68,15 +77,20 @@ class Primary_Server : public Server {
 
         std::vector<Partition_Entry> get_partitions_fb(const std::string& key) const;
 
-        // returns the first key found in the message
-        // THROWS
-
-        int8_t handle_client_request(socket_t socket, std::string& client_message);
-
         // THROWS
         std::string query_partition(Partition_Entry& partition, const std::string& raw_message);
 
         bool ensure_partition_connection(Partition_Entry& partition);
+
+        // int8_t process_request(socket_t socket_fd, const  std::string& message);
+
+        void add_client_socket_to_epoll_ctx();
+
+        int8_t process_client_in(socket_t socket_fd, const Server_Message& msg);
+
+        int8_t process_partition_in(socket_t socket_fd, const Server_Message& msg);
+
+        void add_paritions_to_epoll();
 
     public:
         Primary_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
