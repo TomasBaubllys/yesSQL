@@ -278,6 +278,7 @@ int8_t Partition_Server::handle_set_request(socket_t socket_fd, const Server_Mes
 
     // insert the key value pair into the inner lsm tree
     if(this -> lsm_tree.set(key_str, value_str)) {
+        std::cout << "SET: <key> " << key_str << " <value> " << value_str << std::endl; 
         this -> prepare_socket_for_ok_response(socket_fd, true, serv_msg.client_id);
         return 0;
     }
@@ -311,6 +312,7 @@ int8_t Partition_Server::handle_get_request(socket_t socket_fd, const Server_Mes
             return 0;
         }
         else {
+            std::cout << "GET: <key> " << key_str << " <value> " << entry.get_value_string() << std::endl; 
             std::string entries_resp = this -> create_entries_response({entry}, serv_msg.client_id);
             Server_Message serv_resp;
             serv_resp.bytes_processed = 0;
@@ -334,6 +336,7 @@ int8_t Partition_Server::handle_get_request(socket_t socket_fd, const Server_Mes
 }
 
 int8_t Partition_Server::handle_remove_request(socket_t socket_fd, const Server_Message& serv_msg) {
+    std::cout << "REMOVE: <key> " << std::endl;         
     std::string key_str;
     try {
         key_str = this -> extract_key_str_from_msg(serv_msg.message, true);

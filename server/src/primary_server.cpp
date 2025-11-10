@@ -151,7 +151,7 @@ bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
 int8_t Primary_Server::start() {
     uint64_t counter = 0;
 
-    if (listen(this->server_fd, 255) < 0) {   
+    if (listen(this -> server_fd, 255) < 0) {   
         std::string listen_failed_str(SERVER_FAILED_LISTEN_ERR_MSG);
         listen_failed_str += SERVER_ERRNO_STR_PREFIX;
         listen_failed_str += std::to_string(errno);
@@ -218,6 +218,7 @@ int8_t Primary_Server::start() {
                         this -> thread_pool.enqueue([this, socket_fd, serv_msg](){
                             this -> process_client_in(socket_fd, serv_msg);
                         });
+
                     }
                     else if(ev.events & EPOLLOUT) {
                         std::cout << "CLIENT_EPOLLOUT" << std::endl;
@@ -345,7 +346,9 @@ int8_t Primary_Server::start() {
                                     std::unique_lock<std::mutex> lock(partial_buffer_mutex);
                                     this -> partial_write_buffers.erase(socket_fd);
                                 }
-                                this -> modify_socket_for_receiving_epoll(socket_fd);
+                                if(!this -> tactical_reload_partition(socket_fd)) {
+                                    this -> modify_socket_for_receiving_epoll(socket_fd);
+                                }
                             }
                         }
                     }
@@ -356,8 +359,9 @@ int8_t Primary_Server::start() {
 
                     break;
                 }
-                default:
+                default: {
                     break;
+                }
             }
 
         }

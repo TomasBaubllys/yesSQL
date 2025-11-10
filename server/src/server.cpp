@@ -77,7 +77,7 @@ Server_Message Server::read_message(socket_t socket_fd) {
 
     while (true) {
         int32_t bytes_read = recv(socket_fd, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
-        std::cout << "bytes received" << bytes_read <<  std::endl;
+        //std::cout << "bytes received" << bytes_read <<  std::endl;
 
         if (bytes_read < 0) {
             if(errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -116,26 +116,13 @@ Server_Message Server::read_message(socket_t socket_fd) {
             return serv_msg; // buffer;
         }
 
-        // std::cout << bytes_read << std::endl;
-        /*for(int i = 0; i < bytes_read; ++i) {
-            std::cout << int(block[i]) << " ";
-        }
-        std::cout << std::endl;*/
-
         serv_req_iter -> second.message.append(block, bytes_read);
-        // std::cout << serv_req_iter -> second.message.size() << ",_____" << std::endl;
-        //for(int i = 0; i < bytes_read; ++i) {
-        //    std::cout << int(serv_req_iter -> second.message[i]) << " ";
-        //}
-        //        std::cout << std::endl;
-
 
         if(serv_req_iter -> second.bytes_to_process == 0 && serv_req_iter -> second.message.size() >= sizeof(protocol_message_len_type) + sizeof(protocol_id_t)) {
             const char* data = serv_req_iter -> second.message.data();
             memcpy(&serv_req_iter -> second.bytes_to_process, data, sizeof(protocol_message_len_type));
             serv_req_iter -> second.bytes_to_process = ntohll(serv_req_iter -> second.bytes_to_process);
             if(header_has_client_id) {
-                std::cout << 
                 memcpy(&serv_req_iter -> second.client_id, serv_req_iter -> second.message.data() + sizeof(protocol_message_len_type), sizeof(protocol_id_t));
                 serv_req_iter -> second.client_id = protocol_id_ntoh(serv_req_iter -> second.client_id);
                 // serv_req_iter -> second.message.erase(sizeof(protocol_message_len_type), sizeof(protocol_id_t));
@@ -428,11 +415,11 @@ void Server::modify_epoll_event(socket_t socket_fd, uint32_t new_events) {
 }
 
 void Server::modify_socket_for_sending_epoll(socket_t socket_fd) {
-    this -> modify_epoll_event(socket_fd, EPOLLOUT);// | EPOLLET);
+    this -> modify_epoll_event(socket_fd, EPOLLOUT | EPOLLET);
 }
 
 void Server::modify_socket_for_receiving_epoll(socket_t socket_fd) {
-    this -> modify_epoll_event(socket_fd, EPOLLIN);// | EPOLLET);
+    this -> modify_epoll_event(socket_fd, EPOLLIN | EPOLLET);
 }
 
 void Server::add_message_to_response_queue(socket_t socket_fd, const Server_Message& message) {
@@ -442,28 +429,26 @@ void Server::add_message_to_response_queue(socket_t socket_fd, const Server_Mess
 }
 
 void Server::prepare_socket_for_response(socket_t socket_fd, const Server_Message& serv_msg) {
-    this -> modify_socket_for_sending_epoll(socket_fd);
     this -> add_message_to_response_queue(socket_fd, serv_msg);
+    this -> modify_socket_for_sending_epoll(socket_fd);
 }
 
 void Server::prepare_socket_for_ok_response(socket_t socket_fd, bool contain_cid, protocol_id_t client_id) {
     // std::cout << "CLIENT_ID: " << client_id << std::endl;
     // std::cout << "CLIENT_ID: " << client_id << std::endl;
-
-    this -> modify_socket_for_sending_epoll(socket_fd);
     Server_Message serv_msg = this -> create_ok_response(contain_cid, client_id);
     this -> add_message_to_response_queue(socket_fd, serv_msg);
+    this -> modify_socket_for_sending_epoll(socket_fd);
 }     
 
 void Server::prepare_socket_for_err_response(socket_t socket_fd, bool contain_cid, protocol_id_t client_id) {
-    this -> modify_socket_for_sending_epoll(socket_fd);
-    Server_Message serv_msg = this -> create_error_response(contain_cid, client_id);
-    
+    Server_Message serv_msg = this -> create_error_response(contain_cid, client_id);    
     this -> add_message_to_response_queue(socket_fd, serv_msg);
+    this -> modify_socket_for_sending_epoll(socket_fd);
 }
 
 bool Server::tactical_reload_partition(socket_t socket_fd) {
-    std::cout << "here" << std::endl;
+    // std::cout << "here" << std::endl;
     Server_Message pending_msg; 
     bool loaded = false;
     {
