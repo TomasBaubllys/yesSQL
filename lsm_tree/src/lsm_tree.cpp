@@ -1,14 +1,11 @@
 #include "../include/lsm_tree.h"
 
-LSM_Tree::LSM_Tree(){
-    write_ahead_log = Wal();
-    mem_table = Mem_Table();
-    max_files_count = get_max_file_limit();
-
-
+LSM_Tree::LSM_Tree():
+    write_ahead_log(),
+    mem_table(write_ahead_log),
+    max_files_count(get_max_file_limit())
+{
     reconstruct_tree();
-   
-
 };
 
 LSM_Tree::~LSM_Tree(){
@@ -192,20 +189,14 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key){
 };
 
 void LSM_Tree::forward_validate(std::set<Entry>& entries,const Entry& entry_to_append,const bool is_greater_operation,const Bits key_value){
-    switch (is_greater_operation)
-    {
-    case true:
+    if(is_greater_operation){
         if(entry_to_append.get_key() >= key_value){
             entries.emplace(entry_to_append);
         }
-        break;
-    case false:
+    }else{
         if(entry_to_append.get_key() <= key_value){
-            entries.emplace(key_value);
+            entries.emplace(entry_to_append);
         }
-        break;
-    default:
-        break;
     }
 };
 
@@ -214,29 +205,20 @@ void LSM_Tree::clean_forward_set(std::set<Entry>& set_to_clean,const bool is_gre
     if(set_to_clean.size() <= LSM_TREE_FORWARD_MAX_RETURN){
         return;
     };
-    switch (is_greater_operation)
-    {
-    case true:
-    {
-        std::_Tree<std::_Tset_traits<Entry, std::less<Entry>, std::allocator<Entry>, false>>::iterator it = set_to_clean.begin();
+    if(is_greater_operation){
+        std::set<Entry>::iterator it = set_to_clean.begin();
         for(size_t i = 0; i < LSM_TREE_FORWARD_MAX_RETURN; ++i){
             ++it;
         }
         set_to_clean.erase(it, set_to_clean.end());
-        break;
     }
-    case false:
-    {
-        std::_Tree<std::_Tset_traits<Entry, std::less<Entry>, std::allocator<Entry>, false>>::iterator it = set_to_clean.begin();
+    else{
+        std::set<Entry>::iterator it = set_to_clean.begin();
         size_t elements_to_skip = set_to_clean.size() - LSM_TREE_FORWARD_MAX_RETURN;
         for(size_t i = 0; i < elements_to_skip; ++i){
             ++it;
         }
         set_to_clean.erase(set_to_clean.begin(), it);
-        break;
-    }
-    default:
-        break;
     }
 }
 
