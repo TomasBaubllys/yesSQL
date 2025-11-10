@@ -1,6 +1,7 @@
 #include "../include/server.h"
 #include <cerrno>
 #include <fcntl.h>
+#include <sys/eventfd.h>
 
 Server::Server(uint16_t port, uint8_t verbose) : port(port), verbose(verbose), epoll_events(SERVER_DEFAULT_EPOLL_EVENT_VAL), thread_pool(SERVER_DEFAULT_THREAD_POOL_VAL) {
 	// create a server_fd AF_INET - ipv4, SOCKET_STREAM - TCP
@@ -29,7 +30,6 @@ Server::Server(uint16_t port, uint8_t verbose) : port(port), verbose(verbose), e
 		bind_failed_str += std::to_string(errno);
     	throw std::runtime_error(SERVER_BIND_FAILED_ERR_MSG);
   }
-
 }
 
 Server::~Server() {
@@ -331,6 +331,17 @@ Server_Message Server::create_status_response(Command_Code status, bool contain_
 
 void Server::init_epoll() {
     this -> epoll_fd = epoll_create1(0);
+    
+    this -> wakeup_fd = eventfd(0, EFD_NONBLOCK);
+    if(this -> wakeup_fd < 0) {
+        std::cout << "ERROR WAKE UP IS NOT VALID" << std::endl;
+    }
+
+    epoll_event ev;
+    ev.events = EPOLLIN;
+    ev.data.fd = this -> wakeup_fd;
+    epoll_ctl(this->epoll_fd, EPOLL_CTL_ADD, this -> wakeup_fd, &ev);
+
     if(this -> epoll_fd < 0) {
         throw std::runtime_error(SERVER_FAILED_EPOLL_CREATE_ERR_MSG);
     }
@@ -355,7 +366,7 @@ std::vector<socket_t> Server::add_client_socket_to_epoll() {
         epoll_event ep_ev{};
         this -> make_non_blocking(client_fd);
         
-        ep_ev.events = EPOLLIN | EPOLLET;
+        ep_ev.events = EPOLLIN;// | EPOLLET;
         ep_ev.data.fd = client_fd;
         if(epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, client_fd, &ep_ev) < 0) {
             throw std::runtime_error(SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG);
@@ -415,17 +426,19 @@ void Server::modify_epoll_event(socket_t socket_fd, uint32_t new_events) {
 }
 
 void Server::modify_socket_for_sending_epoll(socket_t socket_fd) {
-    this -> modify_epoll_event(socket_fd, EPOLLOUT | EPOLLET);
+    this -> request_epoll_mod(socket_fd, EPOLLOUT);// | EPOLLET);
 }
 
 void Server::modify_socket_for_receiving_epoll(socket_t socket_fd) {
-    this -> modify_epoll_event(socket_fd, EPOLLIN | EPOLLET);
+    this -> request_epoll_mod(socket_fd, EPOLLIN);// | EPOLLET);
 }
 
 void Server::add_message_to_response_queue(socket_t socket_fd, const Server_Message& message) {
     std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
     // std::unordered_map<socket_t, std::queue<Server_Message>>::iterator it = this -> partition_queues.find(socket_fd);
     this -> partition_queues[socket_fd].push(message);
+    //std::cout << "Queued response for fd=" << message.client_id << " size=" << message.bytes_to_process << std::endl;
+
 }
 
 void Server::prepare_socket_for_response(socket_t socket_fd, const Server_Message& serv_msg) {
@@ -447,25 +460,16 @@ void Server::prepare_socket_for_err_response(socket_t socket_fd, bool contain_ci
     this -> modify_socket_for_sending_epoll(socket_fd);
 }
 
-bool Server::tactical_reload_partition(socket_t socket_fd) {
-    // std::cout << "here" << std::endl;
-    Server_Message pending_msg; 
-    bool loaded = false;
-    {
-        std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
-        if (!this -> partition_queues[socket_fd].empty()) {
-            pending_msg = this -> partition_queues[socket_fd].front();
-            this -> partition_queues[socket_fd].pop();
-            loaded = true;
-        }
-    }
-
-    if (loaded) {
-        // std::lock_guard<std::mutex> resp_lock(partial_buffer_mutex);
-        this -> partial_write_buffers[socket_fd] = std::move(pending_msg);
-    }
-
-    return loaded;
+bool Server::tactical_reload_partition(socket_t socket_fd, Server_Request& out_msg) {
+       std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
+       
+       if (!this -> partition_queues[socket_fd].empty()) {
+           out_msg = std::move(this -> partition_queues[socket_fd].front());
+           this -> partition_queues[socket_fd].pop();
+           return true;
+       }
+       
+       return false;
 }
 
 // updates bytes to process also
@@ -488,4 +492,41 @@ bool Server::remove_cid_tag(Server_Message& serv_msg) {
     memcpy(&serv_msg.message[0], &net_len, sizeof(net_len));
 
     return true;
+}
+
+void Server::request_epoll_mod(socket_t socket_fd, int32_t events) {
+    std::unique_lock<std::shared_mutex> lock(this -> epoll_mod_mutex);
+    this -> epoll_mod_map[socket_fd] |= events;
+    //std::cout << "REUQESTING CHANGE" << std::endl;
+    uint64_t one = 1;
+    write(this -> wakeup_fd, &one, sizeof(one)); // wake up epoll_wait
+    //std::cout << "WAKEUPFD IS LOADED" <<  "" << std::endl;
+}
+
+void Server::apply_epoll_mod_q() {
+    //std::cout << "MODD QUEUE" << std::endl;
+    std::cout << this -> epoll_mod_map.size() << std::endl;
+    std::unordered_map<socket_t, int32_t> local_copy;
+    {
+        // Lock only while copying to minimize contention
+        std::unique_lock<std::shared_mutex> lock(this->epoll_mod_mutex);
+        local_copy.swap(this->epoll_mod_map);
+    }
+
+    // Apply modifications outside the lock
+    for (const auto& [fd, events] : local_copy) {
+        //std::cout << "MODDING" << fd << std::endl;  
+        epoll_event ev{};
+        ev.data.fd = fd;
+        ev.events = events;
+
+        if (epoll_ctl(this->epoll_fd, EPOLL_CTL_MOD, fd, &ev) < 0) {
+            if (errno == EBADF || errno == ENOENT) {
+                // fd closed or no longer valid — skip
+                continue;
+            }
+            std::cerr << "epoll_ctl MOD failed for fd=" << fd
+                      << " errno=" << errno << std::endl;
+        }
+    }
 }

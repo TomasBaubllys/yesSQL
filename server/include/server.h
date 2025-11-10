@@ -67,6 +67,8 @@ class Server {
         int32_t server_fd;
         struct sockaddr_in address;
 
+        socket_t wakeup_fd;
+
         // client id - request
         std::unordered_map<socket_t, Server_Request> partial_read_buffers;
         
@@ -77,6 +79,9 @@ class Server {
         // parittion -> queue of client ids
         std::shared_mutex partition_queues_mutex;
         std::unordered_map<socket_t, std::queue<Server_Message>> partition_queues;
+
+        std::shared_mutex epoll_mod_mutex;
+        std::unordered_map<socket_t, int32_t> epoll_mod_map;
 
         // variable decides if server prints out the messages.
         uint8_t verbose;
@@ -164,11 +169,15 @@ class Server {
 
         void prepare_socket_for_err_response(socket_t socket_fd, bool contain_cid, protocol_id_t client_id);
 
-        bool tactical_reload_partition(socket_t socket_fd);
+        bool tactical_reload_partition(socket_t socket_fd, Server_Request& out_msg);
 
         bool add_cid_tag(Server_Message& serv_msg);
 
         bool remove_cid_tag(Server_Message& serv_msg);
+
+        void request_epoll_mod(socket_t socket_fd, int32_t events);
+
+        void apply_epoll_mod_q();
 };
 
 #endif // YSQL_SERVER_H_INCLUDED
