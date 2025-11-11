@@ -52,6 +52,8 @@ class Server_Message {
         void set_cid(protocol_id_t client_id);
 
         void reset();
+
+        std::string& get_string_data();
 };
 
 #endif // YSQL_SERVER_MESSAGE_H_INCLUDED

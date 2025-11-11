@@ -53,6 +53,8 @@
 #define SERVER_WAKE_UP_FD_FAILED_ERR_MSG "Error creating wake up fd\n"
 #define SERVER_EPOLL_FD_HOOKUP_ERR_MSG "Epoll reported socket dead\n"
 #define SERVER_READ_BUFFER_EMPLACE_FAIL_ERR_MSG "Failed to emplace into a write buffer\n"
+#define SERVER_FAILED_PARTITION_WRITE_BUFFER_ERR_MSG "Failed to move the message to partition queue\n"
+
 
 #define SERVER_DEFAULT_EPOLL_EVENT_VAL 255
 #define SERVER_DEFAULT_THREAD_POOL_VAL 64
@@ -138,7 +140,7 @@ class Server {
         // THROWS
         Server_Message read_message(socket_t socket);
 
-        void add_message_to_response_queue(socket_t socket_fd, const Server_Message& message);
+        void queue_socket_for_response(socket_t socket_fd, const Server_Message& message);
 
         // THROWS
         int64_t send_message(socket_t socket, Server_Message& serv_msg);

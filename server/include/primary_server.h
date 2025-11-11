@@ -25,8 +25,6 @@
 #define PRIMARY_SERVER_NPOS_FAILED_ERR_MSG "Could not extract the key from the message received - npos failed\n"
 #define PRIMARY_SERVER_NPOS_BAD_ERR_MSG "Bad or corrupted message received, could not extract key\n"
 #define PRIMARY_SERVER_FAILED_PARTITION_ADD_ERR_MSG "Failed to add partitions to epoll: " 
-#define PRIMARY_SERVER_FAILED_PARTITION_WRITE_BUFFER_ERR_MSG "Failed to move the message to partition queue\n"
-
 
 #define PRIMARY_SERVER_PARTITION_CHECK_INTERVAL 10
 #define PRIMARY_SERVER_HELLO_MSG "Hello from yesSQL server"

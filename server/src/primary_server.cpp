@@ -269,7 +269,6 @@ int8_t Primary_Server::start() {
                         if (it == this -> write_buffers.end()) {
                             Server_Message new_msg;
                             
-                            lock.unlock();
                             bool loaded = this -> tactical_reload_partition(socket_fd, new_msg);
                             
                             if (!loaded) {
@@ -277,18 +276,16 @@ int8_t Primary_Server::start() {
                                 break;
                             }
                             
-                            lock.lock();
                             std::pair<std::unordered_map<socket_t, Server_Message>::iterator, bool> insert_result = this -> write_buffers.emplace(socket_fd, std::move(new_msg));
                             if(insert_result.second) {
                                 it = insert_result.first;
                             }
                             else {
-                                throw std::runtime_error(PRIMARY_SERVER_FAILED_PARTITION_WRITE_BUFFER_ERR_MSG);
+                                throw std::runtime_error(SERVER_FAILED_PARTITION_WRITE_BUFFER_ERR_MSG);
                             }
                         }
 
                         Server_Message& serv_req = it -> second;                        
-                        lock.lock();
                         
                         try {
                             int64_t bytes_sent = this -> send_message(socket_fd, serv_req);
@@ -326,15 +323,13 @@ int8_t Primary_Server::start() {
                             Server_Message next_msg;
                             
                             bool has_more = this -> tactical_reload_partition(socket_fd, next_msg);
-                            lock.unlock();
                             if (!has_more) {
                                 this -> request_epoll_mod(socket_fd, EPOLLIN);//| EPOLLET);
                             } else {
-                                lock.lock();
                                 this -> write_buffers[socket_fd] = std::move(next_msg);
-                                lock.unlock();
                             }
                         }
+                        lock.unlock();
                     }
 
                     break;
@@ -372,7 +367,6 @@ void Primary_Server::add_client_socket_to_epoll_ctx() {
 
 int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg) {
     Command_Code com_code = this -> extract_command_code(msg.string(), true);
-
     switch(com_code) {
         case COMMAND_CODE_GET:
         case COMMAND_CODE_SET: 
@@ -402,7 +396,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
             }
 
             try {
-                this -> add_message_to_response_queue(partition_fd, msg);
+                this -> queue_socket_for_response(partition_fd, msg);
             }
             catch(const std::exception& e) {
                 if(this -> verbose > 0) {

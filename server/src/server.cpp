@@ -97,7 +97,8 @@ Server_Message Server::read_message(socket_t socket_fd) {
             return Server_Message();
         }
 
-        serv_req_iter -> second.append_string(block, bytes_read);
+        serv_req_iter -> second.get_string_data().append(block, bytes_read);
+        serv_req_iter -> second.add_processed(bytes_read);
 
         if(serv_req_iter -> second.to_process() == 0 && serv_req_iter -> second.string().size() >= sizeof(protocol_msg_len_t) + sizeof(protocol_id_t)) {
             protocol_msg_len_t bytes_to_prcs = 0;
@@ -141,7 +142,7 @@ int64_t Server::send_message(socket_t socket_fd, Server_Message& serv_msg) {
         return 0;
     }
 
-    const char* data_ptr = serv_msg.data().data() + offset;
+    const char* data_ptr = serv_msg.get_string_data().data() + offset;
     ssize_t bytes_sent = send(socket_fd, data_ptr, remaining, MSG_NOSIGNAL);
 
     if (bytes_sent < 0) {
@@ -187,7 +188,6 @@ bool Server::try_connect(const std::string& hostname, uint16_t port, uint32_t ti
 }
 
 socket_t Server::connect_to(const std::string& hostname, uint16_t port, bool& is_successful) const {
-    // std::cout << port << std::endl;
     struct addrinfo hints{}, *res = nullptr;
     hints.ai_family = AF_INET;       // IPv4
     hints.ai_socktype = SOCK_STREAM; // TCP
@@ -381,7 +381,7 @@ void Server::process_remove_queue() {
 }
 
 
-void Server::add_message_to_response_queue(socket_t socket_fd, const Server_Message& message) {
+void Server::queue_socket_for_response(socket_t socket_fd, const Server_Message& message) {
     std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
     this -> partition_queues[socket_fd].push(std::move(message));
     this -> request_epoll_mod(socket_fd, EPOLLIN | EPOLLOUT);
@@ -408,14 +408,13 @@ void Server::request_epoll_mod(socket_t socket_fd, int32_t events) {
 }
 
 void Server::apply_epoll_mod_q() {
-    std::cout << this -> epoll_mod_map.size() << std::endl;
     std::unordered_map<socket_t, uint32_t> local_copy;
     {
         std::unique_lock<std::shared_mutex> lock(this -> epoll_mod_mutex);
         local_copy.swap(this -> epoll_mod_map);
     }
 
-    for (const std::pair<socket_t, uint32_t>& p_event : local_copy) {
+    for (const std::pair<socket_t, uint32_t> p_event : local_copy) {
         epoll_event ev{};
         ev.data.fd = p_event.first;
         ev.events = p_event.second;

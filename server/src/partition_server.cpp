@@ -46,88 +46,91 @@ int8_t Partition_Server::start() {
                 }
             }
             else if(this -> epoll_events[i].events & EPOLLIN) {
-                Server_Message serv_msg = this -> read_message(socket_fd);
+                Server_Message serv_msg;
+                try {
+                    serv_msg = this -> read_message(socket_fd);
 
-                if(serv_msg.message.empty()) {
-                    continue;
+                    if(serv_msg.is_empty()) {
+                        continue;
+                    }
+                }
+                catch(const std::exception& e) {
+                    if(this -> verbose > 0) {
+                        std::cerr << e.what() << std::endl;
+                    }
+                    this -> request_to_remove_fd(socket_fd);
                 }
                 
-                ++msg_recv;
                 this -> thread_pool.enqueue([this, socket_fd, serv_msg](){
                     this -> handle_client(socket_fd, serv_msg);
                 });
             }
-           else if(this -> epoll_events[i].events & EPOLLOUT) {
+           
+            if(this -> epoll_events[i].events & EPOLLOUT) {
                 // Acquire lock to check/reload buffer
-                std::unique_lock<std::mutex> lock(this -> partial_buffer_mutex);
-                auto it = this -> partial_write_buffers.find(socket_fd);
+                std::unique_lock<std::shared_mutex> lock(this -> write_buffers_mutex);
+                std::unordered_map<socket_t, Server_Message>::iterator it = this -> write_buffers.find(socket_fd);
                 
                 // If no buffer exists, try to reload from queue
-                if (it == this -> partial_write_buffers.end()) {
-                    Server_Request new_msg;
+                if (it == this -> write_buffers.end()) {
+                    Server_Message new_msg;
                     
                     // Release lock before calling tactical_reload
-                    lock.unlock();
                     bool loaded = this -> tactical_reload_partition(socket_fd, new_msg);
                     
                     if (!loaded) {
                         // Nothing to write, return to EPOLLIN
-                        this -> modify_socket_for_receiving_epoll(socket_fd);
+                        this -> request_epoll_mod(socket_fd, EPOLLIN);
+                        lock.unlock();
                         continue;
                     }
                     
                     // Re-acquire lock to insert the new message
-                    lock.lock();
-                    auto insert_result = this -> partial_write_buffers.emplace(socket_fd, std::move(new_msg));
-                    it = insert_result.first;
+                    std::pair<std::unordered_map<socket_t, Server_Message>::iterator, bool> insert_result = this -> write_buffers.emplace(socket_fd, std::move(new_msg));
+                    if(insert_result.second) {
+                        it = insert_result.first;
+                    }
+                    else {
+                        throw std::runtime_error(SERVER_FAILED_PARTITION_WRITE_BUFFER_ERR_MSG);
+                    }
                 }
 
-                // USE REFERENCE - modifications will persist!
-                Server_Request& serv_req = it -> second;
+                Server_Message& serv_req = it -> second;
                 
-                // Release lock before potentially blocking send() call
-                lock.unlock();
-
-                // Send data - this modifies serv_req.bytes_processed
-                int64_t bytes_sent = this -> send_message(socket_fd, serv_req);
-                
-                for(int i = 0; i < bytes_sent; ++i) {
-                    // std::cout << int(serv_req.message[i]) << " ";
-                }
-                // std::cout << std::endl << "CID" << serv_req.client_id << std::endl;
-                
-                if (bytes_sent < 0) {
+                try {
+                    int64_t bytes_sent = this -> send_message(socket_fd, serv_req);
+                    
+                    if (bytes_sent < 0) {
+                        this -> request_to_remove_fd(socket_fd);
+                        lock.unlock();
+                        continue;
+                    }
+                } 
+                catch(const std::exception& e) {
+                    if(this -> verbose > 0) {
+                        std::cout << e.what() << std::endl;
+                    }
                     this -> request_to_remove_fd(socket_fd);
-                    continue;
                 }
-
-                // Re-acquire lock to check if message is complete
-                lock.lock();
                 
                 // Check if entire message has been sent
-                if (serv_req.bytes_processed >= serv_req.bytes_to_process) {
-                    ++msg_sent;
+                if (serv_req.is_fully_read()) {
                     // Message complete, remove from buffer
-                    this -> partial_write_buffers.erase(socket_fd);
+                    this -> write_buffers.erase(socket_fd);
                     
                     // Try to load next message from queue
-                    Server_Request next_msg;
-                    lock.unlock();
+                    Server_Message next_msg;
                     
                     bool has_more = this -> tactical_reload_partition(socket_fd, next_msg);
                     
                     if (!has_more) {
-                        // No more messages, switch back to EPOLLIN
-                        this -> modify_socket_for_receiving_epoll(socket_fd);
+                        this -> request_epoll_mod(socket_fd, EPOLLIN);
                     } else {
-                        // More messages available, keep in EPOLLOUT mode
-                        lock.lock();
-                        this -> partial_write_buffers[socket_fd] = std::move(next_msg);
-                        lock.unlock();
+                        this -> write_buffers[socket_fd] = std::move(next_msg);
                         // Stay in EPOLLOUT mode - will trigger again
                     }
+                    lock.unlock();
                 }
-    // else: partial send, stay in EPOLLOUT, will retry with updated bytes_processed
             }
             else if (this -> epoll_events[i].events & (EPOLLHUP | EPOLLERR)) {
                 // Client hang-up or error
@@ -230,7 +233,7 @@ std::string Partition_Server::create_entries_response(const std::vector<Entry>& 
 
 int8_t Partition_Server::process_request(socket_t socket_fd, const Server_Message& serv_msg) {
         // extract the command code
-    Command_Code com_code = this -> extract_command_code(serv_msg.message, true);
+    Command_Code com_code = this -> extract_command_code(serv_msg.string(), true);
 
     switch(com_code) {
         case COMMAND_CODE_GET: {
@@ -280,39 +283,38 @@ int8_t Partition_Server::process_request(socket_t socket_fd, const Server_Messag
 int8_t Partition_Server::handle_set_request(socket_t socket_fd, const Server_Message& serv_msg) {
     std::string key_str;
     try {
-        key_str = this -> extract_key_str_from_msg(serv_msg.message, true);
+        key_str = this -> extract_key_str_from_msg(serv_msg.string(), true);
     }
     catch(const std::exception& e) {
         if(this -> verbose > 0) {
         std::cerr << e.what() << std::endl;
         }
 
-        this -> prepare_socket_for_err_response(socket_fd, true, serv_msg.client_id);
+        this -> queue_socket_for_err_response(socket_fd, serv_msg.get_cid());
         return 0;
     }
 
     // extract the data
     std::string value_str;
     try {
-        value_str = this -> extract_value(serv_msg.message);
+        value_str = this -> extract_value(serv_msg.string());
     }
     catch (const std::exception& e) {
         if(this -> verbose > 0) {
             std::cerr << e.what() << e.what();
         }
 
-        this -> prepare_socket_for_err_response(socket_fd, true , serv_msg.client_id);
+        this -> queue_socket_for_err_response(socket_fd, serv_msg.get_cid());
         return 0;
     }
 
     // insert the key value pair into the inner lsm tree
     if(this -> lsm_tree.set(key_str, value_str)) {
-        std::cout << "SET: <key> " << key_str << " <value> " << value_str << std::endl; 
-        this -> prepare_socket_for_ok_response(socket_fd, true, serv_msg.client_id);
+        this -> queue_socket_for_ok_response(socket_fd, serv_msg.get_cid());
         return 0;
     }
     else {
-        this -> prepare_socket_for_err_response(socket_fd, true, serv_msg.client_id);
+        this -> queue_socket_for_err_response(socket_fd,serv_msg.get_cid());
         return 0;
     } 
     return -1;
@@ -321,14 +323,14 @@ int8_t Partition_Server::handle_set_request(socket_t socket_fd, const Server_Mes
 int8_t Partition_Server::handle_get_request(socket_t socket_fd, const Server_Message& serv_msg) {
     std::string key_str;
     try {
-        key_str = this -> extract_key_str_from_msg(serv_msg.message, true);
+        key_str = this -> extract_key_str_from_msg(serv_msg.string(), true);
     }
     catch(const std::exception& e) {
         if(this -> verbose > 0) {
-        std::cerr << e.what() << std::endl;
+            std::cerr << e.what() << std::endl;
         }
         
-        this -> prepare_socket_for_err_response(socket_fd, true, serv_msg.client_id);
+        this -> queue_socket_for_err_response(socket_fd, serv_msg.get_cid());
         return 0;
     }
 
@@ -337,19 +339,13 @@ int8_t Partition_Server::handle_get_request(socket_t socket_fd, const Server_Mes
     try {
         Entry entry = lsm_tree.get(key_str);
         if(entry.is_deleted() || entry.get_string_key_bytes() == ENTRY_PLACEHOLDER_KEY) {
-            this -> prepare_socket_for_not_found_response(socket_fd, serv_msg.client_id);
+            this -> queue_socket_for_not_found_response(socket_fd, serv_msg.get_cid());
             return 0;
         }
         else {
-            std::cout << "GET: <key> " << key_str << " <value> " << entry.get_value_string() << std::endl; 
-            std::string entries_resp = this -> create_entries_response({entry}, serv_msg.client_id);
-            Server_Message serv_resp;
-            serv_resp.bytes_processed = 0;
-            serv_resp.message = entries_resp;
-            serv_resp.bytes_to_process = entries_resp.size();
-            serv_resp.client_id = serv_msg.client_id;
-            // std::cout << "HERE" << std::endl;
-            this -> prepare_socket_for_response(socket_fd, serv_resp);
+            std::string entries_resp = this -> create_entries_response({entry}, serv_msg.get_cid());
+            Server_Message serv_resp(entries_resp, serv_msg.get_cid());
+            this -> queue_socket_for_response(socket_fd, serv_resp);
             return 0;
         }
     }
@@ -358,42 +354,35 @@ int8_t Partition_Server::handle_get_request(socket_t socket_fd, const Server_Mes
             std::cerr << e.what() << std::endl;
         }
 
-        this -> prepare_socket_for_err_response(socket_fd, true, serv_msg.client_id);
+        this -> queue_socket_for_err_response(socket_fd, serv_msg.get_cid());
         return 0;
     }
     return -1;
 }
 
 int8_t Partition_Server::handle_remove_request(socket_t socket_fd, const Server_Message& serv_msg) {
-    std::cout << "REMOVE: <key> " << std::endl;         
     std::string key_str;
     try {
-        key_str = this -> extract_key_str_from_msg(serv_msg.message, true);
+        key_str = this -> extract_key_str_from_msg(serv_msg.string(), true);
     }
     catch (const std::exception& e) {
         if(this -> verbose > 0) {
             std::cerr << e.what() << std::endl;
         }
-        this -> prepare_socket_for_err_response(socket_fd, true, serv_msg.client_id);
+        this -> queue_socket_for_err_response(socket_fd, serv_msg.get_cid());
         return 0;
     }
 
     if(lsm_tree.remove(key_str)) {
-        this -> prepare_socket_for_ok_response(socket_fd, true, serv_msg.client_id);
+        this -> queue_socket_for_ok_response(socket_fd, serv_msg.get_cid());
         return 0;
     }
     else {
-        this -> prepare_socket_for_err_response(socket_fd, true, serv_msg.client_id);
+        this -> queue_socket_for_err_response(socket_fd, serv_msg.get_cid());
         return 0;
     }
 
     return -1;
-}
-
-void Partition_Server::prepare_socket_for_not_found_response(socket_t socket_fd, protocol_id_t client_id) {
-    Server_Message resp = this -> create_status_response(Command_Code::COMMAND_CODE_DATA_NOT_FOUND, true, client_id);
-    this -> modify_socket_for_sending_epoll(socket_fd);
-    this -> add_message_to_response_queue(socket_fd, resp);
 }
 
 void Partition_Server::handle_client(socket_t socket_fd, const Server_Message& message) {
@@ -409,4 +398,19 @@ void Partition_Server::handle_client(socket_t socket_fd, const Server_Message& m
 
         this -> request_to_remove_fd(socket_fd);
     }
+}
+
+void Partition_Server::queue_socket_for_not_found_response(socket_t socket_fd, protocol_id_t client_id) {
+    Server_Message resp = this -> create_status_response(Command_Code::COMMAND_CODE_DATA_NOT_FOUND, true, client_id);
+    this -> queue_socket_for_response(socket_fd, resp);
+}
+
+void Partition_Server::queue_socket_for_err_response(socket_t socket_fd, protocol_id_t client_id) {
+    Server_Message resp = this -> create_status_response(Command_Code::COMMAND_CODE_ERR, true, client_id);
+    this -> queue_socket_for_response(socket_fd, resp);
+}
+
+void Partition_Server::queue_socket_for_ok_response(socket_t socket_fd, protocol_id_t client_id) {
+    Server_Message resp = this -> create_status_response(Command_Code::COMMAND_CODE_OK, true, client_id);
+    this -> queue_socket_for_response(socket_fd, resp);
 }
