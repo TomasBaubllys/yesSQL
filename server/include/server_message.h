@@ -3,14 +3,57 @@
 
 #include "protocol.h"
 
-typedef struct Server_Message {
-    std::string message;
-    protocol_message_len_type bytes_processed;
-    protocol_message_len_type bytes_to_process;
-    uint64_t client_id;
-} Server_Message;
+class Server_Message {
+    private:
+        std::string msg;
+        protocol_msg_len_t bytes_processed;
+        protocol_msg_len_t bytes_to_process;
+        protocol_id_t cid;
 
-using Server_Request = Server_Message;
-using Server_Response = Server_Message;
+    public:
+        Server_Message(std::string& message, protocol_id_t client_id);
+
+        Server_Message();
+
+        // returns the internal message as a string
+        std::string string() const;
+        
+        // removes client_id from the message string, but keeps it internally
+        // modifies bytes_to_process
+        void remove_cid();
+
+        // adds a client id to internal structure
+        void add_cid(protocol_id_t client_id);
+
+        // returns the client id that the message belongs to
+        protocol_id_t get_cid() const;
+        
+        // returns the bytes left to process;
+        protocol_msg_len_t to_process() const;
+
+        // set bytes to process
+        void set_to_process(protocol_msg_len_t bytes_to_process);
+
+        // add bytes_processed to current amount of processed bytes
+        void add_processed(protocol_msg_len_t bytes_processed);
+
+        void reset_processed();
+
+        // returns the amount of bytes processed
+        protocol_msg_len_t processed() const;
+
+        // return true if message is empty
+        bool is_empty() const;
+
+        bool is_fully_read() const;
+
+        void append_string(std::string string_to_append, size_t bytes_to_append);
+
+        void set_cid(protocol_id_t client_id);
+
+        void reset();
+
+        std::string& get_string_data();
+};
 
 #endif // YSQL_SERVER_MESSAGE_H_INCLUDED

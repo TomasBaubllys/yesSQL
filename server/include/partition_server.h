@@ -49,7 +49,11 @@ class Partition_Server : public Server {
         // handles REMOVE, responds to the socket_fd, upon failure returns <0 on success >= 0 
         int8_t handle_remove_request(socket_t socket_fd, const Server_Message& message);
 
-        void prepare_socket_for_not_found_response(socket_t socket_fd, protocol_id_t client_id);
+        void queue_socket_for_not_found_response(socket_t socket_fd, protocol_id_t client_id);
+
+        void queue_socket_for_err_response(socket_t socket_fd, protocol_id_t client_id);
+
+        void queue_socket_for_ok_response(socket_t socket_fd, protocol_id_t client_id);
 
         // @brief handles client requests
         // calls the handle int8_t process_request(socket_t, string);
