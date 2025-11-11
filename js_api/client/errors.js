@@ -1,0 +1,1 @@
+// Map erros to JavaScript error classes
