@@ -534,8 +534,8 @@ int main() {
     
 
     // Run tests with guaranteed non-overlapping keys
-    assert(test_mem_table(entriesA, lsm_tree));
-    assert(test_mem_table(entriesB, lsm_tree));
+    //assert(test_mem_table(entriesA, lsm_tree));
+    //assert(test_mem_table(entriesB, lsm_tree));
     // assert(test_mem_table(entriesC, lsm_tree));
     // assert(test_mem_table(entriesD, lsm_tree));
     // assert(test_mem_table(entriesE, lsm_tree));

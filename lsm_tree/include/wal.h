@@ -7,7 +7,7 @@
 #include <vector>
 #include <sstream>
 
-#define DEFAULT_WAL_FOLDER_LOCATION "/data/wal/"
+#define DEFAULT_WAL_FOLDER_LOCATION "./data/wal/"
 
 class Wal{
     private:
