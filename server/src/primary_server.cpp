@@ -5,6 +5,12 @@
 #include <system_error>
 #include <sys/eventfd.h>
 
+uint64_t ttcmsgrecv = 0;
+uint64_t ttcmsgsent = 0;
+
+uint64_t pppmsgrecv = 0;
+uint64_t pppmsgsent = 0;
+
 Primary_Server::Primary_Server(uint16_t port, uint8_t verbose) : Server(port, verbose) {
     const char* partition_count_str = std::getenv(PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING);
     if(!partition_count_str) {
@@ -155,6 +161,10 @@ int8_t Primary_Server::start() {
 
     while (true) {
         this -> apply_epoll_mod_q();
+        std::cout << "Received messages from clients: " << ttcmsgrecv << std::endl;
+        std::cout << "Messages sent to clients: " << ttcmsgsent << std::endl;
+        std::cout << "Received messages from partitions: " << pppmsgrecv << std::endl;
+        std::cout << "Messages sent to partitions: " << pppmsgsent << std::endl;
         int32_t ready_fd_count = this -> server_epoll_wait();
         if(ready_fd_count < 0) {
             if(errno == EINTR) {
@@ -199,6 +209,8 @@ int8_t Primary_Server::start() {
                             break;
                         }
 
+                        ++ttcmsgrecv;
+
                         {   
                             std::shared_lock<std::shared_mutex> lock(this -> client_id_map_mutex);
                             serv_msg.add_cid(this -> client_id_map[socket_fd]);
@@ -225,6 +237,8 @@ int8_t Primary_Server::start() {
                                 this -> request_to_remove_fd(socket_fd);
                                 continue;
                             }
+
+                            ttcmsgsent++;
 
                             if(data.is_fully_read()) {
                                 this -> write_buffers.erase(msg);
@@ -255,6 +269,7 @@ int8_t Primary_Server::start() {
                         // read the message
                         Server_Message serv_msg = this -> read_message(socket_fd);
                         if(!serv_msg.is_empty()) {
+                            ++pppmsgsent;
                             this -> thread_pool.enqueue([this, serv_msg]() {
                                 this -> process_partition_response(serv_msg);
                             });
@@ -318,6 +333,7 @@ int8_t Primary_Server::start() {
                         }
                         
                         if (serv_req.is_fully_read()) {
+                            ++pppmsgrecv;
                             this -> write_buffers.erase(socket_fd);
                             
                             Server_Message next_msg;
