@@ -324,7 +324,7 @@ int8_t Primary_Server::start() {
                             
                             bool has_more = this -> tactical_reload_partition(socket_fd, next_msg);
                             if (!has_more) {
-                                this -> request_epoll_mod(socket_fd, EPOLLIN);//| EPOLLET);
+                                this -> request_epoll_mod(socket_fd, EPOLLIN | EPOLLOUT);//| EPOLLET);
                             } else {
                                 this -> write_buffers[socket_fd] = std::move(next_msg);
                             }

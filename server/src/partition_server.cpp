@@ -80,7 +80,7 @@ int8_t Partition_Server::start() {
                     
                     if (!loaded) {
                         // Nothing to write, return to EPOLLIN
-                        this -> request_epoll_mod(socket_fd, EPOLLIN);
+                        this -> request_epoll_mod(socket_fd, EPOLLIN | EPOLLOUT);
                         lock.unlock();
                         continue;
                     }
@@ -124,7 +124,7 @@ int8_t Partition_Server::start() {
                     bool has_more = this -> tactical_reload_partition(socket_fd, next_msg);
                     
                     if (!has_more) {
-                        this -> request_epoll_mod(socket_fd, EPOLLIN);
+                        this -> request_epoll_mod(socket_fd, EPOLLIN | EPOLLOUT);
                     } else {
                         this -> write_buffers[socket_fd] = std::move(next_msg);
                         // Stay in EPOLLOUT mode - will trigger again
