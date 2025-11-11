@@ -17,7 +17,6 @@ int8_t Partition_Server::start() {
     add_this_to_epoll();
 
     while (true) {
-        this -> apply_epoll_mod_q();
         int32_t ready_fd_count = this -> server_epoll_wait();
         if(ready_fd_count < 0) {
             if(errno == EINTR) {
@@ -34,6 +33,8 @@ int8_t Partition_Server::start() {
             if(socket_fd == this -> wakeup_fd) {
                 uint64_t dummy = 0;
                 read(wakeup_fd, &dummy, sizeof(dummy));
+                this -> apply_epoll_mod_q();
+
                 continue;
             }
             
@@ -45,13 +46,18 @@ int8_t Partition_Server::start() {
                     }
                 }
             }
-            else if(this -> epoll_events[i].events & EPOLLIN) {
-                Server_Message serv_msg;
+            
+            if(this -> epoll_events[i].events & EPOLLIN) {
+                std::vector<Server_Message> serv_msgs;
                 try {
-                    serv_msg = this -> read_message(socket_fd);
-
-                    if(serv_msg.is_empty()) {
-                        continue;
+                    serv_msgs = this -> read_messages(socket_fd);
+                    for(const Server_Message& serv_msg : serv_msgs) {
+                        if(serv_msg.is_empty()) {
+                            continue;
+                        }
+                        this -> thread_pool.enqueue([this, socket_fd, serv_msg](){
+                        this -> handle_client(socket_fd, serv_msg);
+                        });
                     }
                 }
                 catch(const std::exception& e) {
@@ -60,10 +66,6 @@ int8_t Partition_Server::start() {
                     }
                     this -> request_to_remove_fd(socket_fd);
                 }
-                
-                this -> thread_pool.enqueue([this, socket_fd, serv_msg](){
-                    this -> handle_client(socket_fd, serv_msg);
-                });
             }
            
             if(this -> epoll_events[i].events & EPOLLOUT) {
@@ -80,7 +82,7 @@ int8_t Partition_Server::start() {
                     
                     if (!loaded) {
                         // Nothing to write, return to EPOLLIN
-                        this -> request_epoll_mod(socket_fd, EPOLLIN | EPOLLOUT);
+                        this -> request_epoll_mod(socket_fd, EPOLLIN);
                         lock.unlock();
                         continue;
                     }
@@ -108,7 +110,7 @@ int8_t Partition_Server::start() {
                 } 
                 catch(const std::exception& e) {
                     if(this -> verbose > 0) {
-                        std::cout << e.what() << std::endl;
+                        std::cerr << e.what() << std::endl;
                     }
                     this -> request_to_remove_fd(socket_fd);
                 }
@@ -124,9 +126,10 @@ int8_t Partition_Server::start() {
                     bool has_more = this -> tactical_reload_partition(socket_fd, next_msg);
                     
                     if (!has_more) {
-                        this -> request_epoll_mod(socket_fd, EPOLLIN | EPOLLOUT);
+                        this -> request_epoll_mod(socket_fd, EPOLLIN);
                     } else {
                         this -> write_buffers[socket_fd] = std::move(next_msg);
+                        this -> request_epoll_mod(socket_fd, EPOLLIN | EPOLLOUT);
                         // Stay in EPOLLOUT mode - will trigger again
                     }
                     lock.unlock();
@@ -385,7 +388,7 @@ int8_t Partition_Server::handle_remove_request(socket_t socket_fd, const Server_
     return -1;
 }
 
-void Partition_Server::handle_client(socket_t socket_fd, const Server_Message& message) {
+void Partition_Server::handle_client(socket_t socket_fd, Server_Message message) {
     try{
         if(this -> process_request(socket_fd, message) < 0) {
             this -> request_to_remove_fd(socket_fd);

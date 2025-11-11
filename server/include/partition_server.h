@@ -58,7 +58,7 @@ class Partition_Server : public Server {
         // @brief handles client requests
         // calls the handle int8_t process_request(socket_t, string);
         // on failure pushes the socket_fd to remove_queue 
-        void handle_client(socket_t socket_fd, const Server_Message& message);
+        void handle_client(socket_t socket_fd, Server_Message message);
 
         int8_t start() override;
 };

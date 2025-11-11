@@ -52,79 +52,74 @@ int8_t Server::start() {
     return 0;
 }
 
-Server_Message Server::read_message(socket_t socket_fd) {
-    if(socket_fd < 0) {
+std::vector<Server_Message> Server::read_messages(socket_t socket_fd) {
+    if (socket_fd < 0) {
         throw std::runtime_error(SERVER_INVALID_SOCKET_ERR_MSG);
     }
-    char block[SERVER_MESSAGE_BLOCK_SIZE];
 
-    // Server_Request serv_req = this -> partial_read_buffers[socket_fd];
-    std::unordered_map<socket_t, Server_Message>::iterator serv_req_iter = this -> read_buffers.find(socket_fd);
-    if(serv_req_iter == this -> read_buffers.end()) {
-        std::pair<std::unordered_map<socket_t, Server_Message>::iterator, bool> new_iter = this -> read_buffers.emplace(socket_fd, Server_Message());
-        if(new_iter.second) {
-            serv_req_iter = new_iter.first;
-        }
-        else {
-            throw std::runtime_error(SERVER_READ_BUFFER_EMPLACE_FAIL_ERR_MSG);
-        }
-    }
+    char block[SERVER_MESSAGE_BLOCK_SIZE];
+    std::vector<Server_Message> messages;
+
+    Server_Message& partial = this -> read_buffers[socket_fd];
 
     bool header_has_client_id = false;
-    std::unordered_map<socket_t, Fd_Type>::iterator sit = this -> fd_type_map.find(socket_fd);
-    if(sit != this -> fd_type_map.end() && sit -> second != Fd_Type::CLIENT) {
+    std::unordered_map<socket_t, Fd_Type>::iterator type_it = this -> fd_type_map.find(socket_fd);
+    if (type_it != this -> fd_type_map.end() && type_it -> second != Fd_Type::CLIENT) {
         header_has_client_id = true;
     }
 
     while (true) {
         int32_t bytes_read = recv(socket_fd, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
+
         if (bytes_read < 0) {
-            if(errno == EAGAIN || errno == EWOULDBLOCK) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 break;
             }
-            else {
-                this -> request_to_remove_fd(socket_fd);
-                std::string recv_failed_str(SERVER_FAILED_RECV_ERR_MSG);
-                recv_failed_str += SERVER_ERRNO_STR_PREFIX;
-                recv_failed_str += std::to_string(errno);
-                throw std::runtime_error(recv_failed_str);
-            }
+            this -> request_to_remove_fd(socket_fd);
+            std::string fail_recv_str(SERVER_FAILED_RECV_ERR_MSG);
+            fail_recv_str += SERVER_ERRNO_STR_PREFIX;
+            fail_recv_str += std::to_string(errno);
+            throw std::runtime_error(fail_recv_str);
         }
-        // client close socket :(
+
         if (bytes_read == 0) {
             this -> request_to_remove_fd(socket_fd);
-            // somehow indicate that client quit
-            return Server_Message();
+            return {};
         }
 
-        serv_req_iter -> second.get_string_data().append(block, bytes_read);
-        serv_req_iter -> second.add_processed(bytes_read);
+        partial.get_string_data().append(block, bytes_read);
 
-        if(serv_req_iter -> second.to_process() == 0 && serv_req_iter -> second.string().size() >= sizeof(protocol_msg_len_t) + sizeof(protocol_id_t)) {
-            protocol_msg_len_t bytes_to_prcs = 0;
-            memcpy(&bytes_to_prcs, serv_req_iter -> second.string().data(), sizeof(protocol_msg_len_t));
-            serv_req_iter -> second.set_to_process(protocol_msg_len_ntoh(bytes_to_prcs));
-            if(header_has_client_id) {
+        while (true) {
+            size_t buffer_size = partial.string().size();
+
+            if (buffer_size < sizeof(protocol_msg_len_t))
+                break;
+
+            protocol_msg_len_t msg_len_net = 0;
+            memcpy(&msg_len_net, partial.string().data(), sizeof(msg_len_net));
+            protocol_msg_len_t msg_len = protocol_msg_len_ntoh(msg_len_net);
+
+            if (buffer_size < msg_len)
+                break;
+
+            std::string one_msg_str = partial.string().substr(0, msg_len);
+
+            Server_Message msg(one_msg_str);
+            msg.set_to_process(msg_len);
+
+            if (header_has_client_id && msg_len >= sizeof(protocol_msg_len_t) + sizeof(protocol_id_t)) {
                 protocol_id_t net_cid = 0;
-                memcpy(&net_cid, serv_req_iter -> second.string().data() + sizeof(protocol_msg_len_t), sizeof(protocol_id_t));
-                serv_req_iter -> second.set_cid(protocol_id_ntoh(net_cid));
+                memcpy(&net_cid, one_msg_str.data() + sizeof(protocol_msg_len_t), sizeof(net_cid));
+                msg.set_cid(protocol_id_ntoh(net_cid));
             }
-        }
 
+            messages.push_back(msg);
 
-        if(serv_req_iter -> second.is_fully_read()) {
-            break;
+            partial.get_string_data().erase(0, msg_len);
         }
     }
 
-    if (serv_req_iter -> second.is_fully_read()) {
-        Server_Message msg = serv_req_iter -> second;
-        serv_req_iter -> second.reset();
-        return msg;
-    }
-
-    return Server_Message();
-
+    return messages;
 }
 
 int64_t Server::send_message(socket_t socket_fd, Server_Message& serv_msg) {
@@ -376,7 +371,6 @@ void Server::process_remove_queue() {
     }
     remove_queue.clear();
 }
-
 
 void Server::queue_socket_for_response(socket_t socket_fd, const Server_Message& message) {
     std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);

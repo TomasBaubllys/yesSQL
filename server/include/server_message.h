@@ -2,6 +2,7 @@
 #define YSQL_SERVER_MESSAGE_H_INCLUDED
 
 #include "protocol.h"
+#include <iostream>
 
 class Server_Message {
     private:
@@ -14,6 +15,8 @@ class Server_Message {
         Server_Message(std::string& message, protocol_id_t client_id);
 
         Server_Message();
+
+        Server_Message(std::string& message);
 
         // returns the internal message as a string
         std::string string() const;
@@ -54,6 +57,9 @@ class Server_Message {
         void reset();
 
         std::string& get_string_data();
+
+        // for testing
+        void print() const;
 };
 
 #endif // YSQL_SERVER_MESSAGE_H_INCLUDED

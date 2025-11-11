@@ -154,7 +154,6 @@ int8_t Primary_Server::start() {
     add_partitions_to_epoll();
 
     while (true) {
-        this -> apply_epoll_mod_q();
         int32_t ready_fd_count = this -> server_epoll_wait();
         if(ready_fd_count < 0) {
             if(errno == EINTR) {
@@ -173,6 +172,7 @@ int8_t Primary_Server::start() {
             if(socket_fd == this -> wakeup_fd) {
                 uint64_t dummy = 0;
                 read(socket_fd, &dummy, sizeof(dummy));
+                this -> apply_epoll_mod_q();
                 continue;
             }
 
@@ -194,20 +194,21 @@ int8_t Primary_Server::start() {
 
                 case Fd_Type::CLIENT: {
                     if(ev.events & EPOLLIN) {
-                        Server_Message serv_msg = this -> read_message(socket_fd);
-                        if(serv_msg.is_empty()) {
-                            break;
+                        std::vector<Server_Message> serv_msgs = this -> read_messages(socket_fd);
+                        for(Server_Message& serv_msg : serv_msgs) {
+                            if(serv_msg.is_empty()) {
+                                continue;
+                            }
+                            
+                            {   
+                                std::shared_lock<std::shared_mutex> lock(this -> client_id_map_mutex);
+                                serv_msg.add_cid(this -> client_id_map[socket_fd]);
+                            }
+
+                            this -> thread_pool.enqueue([this, socket_fd, serv_msg](){
+                                this -> process_client_in(socket_fd, serv_msg);
+                            });
                         }
-
-                        {   
-                            std::shared_lock<std::shared_mutex> lock(this -> client_id_map_mutex);
-                            serv_msg.add_cid(this -> client_id_map[socket_fd]);
-                        }
-
-                        this -> thread_pool.enqueue([this, socket_fd, serv_msg](){
-                            this -> process_client_in(socket_fd, serv_msg);
-                        });
-
                     }
                     else if(ev.events & EPOLLOUT) {
                         std::unique_lock<std::shared_mutex> lock(this -> write_buffers_mutex);
@@ -253,11 +254,13 @@ int8_t Primary_Server::start() {
                 case Fd_Type::PARTITION: {
                     if(ev.events & EPOLLIN) {
                         // read the message
-                        Server_Message serv_msg = this -> read_message(socket_fd);
-                        if(!serv_msg.is_empty()) {
-                            this -> thread_pool.enqueue([this, serv_msg]() {
-                                this -> process_partition_response(serv_msg);
-                            });
+                        std::vector<Server_Message> serv_msgs = this -> read_messages(socket_fd);
+                        for(const Server_Message& serv_msg : serv_msgs) {
+                            if(!serv_msg.is_empty()) {
+                                this -> thread_pool.enqueue([this, serv_msg]() {
+                                    this -> process_partition_response(serv_msg);
+                                });
+                            }
                         }
                     }
 
