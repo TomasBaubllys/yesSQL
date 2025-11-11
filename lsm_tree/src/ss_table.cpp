@@ -140,7 +140,9 @@ Entry SS_Table::get(const Bits& key, bool& found) const {
     if(!found) {
         Bits key(ENTRY_PLACEHOLDER_KEY);
         Bits value(ENTRY_PLACEHOLDER_VALUE);
-        return Entry(key, value);
+        Entry entry(key, value);
+        entry.set_tombstone(ENTRY_TOMBSTONE_ON);
+        return entry;
     }
 
     // read the value

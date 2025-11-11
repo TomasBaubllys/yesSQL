@@ -75,13 +75,13 @@ def build_get_command(key: str) -> bytes:
 
 def random_key():
     #length = random.randint(2, 128)
-    #return os.urandom(64).hex()  # returns bytes
-    global i
-    i += 1
-    return str(i)
+    return os.urandom(128).hex()  # returns bytes
+    #global i
+    #i += 1
+    #return str(i)
 
 def random_value():
-    return os.urandom(64).hex()  # 64 random bytes
+    return os.urandom(652).hex()  # 64 random bytes
 
 
 # ==================================================

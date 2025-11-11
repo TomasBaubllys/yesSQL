@@ -38,7 +38,7 @@ Entry::Entry(Bits _key, Bits _value) : key(ENTRY_PLACEHOLDER_KEY), value(ENTRY_P
     this -> value = _value;
 
     entry_length = 0;
-    tombstone_flag = 0;
+    tombstone_flag = ENTRY_TOMBSTONE_OFF;;
     checksum = 0;
 
     calculate_checksum();
@@ -243,7 +243,7 @@ Entry::Entry(std::string& file_entry_key, std::string& file_entry_data) : key(EN
     }
 
     char* data_ptr = file_entry_data.data();
-    memcpy(&tombstone_flag, &data_ptr, sizeof(tombstone_flag));
+    memcpy(&tombstone_flag, data_ptr, sizeof(tombstone_flag));
     data_ptr += sizeof(tombstone_flag);
 
     // read the size of the data
