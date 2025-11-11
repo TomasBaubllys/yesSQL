@@ -1,7 +1,7 @@
 #include "../include/server_message.h"
 #include <cstring>
 
-Server_Message::Server_Message(std::string& message, protocol_id_t client_id) : msg(message), cid(client_id), bytes_to_process(message.size()), bytes_processed(0) {
+Server_Message::Server_Message(std::string& message, protocol_id_t client_id) : msg(message),  bytes_processed(0), bytes_to_process(message.size()),  cid(client_id) {
 
 }
 
@@ -9,7 +9,7 @@ Server_Message::Server_Message() : bytes_processed(0), bytes_to_process(0), cid(
 
 }
 
-Server_Message::Server_Message(std::string& message) : msg(message), cid(0), bytes_to_process(message.size()), bytes_processed(0) {
+Server_Message::Server_Message(std::string& message) : msg(message), bytes_processed(0), bytes_to_process(message.size()), cid(0) {
 
 }
 
@@ -89,10 +89,5 @@ std::string& Server_Message::get_string_data() {
 }
 
 void Server_Message::print() const {
-    std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$ " << this -> bytes_to_process << "  " << this -> msg.size() << std::endl;
-    for(int i = 0; i < this -> msg.size(); ++i) {
-        std::cout << int(this -> msg[i]) << " ";
-    }
 
-    std::cout << std::endl;
 }

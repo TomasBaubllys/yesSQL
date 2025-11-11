@@ -337,7 +337,6 @@ int8_t Partition_Server::handle_get_request(socket_t socket_fd, const Server_Mes
         return 0;
     }
 
-    bool found = false;
     std::string value_str;
     try {
         Entry entry = lsm_tree.get(key_str);

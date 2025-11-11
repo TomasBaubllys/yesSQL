@@ -1114,11 +1114,11 @@ void SS_Table::reconstruct_ss_table(){
 }
 
 std::pair<std::vector<Bits>, Bits> SS_Table::get_n_next_keys_alive(const Bits& target_key, uint32_t count) const {
-    return this -> get_n_next_keys(target_key, SS_Table_Entry_Filter::SS_TABLE_FILTER_ALIVE_ENTRIES);
+    return this -> get_n_next_keys(target_key, SS_Table_Entry_Filter::SS_TABLE_FILTER_ALIVE_ENTRIES, count);
 }
 
 std::pair<std::vector<Bits>, Bits> SS_Table::get_n_next_keys(const Bits& target_key, uint32_t count) const {
-    return this -> get_n_next_keys(target_key, SS_Table_Entry_Filter::SS_TABLE_FILTER_ALL_ENTRIES);
+    return this -> get_n_next_keys(target_key, SS_Table_Entry_Filter::SS_TABLE_FILTER_ALL_ENTRIES, count);
 }
 
 std::pair<std::vector<Bits>, Bits> SS_Table::get_n_next_keys(const Bits& target_key, SS_Table_Entry_Filter entry_filter, uint32_t count) const {
