@@ -138,7 +138,7 @@ class Server {
         // @brief reads a message of structure defined in protocol.h 
         // should work for both blocking and non-blocking sockets
         // THROWS
-        Server_Message read_message(socket_t socket);
+        std::vector<Server_Message> read_messages(socket_t socket);
 
         void queue_socket_for_response(socket_t socket_fd, const Server_Message& message);
 

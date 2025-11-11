@@ -204,22 +204,23 @@ int8_t Primary_Server::start() {
 
                 case Fd_Type::CLIENT: {
                     if(ev.events & EPOLLIN) {
-                        Server_Message serv_msg = this -> read_message(socket_fd);
-                        if(serv_msg.is_empty()) {
-                            break;
+                        std::vector<Server_Message> serv_msgs = this -> read_messages(socket_fd);
+                        for(Server_Message& serv_msg : serv_msgs) {
+                            if(serv_msg.is_empty()) {
+                                continue;
+                            }
+                            
+                            ++ttcmsgrecv;
+
+                            {   
+                                std::shared_lock<std::shared_mutex> lock(this -> client_id_map_mutex);
+                                serv_msg.add_cid(this -> client_id_map[socket_fd]);
+                            }
+
+                            this -> thread_pool.enqueue([this, socket_fd, serv_msg](){
+                                this -> process_client_in(socket_fd, serv_msg);
+                            });
                         }
-                        
-                        ++ttcmsgrecv;
-
-                        {   
-                            std::shared_lock<std::shared_mutex> lock(this -> client_id_map_mutex);
-                            serv_msg.add_cid(this -> client_id_map[socket_fd]);
-                        }
-
-                        this -> thread_pool.enqueue([this, socket_fd, serv_msg](){
-                            this -> process_client_in(socket_fd, serv_msg);
-                        });
-
                     }
                     else if(ev.events & EPOLLOUT) {
                         std::unique_lock<std::shared_mutex> lock(this -> write_buffers_mutex);
@@ -267,12 +268,14 @@ int8_t Primary_Server::start() {
                 case Fd_Type::PARTITION: {
                     if(ev.events & EPOLLIN) {
                         // read the message
-                        Server_Message serv_msg = this -> read_message(socket_fd);
-                        if(!serv_msg.is_empty()) {
-                            ++pppmsgrecv;
-                            this -> thread_pool.enqueue([this, serv_msg]() {
-                                this -> process_partition_response(serv_msg);
-                            });
+                        std::vector<Server_Message> serv_msgs = this -> read_messages(socket_fd);
+                        for(const Server_Message& serv_msg : serv_msgs) {
+                            if(!serv_msg.is_empty()) {
+                                ++pppmsgrecv;
+                                this -> thread_pool.enqueue([this, serv_msg]() {
+                                    this -> process_partition_response(serv_msg);
+                                });
+                            }
                         }
                     }
 
@@ -334,7 +337,7 @@ int8_t Primary_Server::start() {
                         
                         if (serv_req.is_fully_read()) {
                             ++pppmsgsent;
-                            std::cout << "sent to parition: " << std::endl;
+                            std::cout << "FD = " << socket_fd << " sent to parition: " << std::endl;
                             serv_req.print();
                             this -> write_buffers.erase(socket_fd);
                             

@@ -52,7 +52,7 @@ int8_t Server::start() {
     return 0;
 }
 
-Server_Message Server::read_message(socket_t socket_fd) {
+/*std::vector<Server_Message> Server::read_message(socket_t socket_fd) {
     if(socket_fd < 0) {
         throw std::runtime_error(SERVER_INVALID_SOCKET_ERR_MSG);
     }
@@ -94,7 +94,7 @@ Server_Message Server::read_message(socket_t socket_fd) {
         if (bytes_read == 0) {
             this -> request_to_remove_fd(socket_fd);
             // somehow indicate that client quit
-            return Server_Message();
+            return {};
         }
 
         serv_req_iter -> second.get_string_data().append(block, bytes_read);
@@ -123,8 +123,77 @@ Server_Message Server::read_message(socket_t socket_fd) {
         return msg;
     }
 
-    return Server_Message();
+    return {};
+}*/
 
+std::vector<Server_Message> Server::read_messages(socket_t socket_fd) {
+    if (socket_fd < 0) {
+        throw std::runtime_error(SERVER_INVALID_SOCKET_ERR_MSG);
+    }
+
+    char block[SERVER_MESSAGE_BLOCK_SIZE];
+    std::vector<Server_Message> messages;
+
+    Server_Message& partial = this -> read_buffers[socket_fd];
+
+    bool header_has_client_id = false;
+    std::unordered_map<socket_t, Fd_Type>::iterator type_it = this -> fd_type_map.find(socket_fd);
+    if (type_it != this -> fd_type_map.end() && type_it -> second != Fd_Type::CLIENT) {
+        header_has_client_id = true;
+    }
+
+    while (true) {
+        int32_t bytes_read = recv(socket_fd, block, SERVER_MESSAGE_BLOCK_SIZE, 0);
+
+        if (bytes_read < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                break;
+            }
+            this -> request_to_remove_fd(socket_fd);
+            std::string fail_recv_str(SERVER_FAILED_RECV_ERR_MSG);
+            fail_recv_str += SERVER_ERRNO_STR_PREFIX;
+            fail_recv_str += std::to_string(errno);
+            throw std::runtime_error(fail_recv_str);
+        }
+
+        if (bytes_read == 0) {
+            this -> request_to_remove_fd(socket_fd);
+            return {};
+        }
+
+        partial.get_string_data().append(block, bytes_read);
+
+        while (true) {
+            size_t buffer_size = partial.string().size();
+
+            if (buffer_size < sizeof(protocol_msg_len_t))
+                break;
+
+            protocol_msg_len_t msg_len_net = 0;
+            memcpy(&msg_len_net, partial.string().data(), sizeof(msg_len_net));
+            protocol_msg_len_t msg_len = protocol_msg_len_ntoh(msg_len_net);
+
+            if (buffer_size < msg_len)
+                break;
+
+            std::string one_msg_str = partial.string().substr(0, msg_len);
+
+            Server_Message msg(one_msg_str);
+            msg.set_to_process(msg_len);
+
+            if (header_has_client_id && msg_len >= sizeof(protocol_msg_len_t) + sizeof(protocol_id_t)) {
+                protocol_id_t net_cid = 0;
+                memcpy(&net_cid, one_msg_str.data() + sizeof(protocol_msg_len_t), sizeof(net_cid));
+                msg.set_cid(protocol_id_ntoh(net_cid));
+            }
+
+            messages.push_back(msg);
+
+            partial.get_string_data().erase(0, msg_len);
+        }
+    }
+
+    return messages;
 }
 
 int64_t Server::send_message(socket_t socket_fd, Server_Message& serv_msg) {

@@ -16,6 +16,8 @@ class Server_Message {
 
         Server_Message();
 
+        Server_Message(std::string& message);
+
         // returns the internal message as a string
         std::string string() const;
         
