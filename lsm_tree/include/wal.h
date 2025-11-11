@@ -6,8 +6,9 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <filesystem>
 
-#define DEFAULT_WAL_FOLDER_LOCATION "./data/wal/"
+#define WAL_FOLDER_PATH "./data/val/wal/"
 
 class Wal{
     private:
