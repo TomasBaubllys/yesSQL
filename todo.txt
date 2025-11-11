@@ -1,1 +1,7 @@
 - add a try catch block for LSM_Tree::set(), check other methods and either mark with THROW or handle the exceptiosn internally
+
+- add cleanup for sockets and their resources once disconnected
+- fix client hang up when a partition is unreachable
+- implement get_keys, get_ff, get_fb
+
+- fix not being able to retrive data after merge
