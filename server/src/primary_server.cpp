@@ -433,6 +433,9 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
 
 // create a message for the client with no id in it, 
 int8_t Primary_Server::process_partition_response(Server_Message msg) {
+    msg.remove_cid();
+    msg.reset_processed();
+
     socket_t client_fd;
     {
         std::shared_lock<std::shared_mutex> lock(id_client_map_mutex);

@@ -28,11 +28,12 @@ void Server_Message::add_cid(protocol_id_t client_id) {
     protocol_msg_len_t b_to_prcs = this -> bytes_to_process + sizeof(protocol_id_t);
     this -> bytes_to_process = b_to_prcs;
     b_to_prcs = protocol_msg_len_hton(b_to_prcs);
-    protocol_id_t net_cid = protocol_id_hton(this -> cid);
+    protocol_id_t net_cid = protocol_id_hton(client_id);
 
     this -> msg.insert(sizeof(protocol_msg_len_t), sizeof(net_cid),'\0');
     memcpy(&this -> msg[sizeof(protocol_msg_len_t)], &net_cid, sizeof(net_cid));
     memcpy(&this -> msg[0], &b_to_prcs, sizeof(b_to_prcs));
+    this -> cid = client_id;
 }
 
 protocol_id_t Server_Message::get_cid() const {
