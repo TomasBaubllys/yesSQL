@@ -1,8 +1,5 @@
 #include "../include/partition_server.h"
 
-uint64_t ppmsgsent = 0;
-uint64_t ppmsgrecv = 0;
-
 Partition_Server::Partition_Server(uint16_t port, uint8_t verbose) : Server(port, verbose), lsm_tree() {
 
 }
@@ -20,8 +17,6 @@ int8_t Partition_Server::start() {
     add_this_to_epoll();
 
     while (true) {
-        std::cout << "Received messages from clients: " << ppmsgrecv << std::endl;
-        std::cout << "Messages sent to clients: " << ppmsgsent << std::endl;
         int32_t ready_fd_count = this -> server_epoll_wait();
         if(ready_fd_count < 0) {
             if(errno == EINTR) {
@@ -60,7 +55,6 @@ int8_t Partition_Server::start() {
                         if(serv_msg.is_empty()) {
                             continue;
                         }
-                        ++ppmsgrecv;
                         this -> thread_pool.enqueue([this, socket_fd, serv_msg](){
                         this -> handle_client(socket_fd, serv_msg);
                         });
@@ -116,14 +110,13 @@ int8_t Partition_Server::start() {
                 } 
                 catch(const std::exception& e) {
                     if(this -> verbose > 0) {
-                        std::cout << e.what() << std::endl;
+                        std::cerr << e.what() << std::endl;
                     }
                     this -> request_to_remove_fd(socket_fd);
                 }
                 
                 // Check if entire message has been sent
                 if (serv_req.is_fully_read()) {
-                    ++ppmsgsent;
                     // Message complete, remove from buffer
                     this -> write_buffers.erase(socket_fd);
                     
