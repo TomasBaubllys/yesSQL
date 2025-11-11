@@ -24,8 +24,9 @@
 
 #define PRIMARY_SERVER_NPOS_FAILED_ERR_MSG "Could not extract the key from the message received - npos failed\n"
 #define PRIMARY_SERVER_NPOS_BAD_ERR_MSG "Bad or corrupted message received, could not extract key\n"
+#define PRIMARY_SERVER_FAILED_PARTITION_ADD_ERR_MSG "Failed to add partitions to epoll: " 
+#define PRIMARY_SERVER_FAILED_PARTITION_WRITE_BUFFER_ERR_MSG "Failed to move the message to partition queue\n"
 
-#define PRIMARY_SERVER_FAILED_PARTITION_QUERY_ERR_MSG "Failed to query the partition: "
 
 #define PRIMARY_SERVER_PARTITION_CHECK_INTERVAL 10
 #define PRIMARY_SERVER_HELLO_MSG "Hello from yesSQL server"
@@ -49,24 +50,27 @@
 
 class Primary_Server : public Server {
     private:
+        // maps client_id to client socket
         std::unordered_map<uint64_t, socket_t> id_client_map;
         std::shared_mutex id_client_map_mutex;
 
+        // maps client socket to client_id
         std::unordered_map<socket_t, uint64_t> client_id_map;
         std::shared_mutex client_id_map_mutex;
 
+        // id pool for new clients
         std::atomic<uint64_t> req_id{1};
 
         uint32_t partition_count;
 
         uint32_t partition_range_length;
 
+        std::shared_mutex partitions_mutex;
         std::vector<Partition_Entry> partitions;
 
+        // functions for partition monitoring, currently unused
         std::vector<bool> get_partitions_status() const;
-
         void display_partitions_status() const;
-
         void start_partition_monitor_thread() const;
 
         uint32_t key_prefix_to_uint32(const std::string& key) const;
@@ -77,20 +81,21 @@ class Primary_Server : public Server {
 
         std::vector<Partition_Entry> get_partitions_fb(const std::string& key) const;
 
-        // THROWS
-        std::string query_partition(Partition_Entry& partition, const std::string& raw_message);
-
+        // tries to reconnect to a partition
         bool ensure_partition_connection(Partition_Entry& partition);
-
-        // int8_t process_request(socket_t socket_fd, const  std::string& message);
 
         void add_client_socket_to_epoll_ctx();
 
-        int8_t process_client_in(socket_t socket_fd, const Server_Message& msg);
+        int8_t process_client_in(socket_t client_fd, Server_Message msg);
 
-        int8_t process_partition_in(socket_t socket_fd, const Server_Message& msg);
+        int8_t process_partition_response(Server_Message msg);
 
-        void add_paritions_to_epoll();
+        void add_partitions_to_epoll();
+
+        // sets client_fd to epollout and adds a message to its write_buffer
+        void queue_client_for_error_response(socket_t client_fd);
+
+        void queue_client_for_ok_response(socket_t client_fd);
 
     public:
         Primary_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);

@@ -1,8 +1,5 @@
 #include "../include/partition_server.h"
 
-uint64_t msg_sent = 0;
-uint64_t msg_recv = 0;
-
 Partition_Server::Partition_Server(uint16_t port, uint8_t verbose) : Server(port, verbose), lsm_tree() {
 
 }
@@ -21,16 +18,15 @@ int8_t Partition_Server::start() {
 
     while (true) {
         this -> apply_epoll_mod_q();
-        std::cout << "messages recv: " << msg_recv << std::endl << "messages sent: " << msg_sent << std::endl;
         int32_t ready_fd_count = this -> server_epoll_wait();
         if(ready_fd_count < 0) {
             if(errno == EINTR) {
                 continue;
             }
-            if(this -> verbose > 0) {
-                std::cerr << SERVER_EPOLL_WAIT_FAILED_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
-                break;
-            }
+            std::string epoll_wait_fail_str(SERVER_EPOLL_WAIT_FAILED_ERR_MSG);
+            epoll_wait_fail_str += SERVER_ERRNO_STR_PREFIX;
+            epoll_wait_fail_str += std::to_string(errno);
+            throw std::runtime_error(epoll_wait_fail_str);
         }
 
         for(int32_t i = 0; i < ready_fd_count; ++i) {
@@ -40,19 +36,17 @@ int8_t Partition_Server::start() {
                 read(wakeup_fd, &dummy, sizeof(dummy));
                 continue;
             }
-
             
             if(socket_fd == this -> server_fd) {
                 std::vector<socket_t> client_fds = this -> add_client_socket_to_epoll();
                 for(socket_t& client_fd : client_fds) {
                     if(client_fd >= 0) { 
-                        this -> sockets_type_map[client_fd] = Fd_Type::LISTENER;
+                        this -> fd_type_map[client_fd] = Fd_Type::LISTENER;
                     }
                 }
             }
             else if(this -> epoll_events[i].events & EPOLLIN) {
                 Server_Message serv_msg = this -> read_message(socket_fd);
-                // std::cout << "CLIENT_SENT MESSAGE: " << serv_msg.client_id << std::endl;
 
                 if(serv_msg.message.empty()) {
                     continue;
@@ -182,7 +176,7 @@ std::string Partition_Server::extract_value(const std::string& raw_message) cons
 }
 
 std::string Partition_Server::create_entries_response(const std::vector<Entry>& entry_array, protocol_id_t client_id) const{
-    protocol_message_len_type msg_len = sizeof(protocol_id_t) + sizeof(protocol_message_len_type) + sizeof(protocol_array_len_type) + sizeof(command_code_type);
+    protocol_msg_len_t msg_len = sizeof(protocol_id_t) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_type) + sizeof(command_code_type);
     for(const Entry& entry : entry_array) {
         msg_len += sizeof(protocol_key_len_type) + sizeof(protocol_value_len_type);
         msg_len += entry.get_key_length() + entry.get_value_length();
@@ -191,7 +185,7 @@ std::string Partition_Server::create_entries_response(const std::vector<Entry>& 
     protocol_array_len_type array_len = entry_array.size();
     command_code_type com_code = COMMAND_CODE_OK;
     array_len = protocol_arr_len_hton(array_len);
-    protocol_message_len_type net_msg_len = protocol_msg_len_hton(msg_len);
+    protocol_msg_len_t net_msg_len = protocol_msg_len_hton(msg_len);
     com_code = command_hton(com_code);
     protocol_id_t net_cid = protocol_id_hton(client_id); 
 

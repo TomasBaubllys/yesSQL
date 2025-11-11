@@ -2,7 +2,6 @@
 #define YSQL_PROTOCOL_H_INCLUDED
 
 #include "commands.h"
-#include "socket_types.h"
 #include "../../lsm_tree/include/entry.h"
 
 using socket_t =
@@ -12,7 +11,6 @@ using socket_t =
     int;
 #endif
 
-using file_desc_t = int;
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     #define htonll(x) __builtin_bswap64(x)
@@ -24,7 +22,7 @@ using file_desc_t = int;
     #error "Unknown system endianess!"
 #endif
 
-using protocol_message_len_type = uint64_t;
+using protocol_msg_len_t = uint64_t;
 #define protocol_msg_len_hton(x) htonll(x)
 #define protocol_msg_len_ntoh(x) ntohll(x)
 
@@ -44,8 +42,8 @@ using protocol_id_t = uint64_t;
 #define protocol_id_hton(x) htonll(x)
 #define protocol_id_ntoh(x) ntohll(x)
 
-#define PROTOCOL_COMMAND_NUMBER_POS_NOCID (sizeof(protocol_message_len_type) + sizeof(protocol_array_len_type))
-#define PROTOCOL_COMMAND_NUMBER_POS (sizeof(protocol_id_t) + sizeof(protocol_message_len_type) + sizeof(protocol_array_len_type))
+#define PROTOCOL_COMMAND_NUMBER_POS_NOCID (sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_type))
+#define PROTOCOL_COMMAND_NUMBER_POS (sizeof(protocol_id_t) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_type))
 
 #define PROTOCOL_FIRST_KEY_LEN_POS_NOCID (PROTOCOL_COMMAND_NUMBER_POS_NOCID + sizeof(command_code_type))
 #define PROTOCOL_FIRST_KEY_LEN_POS (PROTOCOL_COMMAND_NUMBER_POS + sizeof(command_code_type))
