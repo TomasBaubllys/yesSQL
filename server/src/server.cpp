@@ -361,11 +361,8 @@ void Server::request_to_remove_fd(socket_t socket) {
 }
         
 void Server::process_remove_queue() {
-    /**
-     *  CLEAN ALL THE RESOURCES
-     * 
-     * 
-     */
+   
+
 
     std::lock_guard<std::mutex> lock(this -> remove_mutex);
     for(socket_t& sock : remove_queue) {
