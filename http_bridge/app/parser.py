@@ -38,12 +38,12 @@ def handle_ok(raw_data: bytes) -> dict:
 
 def handle_err(raw_data: bytes) -> dict:
     #skip total length, num elemends, command number
-    offset = COMMAND_LENGTH_TOTAL_MESSAGE + COMMAND_LENGTH_NUM_ELEMENTS + COMMAND_LENGTH_COMMAND_MESSAGE
-    error_len = struct.unpack_from("!H", raw_data, offset)[0]
-    offset += COMMAND_LENGTH_KEY_LENGTH
-    error_bytes = raw_data[offset:offset+error_len]
-    error_msg = error_bytes.decode("utf-8")
-    return {"status": "ERROR", "message": error_msg}
+    #offset = COMMAND_LENGTH_TOTAL_MESSAGE + COMMAND_LENGTH_NUM_ELEMENTS + COMMAND_LENGTH_COMMAND_MESSAGE
+    #error_len = struct.unpack_from("!H", raw_data, offset)[0]
+    #offset += COMMAND_LENGTH_KEY_LENGTH
+    #error_bytes = raw_data[offset:offset+error_len]
+    #error_msg = error_bytes.decode("utf-8")
+    return {"status": "ERROR"}
 
 def handle_not_found(raw_data: bytes) -> dict:
     return {"status": "DATA NOT FOUND"}
@@ -56,9 +56,12 @@ COMMAND_HANDLERS = {
 
 
 def dispatch(data: bytes) -> dict:
-    command_number = struct.unpack_from("!H", data, 16)[0]
+    print("here")
+
+    command_number = struct.unpack_from("!H", data, 16)[0]    
 
     handler = COMMAND_HANDLERS.get(command_number)
+
 
     if handler:
         return handler(data)
