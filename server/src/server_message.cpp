@@ -87,3 +87,11 @@ void Server_Message::reset() {
 std::string& Server_Message::get_string_data() {
     return this -> msg;
 }
+
+void Server_Message::print() const {
+    for(int i = 0; i < this -> bytes_to_process; ++i) {
+        std::cout << int(this -> msg[i]) << " ";
+    }
+
+    std::cout << std::endl;
+}

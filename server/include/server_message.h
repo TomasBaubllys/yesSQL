@@ -2,6 +2,7 @@
 #define YSQL_SERVER_MESSAGE_H_INCLUDED
 
 #include "protocol.h"
+#include <iostream>
 
 class Server_Message {
     private:
@@ -54,6 +55,9 @@ class Server_Message {
         void reset();
 
         std::string& get_string_data();
+
+        // for testing
+        void print() const;
 };
 
 #endif // YSQL_SERVER_MESSAGE_H_INCLUDED

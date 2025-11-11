@@ -20,7 +20,6 @@ int8_t Partition_Server::start() {
     add_this_to_epoll();
 
     while (true) {
-        this -> apply_epoll_mod_q();
         std::cout << "Received messages from clients: " << ppmsgrecv << std::endl;
         std::cout << "Messages sent to clients: " << ppmsgsent << std::endl;
         int32_t ready_fd_count = this -> server_epoll_wait();
@@ -39,6 +38,8 @@ int8_t Partition_Server::start() {
             if(socket_fd == this -> wakeup_fd) {
                 uint64_t dummy = 0;
                 read(wakeup_fd, &dummy, sizeof(dummy));
+                this -> apply_epoll_mod_q();
+
                 continue;
             }
             
@@ -50,7 +51,8 @@ int8_t Partition_Server::start() {
                     }
                 }
             }
-            else if(this -> epoll_events[i].events & EPOLLIN) {
+            
+            if(this -> epoll_events[i].events & EPOLLIN) {
                 Server_Message serv_msg;
                 try {
                     serv_msg = this -> read_message(socket_fd);
@@ -59,6 +61,7 @@ int8_t Partition_Server::start() {
                         continue;
                     }
                     ++ppmsgrecv;
+                    serv_msg.print();
                 }
                 catch(const std::exception& e) {
                     if(this -> verbose > 0) {
@@ -131,7 +134,7 @@ int8_t Partition_Server::start() {
                     bool has_more = this -> tactical_reload_partition(socket_fd, next_msg);
                     
                     if (!has_more) {
-                        this -> request_epoll_mod(socket_fd, EPOLLIN | EPOLLOUT);
+                        this -> request_epoll_mod(socket_fd, EPOLLIN);
                     } else {
                         this -> write_buffers[socket_fd] = std::move(next_msg);
                         // Stay in EPOLLOUT mode - will trigger again

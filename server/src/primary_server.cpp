@@ -160,7 +160,6 @@ int8_t Primary_Server::start() {
     add_partitions_to_epoll();
 
     while (true) {
-        this -> apply_epoll_mod_q();
         std::cout << "Received messages from clients: " << ttcmsgrecv << std::endl;
         std::cout << "Messages sent to clients: " << ttcmsgsent << std::endl;
         std::cout << "Received messages from partitions: " << pppmsgrecv << std::endl;
@@ -183,6 +182,7 @@ int8_t Primary_Server::start() {
             if(socket_fd == this -> wakeup_fd) {
                 uint64_t dummy = 0;
                 read(socket_fd, &dummy, sizeof(dummy));
+                this -> apply_epoll_mod_q();
                 continue;
             }
 
@@ -208,7 +208,7 @@ int8_t Primary_Server::start() {
                         if(serv_msg.is_empty()) {
                             break;
                         }
-
+                        
                         ++ttcmsgrecv;
 
                         {   
@@ -269,7 +269,7 @@ int8_t Primary_Server::start() {
                         // read the message
                         Server_Message serv_msg = this -> read_message(socket_fd);
                         if(!serv_msg.is_empty()) {
-                            ++pppmsgsent;
+                            ++pppmsgrecv;
                             this -> thread_pool.enqueue([this, serv_msg]() {
                                 this -> process_partition_response(serv_msg);
                             });
@@ -333,7 +333,9 @@ int8_t Primary_Server::start() {
                         }
                         
                         if (serv_req.is_fully_read()) {
-                            ++pppmsgrecv;
+                            ++pppmsgsent;
+                            std::cout << "sent to parition: " << std::endl;
+                            serv_req.print();
                             this -> write_buffers.erase(socket_fd);
                             
                             Server_Message next_msg;

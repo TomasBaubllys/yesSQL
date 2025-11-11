@@ -377,11 +377,14 @@ void Server::process_remove_queue() {
     remove_queue.clear();
 }
 
-
+static uint32_t added_count = 0;
 void Server::queue_socket_for_response(socket_t socket_fd, const Server_Message& message) {
     std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
     this -> partition_queues[socket_fd].push(std::move(message));
     this -> request_epoll_mod(socket_fd, EPOLLIN | EPOLLOUT);
+    ++added_count;
+    std::cout << "ADDED ---------------------- to partition queue total: " << added_count << std::endl;
+    message.print();
 } 
 
 bool Server::tactical_reload_partition(socket_t socket_fd, Server_Message& out_msg) {
