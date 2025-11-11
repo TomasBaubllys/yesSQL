@@ -15,6 +15,8 @@ class Wal{
         std::string wal_file_location;
         unsigned int entry_count;
         bool is_read_only;
+
+		std::ofstream wal_file;
     public:
         public:
 		
