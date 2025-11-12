@@ -1,12 +1,8 @@
 import socket
 import struct
-import random
-import string
 import threading
 import time
 import os
-
-i = 1
 
 # ==================================================
 # Configuration
@@ -69,135 +65,27 @@ def build_get_command(key: str) -> bytes:
     return msg
 
 
+def build_remove_command(key: str) -> bytes:
+    command_code = COMMAND_IDS[CMD_REMOVE]
+    key_bytes = key.encode()
+    key_len = len(key_bytes)
+    total_len = 8 + 8 + 2 + 2 + key_len
+    msg = struct.pack(">Q", total_len)
+    msg += struct.pack(">Q", 1)
+    msg += struct.pack(">H", command_code)
+    msg += struct.pack(">H", key_len)
+    msg += key_bytes
+    return msg
+
+
 # ==================================================
 # Helpers
 # ==================================================
-
 def random_key():
-    #length = random.randint(2, 128)
-    return os.urandom(random.randint(2, 128)).hex()  # returns bytes
-    #global i
-    #i += 1
-    #return str(i)
+    return os.urandom(8).hex()
 
 def random_value():
-    return os.urandom(random.randint(1, 1024)).hex()  # 64 random bytes
-
-
-# ==================================================
-# recv_exact with timeout
-# ==================================================
-def recv_exact(sock: socket.socket, timeout: float = 5.0):
-    """Receive exactly N bytes (including the 8-byte header) with a timeout."""
-    sock.settimeout(timeout)
-    start_time = time.time()
-
-    # --- Read 8-byte total_len ---
-    header = b""
-    while len(header) < 8:
-        if time.time() - start_time > timeout:
-            raise TimeoutError("Timed out waiting for header.")
-        try:
-            chunk = sock.recv(8 - len(header))
-        except socket.timeout:
-            raise TimeoutError("Socket timed out waiting for header.")
-        if not chunk:
-            raise ConnectionError("Connection closed while reading total_len header")
-        header += chunk
-
-    total_len = struct.unpack(">Q", header)[0]
-    #print(f"[recv_full] expecting {total_len} bytes total")
-
-    # --- Read until we have total_len bytes total (header + rest) ---
-    data = header
-    while len(data) < total_len:
-        #print(f"[DEBUG] waiting for header, already received {len(header)} bytes, elapsed {time.time() - start_time:.2f}s")
-        if time.time() - start_time > timeout:
-            raise TimeoutError(f"Timed out waiting for full {total_len} bytes.")
-        try:
-            chunk = sock.recv(total_len - len(data))
-        except socket.timeout:
-            raise TimeoutError(f"Socket timed out waiting for data ({len(data)}/{total_len})")
-        if not chunk:
-            raise ConnectionError(f"Connection closed early: got {len(data)}/{total_len} bytes")
-        data += chunk
-        #print(f"[recv_full] got chunk {len(chunk)} bytes, total={len(data)}/{total_len}")
-
-    #print(f"[recv_full] DONE ({len(data)} bytes total)\n")
-    sock.settimeout(None)
-    return data
-
-
-# ==================================================
-# Thread Worker for Loop Set
-# ==================================================
-def worker_loop_set(count: int, thread_id: int):
-    print(f"[Thread {thread_id}] Connecting to server...")
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((HOST, PORT))
-        print(f"[Thread {thread_id}] Connected.")
-
-        keys = []
-        sets_done = 0
-
-        # --- SET phase ---
-        try:
-            for i in range(count):
-                key = random_key()
-                value = random_value()
-                msg = build_set_command(key, value)
-                s.sendall(msg)
-                response = recv_exact(s)
-                parse_response(response)
-                keys.append((key, value))
-                sets_done += 1
-                time.sleep(0.01)
-        except Exception as e:
-            print(f"[Thread {thread_id}] Error during SET: {e}")
-        finally:
-            print(f"[Thread {thread_id}] SET summary: {sets_done}/{count} completed.")
-
-        # --- GET verification ---
-        success = 0
-        failed = 0
-        try:
-            for i, (key, expected_value) in enumerate(keys, 1):
-                msg = build_get_command(key)
-                s.sendall(msg)
-                response = recv_exact(s)
-                result = parse_response(response)
-                if result and key in result and result[key] == expected_value:
-                    #print(key, result[key],  "expected value - ", expected_value)
-                    success += 1
-                else:
-                    failed += 1
-        except Exception as e:
-            print(f"[Thread {thread_id}] Timeout or error during GET: {e}")
-        finally:
-            total_done = success + failed
-            print(f"[Thread {thread_id}] GET summary: {success} OK, {failed} FAILED, {total_done}/{len(keys)} completed.")
-
-        # --- REMOVE cleanup ---
-        removed = 0
-        try:
-            for key, _ in keys:
-                command_code = COMMAND_IDS[CMD_REMOVE]
-                key_bytes = key.encode()
-                key_len = len(key_bytes)
-                total_len = 8 + 8 + 2 + 2 + key_len
-                msg = struct.pack(">Q", total_len)
-                msg += struct.pack(">Q", 1)
-                msg += struct.pack(">H", command_code)
-                msg += struct.pack(">H", key_len)
-                msg += key_bytes
-                s.sendall(msg)
-                response = recv_exact(s)
-                parse_response(response)
-                removed += 1
-        except Exception as e:
-            print(f"[Thread {thread_id}] Error during REMOVE: {e}")
-        finally:
-            print(f"[Thread {thread_id}] REMOVE summary: {removed}/{len(keys)} completed.")
+    return os.urandom(16).hex()
 
 
 # ==================================================
@@ -205,9 +93,7 @@ def worker_loop_set(count: int, thread_id: int):
 # ==================================================
 def parse_response(data: bytes):
     if len(data) < 18:
-        print("Invalid response length.")
-        return None, None
-
+        return None, {}
     total_len, num_elements, command_code = struct.unpack_from(">QQH", data, 0)
     pos = 8 + 8 + 2
     cmd_name = COMMAND_CODES.get(command_code, f"UNKNOWN({command_code})")
@@ -233,6 +119,90 @@ def parse_response(data: bytes):
 
 
 # ==================================================
+# recv_exact with timeout
+# ==================================================
+def recv_exact(sock: socket.socket, timeout: float = 5.0):
+    sock.settimeout(timeout)
+    start_time = time.time()
+
+    header = b""
+    while len(header) < 8:
+        if time.time() - start_time > timeout:
+            raise TimeoutError("Timed out waiting for header.")
+        chunk = sock.recv(8 - len(header))
+        if not chunk:
+            raise ConnectionError("Connection closed while reading header")
+        header += chunk
+
+    total_len = struct.unpack(">Q", header)[0]
+    data = header
+    while len(data) < total_len:
+        if time.time() - start_time > timeout:
+            raise TimeoutError(f"Timed out waiting for full {total_len} bytes.")
+        chunk = sock.recv(total_len - len(data))
+        if not chunk:
+            raise ConnectionError(f"Connection closed early ({len(data)}/{total_len} bytes)")
+        data += chunk
+
+    sock.settimeout(None)
+    return data
+
+
+# ==================================================
+# LOOPSET Worker
+# ==================================================
+def loopset_worker(thread_id: int, count: int, results: dict, lock: threading.Lock):
+    local_stats = {
+        "set_ok": 0,
+        "get_match": 0,
+        "get_mismatch": 0,
+        "remove_ok": 0,
+        "remove_not_found": 0,
+    }
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((HOST, PORT))
+            for i in range(count):
+                key = random_key()
+                value = random_value()
+
+                # --- SET ---
+                s.sendall(build_set_command(key, value))
+                cmd, _ = parse_response(recv_exact(s))
+                if cmd == CMD_OK:
+                    local_stats["set_ok"] += 1
+
+                # --- GET ---
+                s.sendall(build_get_command(key))
+                cmd, data = parse_response(recv_exact(s))
+                if cmd == CMD_OK and key in data:
+                    if data[key] == value:
+                        local_stats["get_match"] += 1
+                    else:
+                        local_stats["get_mismatch"] += 1
+
+                # --- REMOVE ---
+                s.sendall(build_remove_command(key))
+                cmd, _ = parse_response(recv_exact(s))
+                if cmd == CMD_OK:
+                    local_stats["remove_ok"] += 1
+                elif cmd == CMD_DATA_NOT_FOUND:
+                    local_stats["remove_not_found"] += 1
+
+                if (i + 1) % 100 == 0:
+                    print(f"[Thread {thread_id}] {i + 1}/{count} cycles done")
+
+    except Exception as e:
+        print(f"[Thread {thread_id}] Error: {e}")
+
+    # Merge into global stats
+    with lock:
+        for k, v in local_stats.items():
+            results[k] += v
+
+
+# ==================================================
 # Main CLI Loop
 # ==================================================
 def main():
@@ -240,7 +210,7 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((HOST, PORT))
         print("Connected to server. Type 'exit' to quit.")
-        print("Commands: SET <key> <value>, GET <key>, REMOVE <key>, LOOP SET <count> <threads>")
+        print("Commands: SET <key> <value>, GET <key>, REMOVE <key>, LOOPSET <count> <threads>")
 
         while True:
             try:
@@ -253,64 +223,81 @@ def main():
                 parts = line.split()
                 op = parts[0].upper()
 
+                # --- Standard commands ---
                 if op == "SET" and len(parts) >= 3:
                     key = parts[1]
                     value = " ".join(parts[2:])
-                    msg = build_set_command(key, value)
-                    s.sendall(msg)
-                    response = recv_exact(s)
-                    cmd_name, results = parse_response(response)
-                    print(f"Server responded: {cmd_name}")
-                    if results:
-                        print(results)
+                    s.sendall(build_set_command(key, value))
+                    cmd, _ = parse_response(recv_exact(s))
+                    print("✅ OK" if cmd == CMD_OK else f"❌ {cmd}")
 
                 elif op == "GET" and len(parts) == 2:
                     key = parts[1]
-                    msg = build_get_command(key)
-                    s.sendall(msg)
-                    response = recv_exact(s)
-                    cmd_name, results = parse_response(response)
-                    print(f"Server responded: {cmd_name}")
-                    if results:
-                        print(results)
+                    s.sendall(build_get_command(key))
+                    cmd, results = parse_response(recv_exact(s))
+                    if cmd == CMD_OK and results:
+                        for k, v in results.items():
+                            print(f"✅ {k} = {v}")
+                    elif cmd == CMD_DATA_NOT_FOUND:
+                        print("❌ NOT_FOUND")
+                    else:
+                        print(f"⚠️ Unexpected: {cmd}")
 
                 elif op == "REMOVE" and len(parts) == 2:
                     key = parts[1]
-                    command_code = COMMAND_IDS[CMD_REMOVE]
-                    key_bytes = key.encode()
-                    key_len = len(key_bytes)
-                    total_len = 8 + 8 + 2 + 2 + key_len
-                    msg = struct.pack(">Q", total_len)
-                    msg += struct.pack(">Q", 1)
-                    msg += struct.pack(">H", command_code)
-                    msg += struct.pack(">H", key_len)
-                    msg += key_bytes
-                    s.sendall(msg)
-                    response = recv_exact(s)
-                    cmd_name, results = parse_response(response)
-                    print(f"Server responded: {cmd_name}")
-                    if results:
-                        print(results)
+                    s.sendall(build_remove_command(key))
+                    cmd, _ = parse_response(recv_exact(s))
+                    print("✅ REMOVED" if cmd == CMD_OK else f"❌ {cmd}")
 
-                elif op == "LOOP" and len(parts) >= 4 and parts[1].upper() == "SET":
-                    count = int(parts[2])
-                    threads = int(parts[3])
-                    print(f"Starting {threads} threads with {count} sets each...")
+                # --- LOOPSET benchmark ---
+                elif op == "LOOPSET" and len(parts) == 3:
+                    count = int(parts[1])
+                    threads = int(parts[2])
+                    print(f"🚀 Running LOOPSET with {threads} threads × {count} iterations each...")
+
+                    global_stats = {
+                        "set_ok": 0,
+                        "get_match": 0,
+                        "get_mismatch": 0,
+                        "remove_ok": 0,
+                        "remove_not_found": 0,
+                    }
+                    lock = threading.Lock()
                     thread_list = []
-                    for i in range(threads):
-                        t = threading.Thread(target=worker_loop_set, args=(count, i + 1))
-                        t.start()
-                        thread_list.append(t)
-                    for t in thread_list:
-                        t.join()
-                    print("All threads finished.")
+
+                    start_time = time.time()
+
+                    for t in range(threads):
+                        th = threading.Thread(target=loopset_worker, args=(t, count, global_stats, lock))
+                        th.start()
+                        thread_list.append(th)
+
+                    for th in thread_list:
+                        th.join()
+
+                    elapsed = time.time() - start_time
+                    total_ops = count * threads * 3
+                    print("\n===== LOOPSET Summary =====")
+                    print(f"Threads:          {threads}")
+                    print(f"Total cycles:     {count * threads}")
+                    print(f"Total operations: {total_ops}")
+                    print(f"Elapsed:          {elapsed:.2f}s")
+                    print(f"Ops/sec:          {total_ops / elapsed:.2f}")
+                    print("-----------------------------")
+                    print(f"SET OK:           {global_stats['set_ok']}")
+                    print(f"GET match:        {global_stats['get_match']}")
+                    print(f"GET mismatch:     {global_stats['get_mismatch']}")
+                    print(f"REMOVE OK:        {global_stats['remove_ok']}")
+                    print(f"REMOVE not found: {global_stats['remove_not_found']}")
+                    print("=============================\n")
 
                 else:
-                    print("Usage: SET <key> <value> | GET <key> | REMOVE <key> | LOOP SET <count> <threads>")
+                    print("Usage: SET <key> <value> | GET <key> | REMOVE <key> | LOOPSET <count> <threads>")
 
             except Exception as e:
-                print("Error:", e)
+                print(f"Error: {e}")
                 break
+
 
 # ==================================================
 # Entry Point
