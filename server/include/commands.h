@@ -27,8 +27,9 @@ typedef enum Command_Code : command_code_type {
     COMMAND_CODE_GET_KEYS_PREFIX,
     COMMAND_CODE_GET_FF,
     COMMAND_CODE_GET_FB,
-    // send value+key what was removed
     COMMAND_CODE_REMOVE,
+    CREATE_CURSOR,
+    DELETE_CURSOR,
 
     // send nothing but header + code
     COMMAND_CODE_DATA_NOT_FOUND,
