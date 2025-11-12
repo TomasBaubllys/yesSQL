@@ -48,7 +48,7 @@ using protocol_id_t = uint64_t;
 #define PROTOCOL_FIRST_KEY_LEN_POS_NOCID (PROTOCOL_COMMAND_NUMBER_POS_NOCID + sizeof(command_code_t))
 #define PROTOCOL_FIRST_KEY_LEN_POS (PROTOCOL_COMMAND_NUMBER_POS + sizeof(command_code_t))
 
-#define PROTOCOL_CURSOR_LEN_POS (PROTOCOL_COMMAND_NUMBER_POS_NOCID + sizeof(command_code_t));
+#define PROTOCOL_CURSOR_LEN_POS (PROTOCOL_COMMAND_NUMBER_POS + sizeof(command_code_t))
 
 /* General command exchange
  * <(uint64_t) length of the whole message>

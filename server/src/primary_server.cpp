@@ -322,7 +322,7 @@ int8_t Primary_Server::start() {
                             }
 
                             if (client_fd >= 0) {
-                                this -> queue_client_for_error_response(client_fd);
+                                this -> queue_client_for_error_response(client_fd, serv_req.get_cid());
                             }
 
                             lock.unlock();
@@ -392,7 +392,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                 if(this -> verbose) {
                     std::cerr << e.what() << std::endl;
                 }
-                this -> queue_client_for_error_response(client_fd);
+                this -> queue_client_for_error_response(client_fd, msg.get_cid());
                 return 0;
             }
 
@@ -403,7 +403,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
             msg.reset_processed();
 
             if(!ensure_partition_connection(partition_entry)) {
-                this -> queue_client_for_error_response(client_fd);
+                this -> queue_client_for_error_response(client_fd, msg.get_cid());
                 return 0;
             }
 
@@ -415,12 +415,13 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                     std::cerr << e.what() << std::endl;
                 }
                 this -> partitions[partition_entry.id].status = Partition_Status::PARTITION_DEAD;
-                this -> queue_client_for_error_response(client_fd);
+                this -> queue_client_for_error_response(client_fd, msg.get_cid());
             }
 
             break;
         }
         case CREATE_CURSOR: {
+            msg.print();
             Cursor cursor;
             try {
                 cursor = this -> extract_cursor_creation(msg);
@@ -428,7 +429,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                 if(this -> verbose > 0) {
                     std::cerr << e.what() << std::endl;
                 }
-                this -> queue_client_for_error_response(client_fd);
+                this -> queue_client_for_error_response(client_fd, msg.get_cid());
                 return 0;
             }
             
@@ -439,8 +440,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                 cursor.print(); 
             }
 
-            this -> queue_client_for_ok_response(client_fd);
-
+            this -> queue_client_for_ok_response(client_fd, msg.get_cid());
             break;
         }
         case DELETE_CURSOR: {
@@ -453,7 +453,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                     std::cerr << e.what() << std::endl;
                 }
 
-                this -> queue_client_for_error_response(client_fd);
+                this -> queue_client_for_error_response(client_fd, msg.get_cid());
             }
 
             {
@@ -464,16 +464,15 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                         if(vec_it -> get_name() == cursor_name) {
                             curs_it -> second.erase(vec_it);
                             lock.unlock();
-                            std::cout << "CURSOR DELETED---" << std::endl;
-                            this -> queue_client_for_ok_response(client_fd);
+                            this -> queue_client_for_ok_response(client_fd, msg.get_cid());
                             return 0;
                         }
                     }
-                    this -> queue_client_for_error_response(client_fd);
+                    this -> queue_client_for_error_response(client_fd, msg.get_cid());
                     return 0;
                 }
                 
-                this -> queue_client_for_error_response(client_fd);
+                this -> queue_client_for_error_response(client_fd, msg.get_cid());
             }
 
             break;
@@ -491,7 +490,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
             break;
         }
         default: {
-
+            this -> queue_client_for_error_response(client_fd, msg.get_cid());
             break;
         }
 
@@ -549,9 +548,9 @@ void Primary_Server::add_partitions_to_epoll() {
     }
 }
 
-void Primary_Server::queue_client_for_error_response(socket_t client_fd) {
+void Primary_Server::queue_client_for_error_response(socket_t client_fd, protocol_id_t client_id) {
     // later a check if its still the same client
-    Server_Message err_response = this -> create_error_response(false, client_fd);
+    Server_Message err_response = this -> create_error_response(false, client_id);
     {
         std::unique_lock<std::shared_mutex> lock(this -> write_buffers_mutex);
         this -> write_buffers[client_fd] = err_response;
@@ -559,9 +558,9 @@ void Primary_Server::queue_client_for_error_response(socket_t client_fd) {
     this -> request_epoll_mod(client_fd, EPOLLOUT);
 }
 
-void Primary_Server::queue_client_for_ok_response(socket_t client_fd) {
+void Primary_Server::queue_client_for_ok_response(socket_t client_fd, protocol_id_t client_id) {
     // later a check if its still the same client
-    Server_Message ok_response = this -> create_ok_response(false, client_fd);
+    Server_Message ok_response = this -> create_ok_response(false, client_id);
     {
         std::unique_lock<std::shared_mutex> lock(this -> write_buffers_mutex);
         this -> write_buffers[client_fd] = ok_response;
@@ -607,7 +606,13 @@ void Primary_Server::process_remove_queue() {
                     while(!clients_to_err.empty()) {
                         Server_Message msg = clients_to_err.front();
                         clients_to_err.pop();
-                        this -> queue_client_for_error_response(msg.get_cid());
+                        socket_t client_fd;
+                        {
+                            std::shared_lock<std::shared_mutex> lock(this -> id_client_map_mutex);
+                            client_fd = this -> id_client_map[msg.get_cid()];
+                        }
+
+                        this -> queue_client_for_error_response(client_fd, msg.get_cid());
                     }
 
                     this -> partition_queues.erase(sock_fd);
@@ -725,13 +730,17 @@ Cursor Primary_Server::extract_cursor_creation(const Server_Message& message) {
     memcpy(&cursor_name[0], &message.c_str()[pos], cursor_len);
     pos += cursor_len;
 
+    if (pos + sizeof(cursor_cap_t) > message.size()) {
+        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+    }
+
     cursor_cap_t capacity = 0;
     memcpy(&capacity, &message.c_str()[pos], sizeof(cursor_cap_t));
     capacity = cursor_cap_ntoh(capacity);
     pos += sizeof(cursor_cap_t);
 
-    protocol_msg_len_t key_len = 0;
-    if(pos + sizeof(protocol_msg_len_t) > message.size()) {
+    protocol_key_len_t key_len = 0;
+    if(pos + sizeof(protocol_key_len_t) > message.size()) {
         throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
     }
 
@@ -739,7 +748,7 @@ Cursor Primary_Server::extract_cursor_creation(const Server_Message& message) {
     pos += sizeof(protocol_key_len_t);
     key_len = protocol_key_len_ntoh(key_len);
 
-    if(pos + key_len < message.size()) {
+    if(pos + key_len > message.size()) {
         throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
     }
 
@@ -749,6 +758,7 @@ Cursor Primary_Server::extract_cursor_creation(const Server_Message& message) {
 
     Cursor cursor(cursor_name, capacity);
     cursor.set_next_key(key_str);
+    cursor.set_cid(message.get_cid());
     return cursor;
 }
 

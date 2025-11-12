@@ -89,7 +89,7 @@ std::string& Server_Message::get_string_data() {
 }
 
 void Server_Message::print() const {
-
+    std::cout << this -> msg << std::endl;
 }
 
 void Server_Message::clear() {

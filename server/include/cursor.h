@@ -56,6 +56,10 @@ class Cursor {
         void set_cid(const protocol_id_t& client_id);
 
         void set_next_key(const std::string& key);
+
+        std::string get_name() const;
+        // used for debugging
+        void print();
 };
 
 #endif // YSQL_CURSORS_H_INCLUDED

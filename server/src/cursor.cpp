@@ -69,7 +69,7 @@ void Cursor::clear_msg() {
 }
 
 Server_Message Cursor::get_server_msg() const {
-
+    return Server_Message();
 }
 
 void Cursor::set_next_key(const std::string& key) {

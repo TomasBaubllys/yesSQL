@@ -98,9 +98,9 @@ class Primary_Server : public Server {
         void add_partitions_to_epoll();
 
         // sets client_fd to epollout and adds a message to its write_buffer
-        void queue_client_for_error_response(socket_t client_fd);
+        void queue_client_for_error_response(socket_t client_fd, protocol_id_t client_id);
 
-        void queue_client_for_ok_response(socket_t client_fd);
+        void queue_client_for_ok_response(socket_t client_fd, protocol_id_t client_id);
 
         // checks if the socket still belongs to the same client
         // returns the socket if it is still the same client
