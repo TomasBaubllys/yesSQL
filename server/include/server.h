@@ -107,8 +107,9 @@ class Server {
         Thread_Pool thread_pool;
         std::mutex remove_mutex;
         std::vector<socket_t> remove_queue;
+
         void request_to_remove_fd(socket_t socket);
-        void process_remove_queue();
+        virtual void process_remove_queue();
         
     public:
         // THROWS

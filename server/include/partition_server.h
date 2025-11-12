@@ -27,6 +27,8 @@ class Partition_Server : public Server {
         // remove and set gets unique_lock
         std::shared_mutex lsm_tree_mutex;
 
+        void process_remove_queue() override;
+
     public:
         Partition_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
 

@@ -413,3 +413,43 @@ void Partition_Server::queue_socket_for_ok_response(socket_t socket_fd, protocol
     Server_Message resp = this -> create_status_response(Command_Code::COMMAND_CODE_OK, true, client_id);
     this -> queue_partition_for_response(socket_fd, resp);
 }
+
+void Partition_Server::process_remove_queue() { 
+    std::vector<socket_t> to_remove;
+    {
+        std::unique_lock<std::mutex> lock_rm_q(this -> remove_mutex);
+        if(this -> remove_queue.empty()) {
+            return;
+        }
+        to_remove.swap(this -> remove_queue);
+    }
+
+    for(socket_t& sock_fd : to_remove) {
+        {
+            std::unique_lock<std::shared_mutex> lock_e_mod(this -> epoll_mod_mutex);
+            epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, sock_fd, nullptr);
+            this -> epoll_events.erase(std::remove(this -> epoll_events.begin(), this -> epoll_events.end(), sock_fd), this -> epoll_events.end());
+            this -> epoll_mod_map.erase(sock_fd);
+        }
+
+        this -> read_buffers.erase(sock_fd);
+        // clear read / write buffer
+        {
+            std::unique_lock<std::shared_mutex> lock_w_buf(this -> write_buffers_mutex);
+            this -> write_buffers.erase(sock_fd);
+        }
+        
+        {
+        std::unique_lock<std::shared_mutex> lock_fd_m(this -> fd_type_map_mutex);
+            std::unordered_map<socket_t, Fd_Type>::iterator found_fd = fd_type_map.find(sock_fd);
+            if(found_fd != this -> fd_type_map.end()) {
+                if(found_fd -> second == Fd_Type::PARTITION) {
+                    this -> partition_queues.erase(sock_fd);
+                }
+            }
+            this -> fd_type_map.erase(sock_fd); 
+        }
+
+        close(sock_fd);
+    }
+}
