@@ -515,14 +515,14 @@ int main() {
     cout << "Generating non-overlapping entry sets..." << endl;
     vector<Entry> entriesA = generate_test_entries(0, ENTRY_COUNT);        // keys 0–999
     vector<Entry> entriesB = generate_test_entries(100, ENTRY_COUNT);     // keys 1000–1999
-    /*vector<Entry> entriesC = generate_test_entries(200, ENTRY_COUNT);     // keys 2000–2999
+    vector<Entry> entriesC = generate_test_entries(200, ENTRY_COUNT);     // keys 2000–2999
     vector<Entry> entriesD = generate_test_entries(300, ENTRY_COUNT);     // keys 3000–3999
     vector<Entry> entriesE = generate_test_entries(400, ENTRY_COUNT);     // keys 4000–4999
     vector<Entry> entriesF = generate_test_entries(500, ENTRY_COUNT);     // keys 5000–5999
     vector<Entry> entriesG = generate_test_entries(600, ENTRY_COUNT);     // keys 6000–6999
     vector<Entry> entriesH = generate_test_entries(700, ENTRY_COUNT);     // keys 7000–7999
     vector<Entry> entriesI = generate_test_entries(800, ENTRY_COUNT);     // keys 8000–8999
-    vector<Entry> entriesJ = generate_test_entries(900, ENTRY_COUNT);     // keys 9000–9999*/
+    vector<Entry> entriesJ = generate_test_entries(900, ENTRY_COUNT);     // keys 9000–9999
     
     
         cout << "Creating LSM tree..." << endl;
@@ -536,23 +536,23 @@ int main() {
     // Run tests with guaranteed non-overlapping keys
     assert(test_mem_table(entriesA, lsm_tree));
     assert(test_mem_table(entriesB, lsm_tree));
-    // assert(test_mem_table(entriesC, lsm_tree));
-    // assert(test_mem_table(entriesD, lsm_tree));
-    // assert(test_mem_table(entriesE, lsm_tree));
-    // assert(test_mem_table(entriesF, lsm_tree));
-    // assert(test_mem_table(entriesG, lsm_tree));
-    // assert(test_mem_table(entriesH, lsm_tree));
-    // assert(test_mem_table(entriesI, lsm_tree));
-    // assert(test_mem_table(entriesJ, lsm_tree));
-    // assert(test_mem_table(entriesA, lsm_tree));
-    // assert(test_mem_table(entriesB, lsm_tree));
-    // assert(test_mem_table(entriesC, lsm_tree));
+     assert(test_mem_table(entriesC, lsm_tree));
+     assert(test_mem_table(entriesD, lsm_tree));
+     assert(test_mem_table(entriesE, lsm_tree));
+     assert(test_mem_table(entriesF, lsm_tree));
+     assert(test_mem_table(entriesG, lsm_tree));
+     assert(test_mem_table(entriesH, lsm_tree));
+     assert(test_mem_table(entriesI, lsm_tree));
+     assert(test_mem_table(entriesJ, lsm_tree));
+     assert(test_mem_table(entriesA, lsm_tree));
+     assert(test_mem_table(entriesB, lsm_tree));
+    assert(test_mem_table(entriesC, lsm_tree));
 
     cout << "Verifying that all inserted entries can be retrieved..." << endl;
-   // vector<vector<Entry>*> all = {&entriesA, &entriesB, &entriesC, &entriesD, &entriesE,
-    //                              &entriesF, &entriesG, &entriesH, &entriesI, &entriesJ};
+   vector<vector<Entry>*> all = {&entriesA, &entriesB, &entriesC, &entriesD, &entriesE,
+                                  &entriesF, &entriesG, &entriesH, &entriesI, &entriesJ};
 
-    vector<vector<Entry>*> all = {&entriesA, &entriesB};
+   // vector<vector<Entry>*> all = {&entriesA, &entriesB};
 
     for (size_t idx = 0; idx < all.size(); ++idx) {
         cout << "Checking entries set " << idx + 1 << endl;

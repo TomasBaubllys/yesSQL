@@ -2,6 +2,7 @@ import struct
 from . import constants as cnt
 
 def build_get_request(key: str) -> bytes:
+    
     key_bytes = key.encode("utf-8")
     # <uint16_t> command number
     body = struct.pack("!H", cnt.COMMAND_CODE_GET)
@@ -11,6 +12,8 @@ def build_get_request(key: str) -> bytes:
     total_length = len(body) + cnt.COMMAND_LENGTH_TOTAL_MESSAGE + cnt.COMMAND_LENGTH_NUM_ELEMENTS
 
     header = struct.pack("!QQ", total_length, num_elements)
+
+    print(header + body)
 
     return header + body
 
@@ -27,6 +30,8 @@ def build_set_request(key: str, value: str) -> bytes:
     total_length = len(body) + cnt.COMMAND_LENGTH_TOTAL_MESSAGE + cnt.COMMAND_LENGTH_NUM_ELEMENTS
 
     header = struct.pack("!QQ", total_length, num_elements)
+    print(header + body)
+
 
     return header + body
 

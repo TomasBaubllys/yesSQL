@@ -107,14 +107,15 @@ class Server {
         Thread_Pool thread_pool;
         std::mutex remove_mutex;
         std::vector<socket_t> remove_queue;
+
         void request_to_remove_fd(socket_t socket);
-        void process_remove_queue();
+        virtual void process_remove_queue();
         
     public:
         // THROWS
-        Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
+        Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL, uint32_t thread_pool_size = SERVER_DEFAULT_THREAD_POOL_VAL);
 
-        ~Server();
+        virtual ~Server();
 
         // @brief virtual method to start the server
         // overriden by other server implementations
@@ -140,7 +141,7 @@ class Server {
         // THROWS
         std::vector<Server_Message> read_messages(socket_t socket);
 
-        void queue_socket_for_response(socket_t socket_fd, const Server_Message& message);
+        void queue_partition_for_response(socket_t socket_fd, const Server_Message& message);
 
         // THROWS
         int64_t send_message(socket_t socket, Server_Message& serv_msg);

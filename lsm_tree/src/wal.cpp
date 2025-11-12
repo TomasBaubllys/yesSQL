@@ -1,8 +1,15 @@
 #include "../include/wal.h"
 
 Wal::Wal(){
+   
+    // move to define
+    std::filesystem::path wal_dir = WAL_FOLDER_PATH;
+    if (!std::filesystem::exists(wal_dir)) {
+        std::filesystem::create_directories(wal_dir);
+    }
+
     wal_name = "wal.log";
-    wal_file_location = DEFAULT_WAL_FOLDER_LOCATION + wal_name;
+    wal_file_location = WAL_FOLDER_PATH + wal_name;
     entry_count = 0;
     is_read_only = false;
 

@@ -5,3 +5,5 @@
 - implement get_keys, get_ff, get_fb
 
 - fix not being able to retrive data after merge
+
+- add .env for thread pool count (system setting)

@@ -18,6 +18,9 @@
 #include <unistd.h>
 #include "fd_context.h"
 
+#define PRIMARY_SERVER_THREAD_POOL_SIZE_ENV_VAR "PRIMARY_SERVER_THREAD_POOL_SIZE"
+
+
 #define PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING "PARTITION_COUNT"
 #define PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_UNDEF_ERR_MSG "Enviromental variable PARTITION_COUNT is undefined...\n"
 #define PRIMARY_SERVER_PARTITION_COUNT_ZERO_ERR_MSG "Partition count is 0!\n"
@@ -73,7 +76,7 @@ class Primary_Server : public Server {
 
         uint32_t key_prefix_to_uint32(const std::string& key) const;
 
-        Partition_Entry& get_partition_for_key(const std::string& key);
+        Partition_Entry get_partition_for_key(const std::string& key);
 
         std::vector<Partition_Entry> get_partitions_ff(const std::string& key) const;
 
@@ -95,8 +98,20 @@ class Primary_Server : public Server {
 
         void queue_client_for_ok_response(socket_t client_fd);
 
+        // checks if the socket still belongs to the same client
+        // returns the socket if it is still the same client
+        // not recomended for threads, use with the main thread before sending a message
+        socket_t is_still_same_client(protocol_id_t client_id);
+
+        void process_remove_queue();
+
+        // not thread safe, use only it main thread when a send / receive returns 0
+        void remove_client(socket_t client_fd);
+
     public:
-        Primary_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
+        Primary_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL,  uint32_t thread_pool_size = SERVER_DEFAULT_THREAD_POOL_VAL);
+
+        ~Primary_Server();
 
         int8_t start() override;
 };

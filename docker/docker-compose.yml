@@ -25,6 +25,8 @@ services:
       - "9000"
     environment:
       - SERVER_NAME=Partition_Server
+    env_file:
+      - database_setup.env
     networks:
       - internal_net
 

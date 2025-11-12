@@ -225,12 +225,16 @@ void LSM_Tree::clean_forward_set(std::set<Entry>& set_to_clean,const bool is_gre
 bool LSM_Tree::remove(std::string key){
 
     try{
-        Entry entry = get(key);
+        //Entry entry = get(key);
+        Bits b_key(key);
+        Bits v_val(ENTRY_PLACEHOLDER_VALUE);
+        Entry entry(b_key, v_val);
+        entry.set_tombstone(ENTRY_TOMBSTONE_ON);
         std::ostringstream bytes = entry.get_ostream_bytes();
 
-        if(!entry.is_deleted()){
+        /*if(!entry.is_deleted()){
             entry.set_tombstone(true);
-        }
+        }*/
         write_ahead_log.append_entry(bytes);
         mem_table.insert_entry(entry);
     }

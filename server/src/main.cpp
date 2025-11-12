@@ -43,16 +43,27 @@ int main(int argc, char* argv[]) {
         std::cerr << BAD_PORT_NUMBER_MSG << ALLOWED_PORT_RANGE_MSG;
         return -1;
     }*/
+    uint32_t thread_pool_size = SERVER_DEFAULT_THREAD_POOL_VAL;
+
 
     try {
         switch(server_type) {
             case PRIMARY_SERVER: {
-                Primary_Server primary_server(port, verbose);
+                const char* thread_pool_size_str = std::getenv(PRIMARY_SERVER_THREAD_POOL_SIZE_ENV_VAR);
+                if(thread_pool_size_str) {
+                    thread_pool_size = atoi(thread_pool_size_str);
+                }
+
+                Primary_Server primary_server(port, verbose, thread_pool_size);
                 return primary_server.start();
                 break;
             }
             case PARTITION_SERVER: {
-                Partition_Server partition_server(port, verbose);
+                const char* thread_pool_size_str = std::getenv(PARTITION_SERVER_THREAD_POOL_SIZE_ENV_VAR);
+                if(thread_pool_size_str) {
+                    thread_pool_size = atoi(thread_pool_size_str);
+                }
+                Partition_Server partition_server(port, verbose, thread_pool_size);
                 return partition_server.start();
                 break;
             }

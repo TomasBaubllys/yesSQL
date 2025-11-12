@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <sys/eventfd.h>
 
-Server::Server(uint16_t port, uint8_t verbose) : port(port), verbose(verbose), epoll_events(SERVER_DEFAULT_EPOLL_EVENT_VAL), thread_pool(SERVER_DEFAULT_THREAD_POOL_VAL) {
+Server::Server(uint16_t port, uint8_t verbose, uint32_t thread_pool_size) : port(port), verbose(verbose), epoll_events(SERVER_DEFAULT_EPOLL_EVENT_VAL), thread_pool(thread_pool_size) {
 	// create a server_fd AF_INET - ipv4, SOCKET_STREAM - TCP
 	this -> server_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(this -> server_fd < 0) {
@@ -13,7 +13,7 @@ Server::Server(uint16_t port, uint8_t verbose) : port(port), verbose(verbose), e
 	// set server options to reuse addresses if a crash happens
 	int32_t options = 1;
 
-	if(setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &options, sizeof(options))) {
+	if(setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &options, sizeof(options))) {
 		std::string setsockopt_failed_str(SERVER_SET_SOCK_OPT_FAILED_ERR_MSG);
 		setsockopt_failed_str += SERVER_ERRNO_STR_PREFIX;
 		setsockopt_failed_str += std::to_string(errno);
@@ -33,18 +33,14 @@ Server::Server(uint16_t port, uint8_t verbose) : port(port), verbose(verbose), e
 }
 
 Server::~Server() {
-    /*
-    CLOSE ALL SOCKETS
-    
-    */
-    if (this -> epoll_fd >= 0) {
-        close(this -> epoll_fd);
+    // close all the sockets and clear all the maps
+    for(std::unordered_map<socket_t, Fd_Type>::iterator it = this -> fd_type_map.begin(); it != this -> fd_type_map.end(); ++it) {
+        epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, it -> first, nullptr);
+        close(it -> first);
     }
 
-    if(this -> server_fd > 0) {
-        close(this -> server_fd);
-    }
-    this ->fd_type_map.clear();
+    close(this -> epoll_fd);
+    close(this -> wakeup_fd);
 }
 
 int8_t Server::start() {
@@ -141,9 +137,10 @@ int64_t Server::send_message(socket_t socket_fd, Server_Message& serv_msg) {
     ssize_t bytes_sent = send(socket_fd, data_ptr, remaining, MSG_NOSIGNAL);
 
     if (bytes_sent < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return 0; // try again later
-        } else {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+            return -1; // try again later
+        } 
+        else {
             std::string send_fail_str(SERVER_FAILED_SEND_ERR_MSG);
             send_fail_str += SERVER_ERRNO_STR_PREFIX;
             send_fail_str += std::to_string(errno);
@@ -356,23 +353,10 @@ void Server::request_to_remove_fd(socket_t socket) {
 }
         
 void Server::process_remove_queue() {
-   
 
-
-    std::lock_guard<std::mutex> lock(this -> remove_mutex);
-    for(socket_t& sock : remove_queue) {
-        this -> fd_type_map.erase(sock);
-
-        if(epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, sock, nullptr) < 0) {
-
-        }
-        
-        close(sock);
-    }
-    remove_queue.clear();
 }
 
-void Server::queue_socket_for_response(socket_t socket_fd, const Server_Message& message) {
+void Server::queue_partition_for_response(socket_t socket_fd, const Server_Message& message) {
     std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
     this -> partition_queues[socket_fd].push(std::move(message));
     this -> request_epoll_mod(socket_fd, EPOLLIN | EPOLLOUT);
@@ -422,3 +406,4 @@ void Server::apply_epoll_mod_q() {
         }
     }
 }
+

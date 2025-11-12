@@ -19,20 +19,28 @@ class TCP_Connection:
         await self.writer.drain()
 
         try:
-            response_length_bytes = await self.reader.readexactly(constants.COMMAND_LENGTH_TOTAL_MESSAGE)
+            response_length_bytes = await asyncio.wait_for(
+                self.reader.readexactly(constants.COMMAND_LENGTH_TOTAL_MESSAGE),
+                timeout=2.0
+            )
+        except asyncio.TimeoutError:
+            raise TimeoutError("Timed out waiting for message header")
         except asyncio.IncompleteReadError:
             raise ValueError("Failed to read message header")
-        
+
         total_length = struct.unpack("!Q", response_length_bytes)[0]
 
         try:
-            response_body = await self.reader.readexactly(total_length - constants.COMMAND_LENGTH_TOTAL_MESSAGE)
+            response_body = await asyncio.wait_for(
+                self.reader.readexactly(total_length - constants.COMMAND_LENGTH_TOTAL_MESSAGE),
+                timeout=2.0
+            )
+        except asyncio.TimeoutError:
+            raise TimeoutError("Timed out waiting for message body")
         except asyncio.IncompleteReadError:
             raise ValueError("Failed to read message: message too short")
-        
-        message = response_length_bytes + response_body
 
-        return message
+        return response_length_bytes + response_body
 
     async def close(self):
         if self.writer:
@@ -60,7 +68,9 @@ class TCP_Connection_Pool:
         except asyncio.TimeoutError:
             raise TimeoutError("TCP pool exhausted")
 
+
         conn = await self.pool.get()
+
         return conn
 
     async def release(self, conn: TCP_Connection):

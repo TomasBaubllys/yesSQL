@@ -7,9 +7,17 @@ router = APIRouter()
 @router.get("/get/{key}")
 async def get_value(key: str):
     async with pool.get_connection() as conn:
+        print("here1")
+
         msg = builder.build_get_request(key)
+        print("here2")
+
         resp = await conn.send(msg)
+        print("here3")
+
         parsed = parser.dispatch(resp)
+        print("here4")
+
         return parsed
 
 
