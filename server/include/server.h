@@ -113,7 +113,7 @@ class Server {
         
     public:
         // THROWS
-        Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
+        Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL, uint32_t thread_pool_size = SERVER_DEFAULT_THREAD_POOL_VAL);
 
         virtual ~Server();
 

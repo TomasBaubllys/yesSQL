@@ -1,11 +1,15 @@
 #include "../include/partition_server.h"
 
-Partition_Server::Partition_Server(uint16_t port, uint8_t verbose) : Server(port, verbose), lsm_tree() {
+Partition_Server::Partition_Server(uint16_t port, uint8_t verbose, uint32_t thread_pool_size) : Server(port, verbose, thread_pool_size), lsm_tree() {
+
+}
+
+Partition_Server::~Partition_Server() {
 
 }
 
 int8_t Partition_Server::start() {
-    if (listen(this->server_fd, 255) < 0) {   
+    if (listen(this -> server_fd, SOMAXCONN) < 0) {   
         std::string listen_failed_str(SERVER_FAILED_LISTEN_ERR_MSG);
         listen_failed_str += SERVER_ERRNO_STR_PREFIX;
         listen_failed_str += std::to_string(errno);
@@ -427,10 +431,9 @@ void Partition_Server::process_remove_queue() {
     for(socket_t& sock_fd : to_remove) {
         {
             std::unique_lock<std::shared_mutex> lock_e_mod(this -> epoll_mod_mutex);
-            epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, sock_fd, nullptr);
-            this -> epoll_events.erase(std::remove(this -> epoll_events.begin(), this -> epoll_events.end(), sock_fd), this -> epoll_events.end());
             this -> epoll_mod_map.erase(sock_fd);
         }
+        epoll_ctl(this -> epoll_fd, EPOLL_CTL_DEL, sock_fd, nullptr);
 
         this -> read_buffers.erase(sock_fd);
         // clear read / write buffer
@@ -438,7 +441,7 @@ void Partition_Server::process_remove_queue() {
             std::unique_lock<std::shared_mutex> lock_w_buf(this -> write_buffers_mutex);
             this -> write_buffers.erase(sock_fd);
         }
-        
+
         {
         std::unique_lock<std::shared_mutex> lock_fd_m(this -> fd_type_map_mutex);
             std::unordered_map<socket_t, Fd_Type>::iterator found_fd = fd_type_map.find(sock_fd);

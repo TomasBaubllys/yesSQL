@@ -31,6 +31,11 @@ COMMAND_CODES = {
 }
 COMMAND_IDS = {v: k for k, v in COMMAND_CODES.items()}
 
+class Color:
+    RED = "\033[91m"
+    GREEN = "\033[92m"
+    RESET = "\033[0m"
+
 
 # ==================================================
 # Command Builders
@@ -83,7 +88,7 @@ def build_remove_command(key: str) -> bytes:
 # Helpers
 # ==================================================
 def random_key():
-    return os.urandom(random.randint(2, 128)).hex()
+    return os.urandom(random.randint(16, 128)).hex()
 
 def random_value():
     return os.urandom(random.randint(1, 1024)).hex()
@@ -152,6 +157,11 @@ def recv_exact(sock: socket.socket, timeout: float = 20.0):
 # ==================================================
 # LOOPSET Worker
 # ==================================================
+import time
+import socket
+import random
+import threading
+
 def loopset_worker(thread_id: int, count: int, results: dict, lock: threading.Lock):
     local_stats = {
         "set_ok": 0,
@@ -161,20 +171,33 @@ def loopset_worker(thread_id: int, count: int, results: dict, lock: threading.Lo
         "remove_not_found": 0,
     }
 
+    local_times = {}  # record timing per phase
+
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((HOST, PORT))
-            for i in range(count):
-                key = random_key()
-                value = random_value()
 
-                # --- SET ---
+            keys = [random_key() for _ in range(count)]
+            values = [random_value() for _ in range(count)]
+
+            # --------------------------
+            # Phase 1: SET all keys
+            # --------------------------
+            start = time.perf_counter()
+            for i, (key, value) in enumerate(zip(keys, values)):
                 s.sendall(build_set_command(key, value))
                 cmd, _ = parse_response(recv_exact(s))
                 if cmd == CMD_OK:
                     local_stats["set_ok"] += 1
+                if (i + 1) % 100 == 0:
+                    print(f"[Thread {thread_id}] SET {i + 1}/{count}")
+            local_times["set"] = time.perf_counter() - start
 
-                # --- GET ---
+            # --------------------------
+            # Phase 2: GET all keys
+            # --------------------------
+            start = time.perf_counter()
+            for i, (key, value) in enumerate(zip(keys, values)):
                 s.sendall(build_get_command(key))
                 cmd, data = parse_response(recv_exact(s))
                 if cmd == CMD_OK and key in data:
@@ -182,17 +205,37 @@ def loopset_worker(thread_id: int, count: int, results: dict, lock: threading.Lo
                         local_stats["get_match"] += 1
                     else:
                         local_stats["get_mismatch"] += 1
+                if (i + 1) % 100 == 0:
+                    print(f"[Thread {thread_id}] GET {i + 1}/{count}")
+            local_times["get"] = time.perf_counter() - start
 
-                # --- REMOVE ---
+            # --------------------------
+            # Phase 3: REMOVE all keys
+            # --------------------------
+            start = time.perf_counter()
+            for i, key in enumerate(keys):
                 s.sendall(build_remove_command(key))
                 cmd, _ = parse_response(recv_exact(s))
                 if cmd == CMD_OK:
                     local_stats["remove_ok"] += 1
                 elif cmd == CMD_DATA_NOT_FOUND:
                     local_stats["remove_not_found"] += 1
-
                 if (i + 1) % 100 == 0:
-                    print(f"[Thread {thread_id}] {i + 1}/{count} cycles done")
+                    print(f"[Thread {thread_id}] REMOVE {i + 1}/{count}")
+            local_times["remove"] = time.perf_counter() - start
+
+            # --------------------------
+            # Phase 4: Confirm removals (optional)
+            # --------------------------
+            start = time.perf_counter()
+            for i, key in enumerate(keys):
+                s.sendall(build_get_command(key))
+                cmd, _ = parse_response(recv_exact(s))
+                if cmd == CMD_DATA_NOT_FOUND:
+                    local_stats["remove_not_found"] += 1
+                if (i + 1) % 100 == 0:
+                    print(f"[Thread {thread_id}] CONFIRM REMOVE {i + 1}/{count}")
+            local_times["confirm"] = time.perf_counter() - start
 
     except Exception as e:
         print(f"[Thread {thread_id}] Error: {e}")
@@ -201,6 +244,46 @@ def loopset_worker(thread_id: int, count: int, results: dict, lock: threading.Lo
     with lock:
         for k, v in local_stats.items():
             results[k] += v
+
+        # Add timing
+        if "timing" not in results:
+            results["timing"] = []
+        results["timing"].append(local_times)
+
+# ==================================================
+# Pretty Summary Printer
+# ==================================================
+class Color:
+    RED = "\033[91m"
+    GREEN = "\033[92m"
+    RESET = "\033[0m"
+
+
+def print_summary(global_stats, threads, count, elapsed):
+    total_ops = count * threads * 4
+    total_get = global_stats["get_match"] + global_stats["get_mismatch"]
+
+    if global_stats["get_mismatch"] == 0 and total_get > 0:
+        color = Color.GREEN
+        status = "ALL MATCH ✅"
+    else:
+        color = Color.RED
+        status = "MISMATCHES DETECTED ❌"
+
+    print("\n===== LOOPSET Summary =====")
+    print(f"Threads:          {threads}")
+    print(f"Total cycles:     {count * threads}")
+    print(f"Total operations: {total_ops}")
+    print(f"Elapsed:          {elapsed:.2f}s")
+    print(f"Ops/sec:          {total_ops / elapsed:.2f}")
+    print("-----------------------------")
+    print(f"SET OK:           {global_stats['set_ok']}")
+    print(f"{color}GET match:        {global_stats['get_match']} / {total_get}  ({status}){Color.RESET}")
+    print(f"GET mismatch:     {global_stats['get_mismatch']}")
+    print(f"REMOVE OK:        {global_stats['remove_ok']}")
+    print(f"REMOVE not found: {global_stats['remove_not_found']}")
+    print("=============================\n")
+
 
 
 # ==================================================
@@ -277,21 +360,9 @@ def main():
                         th.join()
 
                     elapsed = time.time() - start_time
-                    total_ops = count * threads * 3
-                    print("\n===== LOOPSET Summary =====")
-                    print(f"Threads:          {threads}")
-                    print(f"Total cycles:     {count * threads}")
-                    print(f"Total operations: {total_ops}")
-                    print(f"Elapsed:          {elapsed:.2f}s")
-                    print(f"Ops/sec:          {total_ops / elapsed:.2f}")
-                    print("-----------------------------")
-                    print(f"SET OK:           {global_stats['set_ok']}")
-                    print(f"GET match:        {global_stats['get_match']}")
-                    print(f"GET mismatch:     {global_stats['get_mismatch']}")
-                    print(f"REMOVE OK:        {global_stats['remove_ok']}")
-                    print(f"REMOVE not found: {global_stats['remove_not_found']}")
-                    print("=============================\n")
 
+                    # 🔥 Clean, colorized summary
+                    print_summary(global_stats, threads, count, elapsed)
                 else:
                     print("Usage: SET <key> <value> | GET <key> | REMOVE <key> | LOOPSET <count> <threads>")
 

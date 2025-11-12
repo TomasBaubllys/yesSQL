@@ -9,6 +9,8 @@
 #define PARTITION_SERVER_NAME_PREFIX "yessql-partition_server-"
 #define PARTITION_SERVER_PORT 9000
 
+#define PARTITION_SERVER_THREAD_POOL_SIZE_ENV_VAR "PARTITION_SERVER_THREAD_POOL_SIZE"
+
 #define PARTITION_SERVER_FAILED_TO_EXTRACT_DATA_ERR_MSG "Failed to extract data from message - too short\n"
 
 #define COLOR_RED     "\033[31m"
@@ -30,7 +32,9 @@ class Partition_Server : public Server {
         void process_remove_queue() override;
 
     public:
-        Partition_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
+        Partition_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL, uint32_t thread_pool_size = SERVER_DEFAULT_THREAD_POOL_VAL);
+
+        ~Partition_Server();
 
         // send a response of all the entries contained in the vector
         std::string create_entries_response(const std::vector<Entry>& entry_array, protocol_id_t client_id)const;
