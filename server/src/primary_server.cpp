@@ -120,19 +120,19 @@ bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
         return true;
     }
 
-
     std::unique_lock<std::shared_mutex> lock(this -> partitions_mutex);
     bool success = false;
     partition.socket_fd = this -> connect_to(partition.name, partition.port, success);
     if(!success || partition.socket_fd < 0) {
+        this -> partitions[partition.id].status = Partition_Status::PARTITION_DEAD;
         return false;
     }
 
     epoll_event ev{};
+    this -> make_non_blocking(partition.socket_fd);
     ev.data.fd = partition.socket_fd;
     this -> partitions[partition.id].socket_fd = partition.socket_fd;
     this -> partitions[partition.id].status = Partition_Status::PARTITION_FREE;
-    this -> make_non_blocking(partition.socket_fd);
     ev.events = EPOLLIN;
     if(epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, partition.socket_fd, &ev) < 0) {
         throw std::runtime_error(SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG);
@@ -183,6 +183,7 @@ int8_t Primary_Server::start() {
                 if (verbose > 0) {
                     std::cerr << SERVER_EPOLL_FD_HOOKUP_ERR_MSG << std::endl;
                 }
+
                 this -> request_to_remove_fd(socket_fd);
                 continue;
             }

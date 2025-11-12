@@ -3,6 +3,7 @@ import struct
 import threading
 import time
 import os
+import random
 
 # ==================================================
 # Configuration
@@ -82,10 +83,10 @@ def build_remove_command(key: str) -> bytes:
 # Helpers
 # ==================================================
 def random_key():
-    return os.urandom(8).hex()
+    return os.urandom(random.randint(2, 128)).hex()
 
 def random_value():
-    return os.urandom(16).hex()
+    return os.urandom(random.randint(1, 1024)).hex()
 
 
 # ==================================================
