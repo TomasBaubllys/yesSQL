@@ -120,7 +120,7 @@ std::set<Bits> LSM_Tree::get_keys(std::string prefix){
     return keys;
 };
 
-std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key){
+std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint8_t n){
     std::set<Entry> ff_entries;
     Bits key_bits(_key);
     Bits next_key(ENTRY_PLACEHOLDER_KEY);
@@ -140,10 +140,10 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key){
         for(uint16_t i = 0; i < sstable_count; ++i){
             const SS_Table* ss_table = ss_table_controller.at(i);
 
-            std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_larger_or_equal(key_bits, LSM_TREE_FORWARD_MAX_RETURN);
+            std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_larger_or_equal(key_bits, n);
 
             ff_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
-            clean_forward_set(ff_entries, true, key_bits);
+            clean_forward_set(ff_entries, true, key_bits, n);
         }
     }
 
@@ -155,7 +155,7 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key){
     return std::make_pair(ff_entries, next_key.get_string());
 };
 
-std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key){
+std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint8_t n){
     std::set<Entry> fb_entries;
     Bits key_bits = Bits(_key);
     Bits next_key(ENTRY_PLACEHOLDER_KEY);
@@ -174,10 +174,10 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key){
         for(uint16_t i = 0; i < sstable_count; ++i){
             const SS_Table* ss_table = ss_table_controller.at(i);
 
-            std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_smaller_or_equal(key_bits, LSM_TREE_FORWARD_MAX_RETURN);
+            std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_smaller_or_equal(key_bits, n);
 
             fb_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
-            clean_forward_set(fb_entries, false, key_bits);
+            clean_forward_set(fb_entries, false, key_bits, n);
         }
     }
 
@@ -200,21 +200,21 @@ void LSM_Tree::forward_validate(std::set<Entry>& entries,const Entry& entry_to_a
     }
 };
 
-void LSM_Tree::clean_forward_set(std::set<Entry>& set_to_clean,const bool is_greater_operation,const Bits key_value){
+void LSM_Tree::clean_forward_set(std::set<Entry>& set_to_clean,const bool is_greater_operation,const Bits key_value, uint8_t n){
 
-    if(set_to_clean.size() <= LSM_TREE_FORWARD_MAX_RETURN){
+    if(set_to_clean.size() <= n){
         return;
     };
     if(is_greater_operation){
         std::set<Entry>::iterator it = set_to_clean.begin();
-        for(size_t i = 0; i < LSM_TREE_FORWARD_MAX_RETURN; ++i){
+        for(size_t i = 0; i < n; ++i){
             ++it;
         }
         set_to_clean.erase(it, set_to_clean.end());
     }
     else{
         std::set<Entry>::iterator it = set_to_clean.begin();
-        size_t elements_to_skip = set_to_clean.size() - LSM_TREE_FORWARD_MAX_RETURN;
+        size_t elements_to_skip = set_to_clean.size() - n;
         for(size_t i = 0; i < elements_to_skip; ++i){
             ++it;
         }
