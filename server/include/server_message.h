@@ -60,6 +60,13 @@ class Server_Message {
 
         // for testing
         void print() const;
+
+        // clears everything except CID
+        void clear();
+
+        protocol_msg_len_t size() const;
+
+        const char* c_str() const;
 };
 
 #endif // YSQL_SERVER_MESSAGE_H_INCLUDED

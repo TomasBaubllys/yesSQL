@@ -13,11 +13,11 @@
 #define COMMAND_GET_FB "GET_FB" // GET_FB <KEY>
 #define COMMAND_REMOVE "REMOVE" // REMOVE <KEY>
 
-using command_code_type = uint16_t;
+using command_code_t = uint16_t;
 #define command_hton(x) htons(x)
 #define command_ntoh(x) ntohs(x)
 
-typedef enum Command_Code : command_code_type {
+typedef enum Command_Code : command_code_t {
     COMMAND_CODE_OK,
     // send error message isntead of key
     COMMAND_CODE_ERR,

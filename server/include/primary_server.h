@@ -17,9 +17,9 @@
 #include <limits>
 #include <unistd.h>
 #include "fd_context.h"
+#include "cursor.h"
 
 #define PRIMARY_SERVER_THREAD_POOL_SIZE_ENV_VAR "PRIMARY_SERVER_THREAD_POOL_SIZE"
-
 
 #define PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_STRING "PARTITION_COUNT"
 #define PRIMARY_SERVER_PARTITION_COUNT_ENVIROMENT_VARIABLE_UNDEF_ERR_MSG "Enviromental variable PARTITION_COUNT is undefined...\n"
@@ -69,6 +69,10 @@ class Primary_Server : public Server {
         std::shared_mutex partitions_mutex;
         std::vector<Partition_Entry> partitions;
 
+        // map for client cursors
+        std::shared_mutex client_cursor_map_mutex;
+        std::unordered_map<socket_t, std::vector<Cursor>> client_cursor_map;
+
         // functions for partition monitoring, currently unused
         std::vector<bool> get_partitions_status() const;
         void display_partitions_status() const;
@@ -107,6 +111,10 @@ class Primary_Server : public Server {
 
         // not thread safe, use only it main thread when a send / receive returns 0
         void remove_client(socket_t client_fd);
+
+        Cursor extract_cursor_creation(const Server_Message& message);
+
+        std::string extract_cursor_name(const Server_Message& message);
 
     public:
         Primary_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL,  uint32_t thread_pool_size = SERVER_DEFAULT_THREAD_POOL_VAL);

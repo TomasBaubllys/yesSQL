@@ -44,7 +44,7 @@
 #define LSM_TREE_LEVEL_0_PATH "./data/val/Level_0"
 #define LSM_TREE_CORRUPT_FILES_PATH "./data/val/corrupted"
 
-#define LSM_TREE_FORWARD_MAX_RETURN 100
+#define LSM_TREE_FORWARD_MAX_RETURN 255
 
 // Hello everybody
 // LSM_Tree
@@ -128,11 +128,6 @@ class LSM_Tree{
 
         // reconstructs LSM tree in case of a crash
         bool reconstruct_tree();
-
-        // returns a pair vector of corrupted files <level, file index>
-        // fills sstables
-        std::vector<std::pair<uint8_t, uint16_t>> fill_ss_tables(uint8_t level, std::vector<std::filesystem::path> data_files, std::vector<std::filesystem::path> index_files, std::vector<std::filesystem::path> offset_files);
-
 };
 
 #endif

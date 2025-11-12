@@ -26,11 +26,11 @@ using protocol_msg_len_t = uint64_t;
 #define protocol_msg_len_hton(x) htonll(x)
 #define protocol_msg_len_ntoh(x) ntohll(x)
 
-using protocol_array_len_type = uint64_t;
+using protocol_array_len_t = uint64_t;
 #define protocol_arr_len_hton(x) htonll(x)
 #define protocol_arr_len_ntoh(x) ntohll(x)
 
-using protocol_key_len_type = key_len_type;
+using protocol_key_len_t = key_len_type;
 #define protocol_key_len_hton(x) htons(x)
 #define protocol_key_len_ntoh(x) ntohs(x)
 
@@ -42,11 +42,13 @@ using protocol_id_t = uint64_t;
 #define protocol_id_hton(x) htonll(x)
 #define protocol_id_ntoh(x) ntohll(x)
 
-#define PROTOCOL_COMMAND_NUMBER_POS_NOCID (sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_type))
-#define PROTOCOL_COMMAND_NUMBER_POS (sizeof(protocol_id_t) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_type))
+#define PROTOCOL_COMMAND_NUMBER_POS_NOCID (sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t))
+#define PROTOCOL_COMMAND_NUMBER_POS (sizeof(protocol_id_t) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t))
 
-#define PROTOCOL_FIRST_KEY_LEN_POS_NOCID (PROTOCOL_COMMAND_NUMBER_POS_NOCID + sizeof(command_code_type))
-#define PROTOCOL_FIRST_KEY_LEN_POS (PROTOCOL_COMMAND_NUMBER_POS + sizeof(command_code_type))
+#define PROTOCOL_FIRST_KEY_LEN_POS_NOCID (PROTOCOL_COMMAND_NUMBER_POS_NOCID + sizeof(command_code_t))
+#define PROTOCOL_FIRST_KEY_LEN_POS (PROTOCOL_COMMAND_NUMBER_POS + sizeof(command_code_t))
+
+#define PROTOCOL_CURSOR_LEN_POS (PROTOCOL_COMMAND_NUMBER_POS_NOCID + sizeof(command_code_t));
 
 /* General command exchange
  * <(uint64_t) length of the whole message>
@@ -61,5 +63,15 @@ using protocol_id_t = uint64_t;
  *
  *
  * */
+
+
+/*   GET_FF, GET_KEYS, GET_FB, GET_KEYS_PREFIX
+ *   For client [msg_len]GET_FF/GET_FB[num_of_els][curs_name_len][cursorname]
+ *   For partition [msg_len]GET_FF[num_of_els][cid][key_len][key]
+*/
+
+/* CREATE/DELETE cursor
+ *  [msg_len][cursor_size][cursor_cmd][curs_len][curs_name][key_len][key]
+ */
 
 #endif // YSQL_PROTOCOL_H_INCLUDED 

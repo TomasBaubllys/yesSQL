@@ -155,7 +155,7 @@ int8_t Partition_Server::start() {
 std::string Partition_Server::extract_value(const std::string& raw_message) const {
     // read the key length
     size_t curr_pos = PROTOCOL_FIRST_KEY_LEN_POS;
-    protocol_key_len_type key_len;
+    protocol_key_len_t key_len;
     if(curr_pos + sizeof(key_len) > raw_message.size()) {
         throw std::runtime_error(PARTITION_SERVER_FAILED_TO_EXTRACT_DATA_ERR_MSG);
     }
@@ -183,14 +183,14 @@ std::string Partition_Server::extract_value(const std::string& raw_message) cons
 }
 
 std::string Partition_Server::create_entries_response(const std::vector<Entry>& entry_array, protocol_id_t client_id) const{
-    protocol_msg_len_t msg_len = sizeof(protocol_id_t) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_type) + sizeof(command_code_type);
+    protocol_msg_len_t msg_len = sizeof(protocol_id_t) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t);
     for(const Entry& entry : entry_array) {
-        msg_len += sizeof(protocol_key_len_type) + sizeof(protocol_value_len_type);
+        msg_len += sizeof(protocol_key_len_t) + sizeof(protocol_value_len_type);
         msg_len += entry.get_key_length() + entry.get_value_length();
     }
 
-    protocol_array_len_type array_len = entry_array.size();
-    command_code_type com_code = COMMAND_CODE_OK;
+    protocol_array_len_t array_len = entry_array.size();
+    command_code_t com_code = COMMAND_CODE_OK;
     array_len = protocol_arr_len_hton(array_len);
     protocol_msg_len_t net_msg_len = protocol_msg_len_hton(msg_len);
     com_code = command_hton(com_code);
@@ -211,9 +211,9 @@ std::string Partition_Server::create_entries_response(const std::vector<Entry>& 
     curr_pos += sizeof(com_code);
 
     for(const Entry& entry : entry_array) {
-        protocol_key_len_type key_len = entry.get_key_length();
+        protocol_key_len_t key_len = entry.get_key_length();
         protocol_value_len_type value_len = entry.get_value_length();
-        protocol_key_len_type net_key_len = protocol_key_len_hton(key_len);
+        protocol_key_len_t net_key_len = protocol_key_len_hton(key_len);
         protocol_value_len_type net_value_len = protocol_value_len_hton(value_len);
 
         memcpy(&raw_message[curr_pos], &net_key_len, sizeof(net_key_len));

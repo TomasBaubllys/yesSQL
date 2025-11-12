@@ -156,12 +156,12 @@ int64_t Server::send_message(socket_t socket_fd, Server_Message& serv_msg) {
 Command_Code Server::extract_command_code(const std::string& message, bool contains_cid) const {
     uint64_t pos = contains_cid? PROTOCOL_COMMAND_NUMBER_POS : PROTOCOL_COMMAND_NUMBER_POS_NOCID;
 
-    if(pos + sizeof(command_code_type) > message.size()) {
+    if(pos + sizeof(command_code_t) > message.size()) {
         return INVALID_COMMAND_CODE;
     }
 
-    command_code_type com_code;
-    memcpy(&com_code, &message[pos], sizeof(command_code_type));
+    command_code_t com_code;
+    memcpy(&com_code, &message[pos], sizeof(command_code_t));
     com_code = command_ntoh(com_code);
 
     return static_cast<Command_Code>(com_code);
@@ -220,19 +220,19 @@ std::string Server::extract_key_str_from_msg(const std::string& message, bool co
     // check if the command is long enough
     uint64_t pos = contains_cid? PROTOCOL_FIRST_KEY_LEN_POS : PROTOCOL_FIRST_KEY_LEN_POS_NOCID;
 
-    if(pos + sizeof(protocol_key_len_type)  > message.size()) {
+    if(pos + sizeof(protocol_key_len_t)  > message.size()) {
         throw std::runtime_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
     }
 
-    protocol_key_len_type key_len = 0;
+    protocol_key_len_t key_len = 0;
     memcpy(&key_len, &message[pos], sizeof(key_len));
     key_len = ntohs(key_len);
 
-    if(pos + sizeof(protocol_key_len_type) + key_len > message.size()) {
+    if(pos + sizeof(protocol_key_len_t) + key_len > message.size()) {
         throw std::runtime_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
     }
 
-    return message.substr(pos + sizeof(protocol_key_len_type), key_len);
+    return message.substr(pos + sizeof(protocol_key_len_t), key_len);
 }
 
 void Server::make_non_blocking(socket_t& socket) {
@@ -258,8 +258,8 @@ Server_Message Server::create_status_response(Command_Code status, bool contain_
     }
 
     protocol_msg_len_t message_length;
-    protocol_array_len_type arr_len = 0;
-    command_code_type com_code = command_hton(status);
+    protocol_array_len_t arr_len = 0;
+    command_code_t com_code = command_hton(status);
     message_length = sizeof(message_length) + sizeof(arr_len) + sizeof(com_code);
     if(contain_cid) {
         message_length += sizeof(protocol_id_t);

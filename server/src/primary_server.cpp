@@ -419,7 +419,64 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
             }
 
             break;
+        }
+        case CREATE_CURSOR: {
+            Cursor cursor;
+            try {
+                cursor = this -> extract_cursor_creation(msg);
+            } catch (const std::exception& e) {
+                if(this -> verbose > 0) {
+                    std::cerr << e.what() << std::endl;
+                }
+                this -> queue_client_for_error_response(client_fd);
+                return 0;
+            }
+            
+            {
+                std::unique_lock<std::shared_mutex> lock(this -> client_cursor_map_mutex);
+                this -> client_cursor_map[client_fd].push_back(cursor);
+                std::cout << "cursor created: " << std::endl;
+                cursor.print(); 
+            }
 
+            this -> queue_client_for_ok_response(client_fd);
+
+            break;
+        }
+        case DELETE_CURSOR: {
+            std::string cursor_name;
+            try {
+                cursor_name = this -> extract_cursor_name(msg);
+            }
+            catch(const std::exception& e) {
+                if(this -> verbose > 0) {
+                    std::cerr << e.what() << std::endl;
+                }
+
+                this -> queue_client_for_error_response(client_fd);
+            }
+
+            {
+                std::shared_lock<std::shared_mutex> lock(this -> client_cursor_map_mutex);
+                std::unordered_map<socket_t, std::vector<Cursor>>::iterator curs_it = this -> client_cursor_map.find(client_fd);
+                if(curs_it != this -> client_cursor_map.end()) {
+                    for(std::vector<Cursor>::iterator vec_it = curs_it -> second.begin(); vec_it != curs_it -> second.end(); ++vec_it) {
+                        if(vec_it -> get_name() == cursor_name) {
+                            curs_it -> second.erase(vec_it);
+                            lock.unlock();
+                            std::cout << "CURSOR DELETED---" << std::endl;
+                            this -> queue_client_for_ok_response(client_fd);
+                            return 0;
+                        }
+                    }
+                    this -> queue_client_for_error_response(client_fd);
+                    return 0;
+                }
+                
+                this -> queue_client_for_error_response(client_fd);
+            }
+
+            break;
         }
         case COMMAND_CODE_GET_KEYS: {
             break;
@@ -647,3 +704,73 @@ void Primary_Server::remove_client(socket_t client_fd) {
 
     close(client_fd);
 }
+
+Cursor Primary_Server::extract_cursor_creation(const Server_Message& message) {
+    cursor_name_len_t cursor_len = 0;
+    protocol_msg_len_t pos = PROTOCOL_CURSOR_LEN_POS;
+    
+    if(pos + sizeof(cursor_name_len_t) > message.size()) {
+        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+    }
+
+    memcpy(&cursor_len, &message.c_str()[pos], sizeof(cursor_name_len_t));
+    pos += sizeof(cursor_name_len_t);
+    cursor_len = cursor_name_len_ntoh(cursor_len);
+
+    if(pos + cursor_len > message.size()) {
+        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+    }
+
+    std::string cursor_name(cursor_len, '\0');
+    memcpy(&cursor_name[0], &message.c_str()[pos], cursor_len);
+    pos += cursor_len;
+
+    cursor_cap_t capacity = 0;
+    memcpy(&capacity, &message.c_str()[pos], sizeof(cursor_cap_t));
+    capacity = cursor_cap_ntoh(capacity);
+    pos += sizeof(cursor_cap_t);
+
+    protocol_msg_len_t key_len = 0;
+    if(pos + sizeof(protocol_msg_len_t) > message.size()) {
+        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+    }
+
+    memcpy(&key_len, &message.c_str()[pos], sizeof(protocol_key_len_t));
+    pos += sizeof(protocol_key_len_t);
+    key_len = protocol_key_len_ntoh(key_len);
+
+    if(pos + key_len < message.size()) {
+        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+    }
+
+    std::string key_str(key_len, '\0');
+    memcpy(&key_str[0], &message.c_str()[pos], key_len);
+    pos += key_len;
+
+    Cursor cursor(cursor_name, capacity);
+    cursor.set_next_key(key_str);
+    return cursor;
+}
+
+std::string Primary_Server::extract_cursor_name(const Server_Message& message) {
+    cursor_name_len_t cursor_len = 0;
+    protocol_msg_len_t pos = PROTOCOL_CURSOR_LEN_POS;
+    
+    if(pos + sizeof(cursor_name_len_t) > message.size()) {
+        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+    }
+
+    memcpy(&cursor_len, &message.c_str()[pos], sizeof(cursor_name_len_t));
+    cursor_len = cursor_name_len_ntoh(cursor_len);
+    pos += sizeof(cursor_name_len_t);
+
+    if(pos + cursor_len > message.size()) {
+        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+    }
+
+    std::string cursor_name(cursor_len, '\0');
+    memcpy(&cursor_name[0], &message.c_str()[pos], cursor_len);
+    
+    return cursor_name;
+}
+

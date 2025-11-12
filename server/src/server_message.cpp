@@ -91,3 +91,17 @@ std::string& Server_Message::get_string_data() {
 void Server_Message::print() const {
 
 }
+
+void Server_Message::clear() {
+    this -> msg.clear();
+    this -> bytes_processed = 0;
+    this -> bytes_to_process = 0;
+}
+
+protocol_msg_len_t Server_Message::size() const {
+    return this -> msg.size();
+}
+
+const char* Server_Message::c_str() const {
+    return this -> msg.c_str();
+}
