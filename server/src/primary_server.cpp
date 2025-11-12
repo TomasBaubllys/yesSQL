@@ -93,7 +93,7 @@ uint32_t Primary_Server::key_prefix_to_uint32(const std::string& key) const {
     return uint32_prefix_key;
 }
 
-Partition_Entry& Primary_Server::get_partition_for_key(const std::string& key) {
+Partition_Entry Primary_Server::get_partition_for_key(const std::string& key) {
     uint32_t uint32_key_prefix = this -> key_prefix_to_uint32(key);
 
     uint32_t partition_index = static_cast<uint32_t>(uint32_key_prefix / this -> partition_range_length);
@@ -120,6 +120,8 @@ bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
         return true;
     }
 
+
+    std::unique_lock<std::shared_mutex> lock(this -> partitions_mutex);
     bool success = false;
     partition.socket_fd = this -> connect_to(partition.name, partition.port, success);
     if(!success || partition.socket_fd < 0) {
@@ -130,7 +132,8 @@ bool Primary_Server::ensure_partition_connection(Partition_Entry& partition) {
     ev.data.fd = partition.socket_fd;
     this -> partitions[partition.id].socket_fd = partition.socket_fd;
     this -> partitions[partition.id].status = Partition_Status::PARTITION_FREE;
-    ev.events = EPOLLIN | EPOLLOUT;
+    this -> make_non_blocking(partition.socket_fd);
+    ev.events = EPOLLIN;
     if(epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, partition.socket_fd, &ev) < 0) {
         throw std::runtime_error(SERVER_FAILED_EPOLL_ADD_FAILED_ERR_MSG);
     }
@@ -220,12 +223,7 @@ int8_t Primary_Server::start() {
 
                         Server_Message& data = msg -> second;
                         try {
-                            int64_t bytes_sent = this -> send_message(socket_fd, data);
-                        
-                            if(bytes_sent < 0) {
-                                this -> request_to_remove_fd(socket_fd);
-                                continue;
-                            }
+                            this -> send_message(socket_fd, data);
 
                             if(data.is_fully_read()) {
                                 this -> write_buffers.erase(msg);
@@ -289,35 +287,31 @@ int8_t Primary_Server::start() {
                         }
 
                         Server_Message& serv_req = it -> second;                        
-                        
                         try {
-                            int64_t bytes_sent = this -> send_message(socket_fd, serv_req);
-                        
-                            if (bytes_sent < 0) {
-                                // Get client socket for error response
-                                socket_t client_fd = -1;
-                                {
-                                    std::shared_lock<std::shared_mutex> id_lock(this -> id_client_map_mutex);
-                                    std::unordered_map<protocol_id_t, socket_t>::iterator client_it = this -> id_client_map.find(serv_req.get_cid());
-                                    if (client_it != this -> id_client_map.end()) {
-                                        client_fd = client_it -> second;
-                                    }
-                                }
-
-                                if (client_fd >= 0) {
-                                    this -> queue_client_for_error_response(client_fd);
-                                }
-
-                                this -> request_to_remove_fd(socket_fd);
-                                lock.unlock();
-                                break;
-                            }
+                            this -> send_message(socket_fd, serv_req);
                         }
                         catch(const std::exception& e) {
                             if(this -> verbose > 0) {
                                 std::cerr << e.what() << std::endl;
                             }
                             this -> request_to_remove_fd(socket_fd);
+        
+                            socket_t client_fd = -1;
+
+                            {
+                                std::shared_lock<std::shared_mutex> id_lock(this -> id_client_map_mutex);
+                                std::unordered_map<protocol_id_t, socket_t>::iterator client_it = this -> id_client_map.find(serv_req.get_cid());
+                                if (client_it != this -> id_client_map.end()) {
+                                    client_fd = client_it -> second;
+                                }
+                            }
+
+                            if (client_fd >= 0) {
+                                this -> queue_client_for_error_response(client_fd);
+                            }
+
+                            lock.unlock();
+                            break;
                         }
                         
                         if (serv_req.is_fully_read()) {
@@ -388,7 +382,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
             }
 
             // find to which partition entry it belongs to
-            Partition_Entry& partition_entry = this -> get_partition_for_key(key_str);
+            Partition_Entry partition_entry = this -> get_partition_for_key(key_str);
             socket_t partition_fd = partition_entry.socket_fd;
 
             msg.reset_processed();
@@ -477,10 +471,9 @@ void Primary_Server::add_partitions_to_epoll() {
         ev.data.fd = pe.socket_fd;
         ev.events = EPOLLIN; // | EPOLLET;
         if(epoll_ctl(this -> epoll_fd, EPOLL_CTL_ADD, pe.socket_fd, &ev) < 0) {
-            std::string pe_epoll_str(PRIMARY_SERVER_FAILED_PARTITION_ADD_ERR_MSG);
-            pe_epoll_str += SERVER_ERRNO_STR_PREFIX;
-            pe_epoll_str += std::to_string(errno);
-            throw std::runtime_error(pe_epoll_str);
+            if(this -> verbose > 0) {
+                std::cerr << PRIMARY_SERVER_FAILED_PARTITION_ADD_ERR_MSG << SERVER_ERRNO_STR_PREFIX << errno << std::endl;
+           }
         }
     }
 }

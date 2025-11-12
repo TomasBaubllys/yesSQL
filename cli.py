@@ -75,46 +75,13 @@ def build_get_command(key: str) -> bytes:
 
 def random_key():
     #length = random.randint(2, 128)
-    return os.urandom(128).hex()  # returns bytes
+    return os.urandom(random.randint(2, 128)).hex()  # returns bytes
     #global i
     #i += 1
     #return str(i)
 
 def random_value():
-    return os.urandom(652).hex()  # 64 random bytes
-
-
-# ==================================================
-# Response Parser
-# ==================================================
-def parse_response(data: bytes):
-    if len(data) < 18:
-        print("Invalid response length.")
-        return None
-
-    total_len, num_elements, command_code = struct.unpack_from(">QQH", data, 0)
-    pos = 8 + 8 + 2
-    cmd_name = COMMAND_CODES.get(command_code, f"UNKNOWN({command_code})")
-    #print(f"Response: {cmd_name} (code={command_code}) len={total_len} elements={num_elements}")
-
-    results = {}
-    for _ in range(num_elements):
-        if pos + 2 > len(data):
-            break
-        key_len = struct.unpack_from(">H", data, pos)[0]
-        pos += 2
-        key = data[pos:pos + key_len].decode()
-        pos += key_len
-        if pos >= len(data):
-            results[key] = None
-            continue
-        value_len = struct.unpack_from(">I", data, pos)[0]
-        pos += 4
-        value = data[pos:pos + value_len].decode()
-        pos += value_len
-        results[key] = value
-
-    return results
+    return os.urandom(random.randint(1, 1024)).hex()  # 64 random bytes
 
 
 # ==================================================
@@ -234,6 +201,38 @@ def worker_loop_set(count: int, thread_id: int):
 
 
 # ==================================================
+# Response Parser
+# ==================================================
+def parse_response(data: bytes):
+    if len(data) < 18:
+        print("Invalid response length.")
+        return None, None
+
+    total_len, num_elements, command_code = struct.unpack_from(">QQH", data, 0)
+    pos = 8 + 8 + 2
+    cmd_name = COMMAND_CODES.get(command_code, f"UNKNOWN({command_code})")
+
+    results = {}
+    for _ in range(num_elements):
+        if pos + 2 > len(data):
+            break
+        key_len = struct.unpack_from(">H", data, pos)[0]
+        pos += 2
+        key = data[pos:pos + key_len].decode()
+        pos += key_len
+        if pos >= len(data):
+            results[key] = None
+            continue
+        value_len = struct.unpack_from(">I", data, pos)[0]
+        pos += 4
+        value = data[pos:pos + value_len].decode()
+        pos += value_len
+        results[key] = value
+
+    return cmd_name, results
+
+
+# ==================================================
 # Main CLI Loop
 # ==================================================
 def main():
@@ -241,7 +240,7 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((HOST, PORT))
         print("Connected to server. Type 'exit' to quit.")
-        print("Commands: SET <key> <value>, GET <key>, LOOP SET <count> <threads>")
+        print("Commands: SET <key> <value>, GET <key>, REMOVE <key>, LOOP SET <count> <threads>")
 
         while True:
             try:
@@ -259,15 +258,39 @@ def main():
                     value = " ".join(parts[2:])
                     msg = build_set_command(key, value)
                     s.sendall(msg)
-                    response = s.recv(4096)
-                    parse_response(response)
+                    response = recv_exact(s)
+                    cmd_name, results = parse_response(response)
+                    print(f"Server responded: {cmd_name}")
+                    if results:
+                        print(results)
 
                 elif op == "GET" and len(parts) == 2:
                     key = parts[1]
                     msg = build_get_command(key)
                     s.sendall(msg)
-                    response = s.recv(4096)
-                    print(parse_response(response))
+                    response = recv_exact(s)
+                    cmd_name, results = parse_response(response)
+                    print(f"Server responded: {cmd_name}")
+                    if results:
+                        print(results)
+
+                elif op == "REMOVE" and len(parts) == 2:
+                    key = parts[1]
+                    command_code = COMMAND_IDS[CMD_REMOVE]
+                    key_bytes = key.encode()
+                    key_len = len(key_bytes)
+                    total_len = 8 + 8 + 2 + 2 + key_len
+                    msg = struct.pack(">Q", total_len)
+                    msg += struct.pack(">Q", 1)
+                    msg += struct.pack(">H", command_code)
+                    msg += struct.pack(">H", key_len)
+                    msg += key_bytes
+                    s.sendall(msg)
+                    response = recv_exact(s)
+                    cmd_name, results = parse_response(response)
+                    print(f"Server responded: {cmd_name}")
+                    if results:
+                        print(results)
 
                 elif op == "LOOP" and len(parts) >= 4 and parts[1].upper() == "SET":
                     count = int(parts[2])
@@ -283,12 +306,11 @@ def main():
                     print("All threads finished.")
 
                 else:
-                    print("Usage: SET <key> <value> | GET <key> | LOOP SET <count> <threads>")
+                    print("Usage: SET <key> <value> | GET <key> | REMOVE <key> | LOOP SET <count> <threads>")
 
             except Exception as e:
                 print("Error:", e)
                 break
-
 
 # ==================================================
 # Entry Point

@@ -45,6 +45,7 @@ int8_t Partition_Server::start() {
                         this -> fd_type_map[client_fd] = Fd_Type::LISTENER;
                     }
                 }
+                continue;
             }
             
             if(this -> epoll_events[i].events & EPOLLIN) {
@@ -55,6 +56,7 @@ int8_t Partition_Server::start() {
                         if(serv_msg.is_empty()) {
                             continue;
                         }
+
                         this -> thread_pool.enqueue([this, socket_fd, serv_msg](){
                         this -> handle_client(socket_fd, serv_msg);
                         });
@@ -100,13 +102,7 @@ int8_t Partition_Server::start() {
                 Server_Message& serv_req = it -> second;
                 
                 try {
-                    int64_t bytes_sent = this -> send_message(socket_fd, serv_req);
-                    
-                    if (bytes_sent < 0) {
-                        this -> request_to_remove_fd(socket_fd);
-                        lock.unlock();
-                        continue;
-                    }
+                    this -> send_message(socket_fd, serv_req);
                 } 
                 catch(const std::exception& e) {
                     if(this -> verbose > 0) {
@@ -134,6 +130,7 @@ int8_t Partition_Server::start() {
                     }
                     lock.unlock();
                 }
+                
             }
             else if (this -> epoll_events[i].events & (EPOLLHUP | EPOLLERR)) {
                 // Client hang-up or error
