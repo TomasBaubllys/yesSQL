@@ -114,7 +114,7 @@ class Server {
         // THROWS
         Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL);
 
-        ~Server();
+        virtual ~Server();
 
         // @brief virtual method to start the server
         // overriden by other server implementations
@@ -140,7 +140,7 @@ class Server {
         // THROWS
         std::vector<Server_Message> read_messages(socket_t socket);
 
-        void queue_socket_for_response(socket_t socket_fd, const Server_Message& message);
+        void queue_partition_for_response(socket_t socket_fd, const Server_Message& message);
 
         // THROWS
         int64_t send_message(socket_t socket, Server_Message& serv_msg);

@@ -344,7 +344,7 @@ int8_t Partition_Server::handle_get_request(socket_t socket_fd, const Server_Mes
         else {
             std::string entries_resp = this -> create_entries_response({entry}, serv_msg.get_cid());
             Server_Message serv_resp(entries_resp, serv_msg.get_cid());
-            this -> queue_socket_for_response(socket_fd, serv_resp);
+            this -> queue_partition_for_response(socket_fd, serv_resp);
             return 0;
         }
     }
@@ -401,15 +401,15 @@ void Partition_Server::handle_client(socket_t socket_fd, Server_Message message)
 
 void Partition_Server::queue_socket_for_not_found_response(socket_t socket_fd, protocol_id_t client_id) {
     Server_Message resp = this -> create_status_response(Command_Code::COMMAND_CODE_DATA_NOT_FOUND, true, client_id);
-    this -> queue_socket_for_response(socket_fd, resp);
+    this -> queue_partition_for_response(socket_fd, resp);
 }
 
 void Partition_Server::queue_socket_for_err_response(socket_t socket_fd, protocol_id_t client_id) {
     Server_Message resp = this -> create_status_response(Command_Code::COMMAND_CODE_ERR, true, client_id);
-    this -> queue_socket_for_response(socket_fd, resp);
+    this -> queue_partition_for_response(socket_fd, resp);
 }
 
 void Partition_Server::queue_socket_for_ok_response(socket_t socket_fd, protocol_id_t client_id) {
     Server_Message resp = this -> create_status_response(Command_Code::COMMAND_CODE_OK, true, client_id);
-    this -> queue_socket_for_response(socket_fd, resp);
+    this -> queue_partition_for_response(socket_fd, resp);
 }

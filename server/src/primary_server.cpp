@@ -394,7 +394,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
             }
 
             try {
-                this -> queue_socket_for_response(partition_fd, msg);
+                this -> queue_partition_for_response(partition_fd, msg);
             }
             catch(const std::exception& e) {
                 if(this -> verbose > 0) {

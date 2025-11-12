@@ -122,7 +122,7 @@ def parse_response(data: bytes):
 # ==================================================
 # recv_exact with timeout
 # ==================================================
-def recv_exact(sock: socket.socket, timeout: float = 5.0):
+def recv_exact(sock: socket.socket, timeout: float = 20.0):
     sock.settimeout(timeout)
     start_time = time.time()
 

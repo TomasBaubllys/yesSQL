@@ -373,7 +373,7 @@ void Server::process_remove_queue() {
     remove_queue.clear();
 }
 
-void Server::queue_socket_for_response(socket_t socket_fd, const Server_Message& message) {
+void Server::queue_partition_for_response(socket_t socket_fd, const Server_Message& message) {
     std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
     this -> partition_queues[socket_fd].push(std::move(message));
     this -> request_epoll_mod(socket_fd, EPOLLIN | EPOLLOUT);
