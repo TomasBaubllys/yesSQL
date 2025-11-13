@@ -44,21 +44,6 @@
 #define LSM_TREE_LEVEL_0_PATH "./data/val/Level_0"
 #define LSM_TREE_CORRUPT_FILES_PATH "./data/val/corrupted"
 
-// Hello everybody
-// LSM_Tree
-// To do:
-// SSTable rasymas is MemTable
-// SSTable skaitymas
-// GET <key>
-// SET <key> <value>
-// Multithread SET method to write into WAL and MemTable at the same time
-// GETKEYS - grąžina visus raktus
-// GETKEYS <prefix> - grąžina visus raktus su duota pradžia
-// GETFF <key> - gauti raktų reikšmių poras nuo key
-// GETFB <key> - gauti raktų reikšmių poras nuo key atvirkščia tvarka
-// GETFF ir GETFB turi leisti puslapiuoti, t.y. gauti po n porų ir fektyviai tęsti toliau
-// REMOVE <key>
-
 class LSM_Tree{
     private:
         Wal write_ahead_log;
@@ -77,6 +62,11 @@ class LSM_Tree{
             std::filesystem::path offset_file;
         };
 
+         // performs validation with given set and inserts if operation matches
+        void forward_validate(std::set<Entry>& entries,const Entry& entry_to_append ,bool is_greater_operation,const Bits key_value);
+
+        // performs cleaning operation on the given set to keep only the LSM_TREE_FORWARD_MAX_RETURN number of entries
+        Bits clean_forward_set(std::set<Entry>& set_to_clean,const bool is_greater_operation,const Bits key_value, uint16_t n);
 
     public:
         // default constructor initializes mem_table 
@@ -91,23 +81,37 @@ class LSM_Tree{
         // returns true if inserting a value was successful
         bool set(std::string key, std::string value);
 
-        // returns a vector of all keys in current database
-        std::set<Bits> get_keys();
+        // Returns a pair containing a set of up to n keys and the skip value for the next call
+        // @param n - number of keys to return
+        // @param skip_n - number of keys to skip from the beginning (default: 0)
+        // @return pair of: (1) set of keys, (2) skip value to use for next pagination call
+        // @note For pagination: use the returned uint16_t as skip_n in the next call to get the next batch
+        std::pair<std::set<Bits>, uint16_t> get_keys(uint16_t n, uint16_t skip_n = 0);
 
-        // returns a vector of all keys with provided prefix
-        std::set<Bits> get_keys(std::string prefix);
+        // Returns a pair containing a set of up to n keys with specified prefix and the skip value for the next call
+        // @param n - number of keys to return
+        // @param skip_n - number of keys to skip from the beginning (default: 0)
+        // @return pair of: (1) set of keys, (2) skip value to use for next pagination call
+        // @note For pagination: use the returned uint16_t as skip_n in the next call to get the next batch
+        std::pair<std::set<Bits>, uint16_t> get_keys(std::string prefix, uint16_t n, uint16_t skip_n = 0);
 
-        // returns all keys forward from the provided key
-        std::pair<std::set<Entry>, std::string> get_ff(std::string _key, uint8_t n);
+        // Returns up to n entries with keys greater than or equal to the given key (forward pagination)
+        // @param _key - the starting key (inclusive) for the search
+        // @param n - maximum number of entries to return
+        // @return pair of: (1) set of entries with keys >= _key, (2) next key for pagination
+        // @note For pagination: use the returned string as _key in the next call to get the next batch
+        // @note The next key is the first key that was excluded (boundary key), or empty if no more entries
+        // @note Searches both mem_table and all SS_Tables, with newer entries taking precedence
+        std::pair<std::set<Entry>, std::string> get_ff(std::string _key, uint16_t n);
 
-        // returns all keys backwards from the provided key
-        std::pair<std::set<Entry>, std::string> get_fb(std::string _key, uint8_t n);
-
-        // performs validation with given set and inserts if operation matches
-        void forward_validate(std::set<Entry>& entries,const Entry& entry_to_append ,bool is_greater_operation,const Bits key_value);
-
-        // performs cleaning operation on the given set to keep only the LSM_TREE_FORWARD_MAX_RETURN number of entries
-        void clean_forward_set(std::set<Entry>& set_to_clean,const bool is_greater_operation,const Bits key_value, uint8_t n);
+        // Returns up to n entries with keys less than or equal to the given key (backward pagination)
+        // @param _key - the starting key (inclusive) for the search
+        // @param n - maximum number of entries to return
+        // @return pair of: (1) set of entries with keys <= _key, (2) next key for pagination
+        // @note For pagination: use the returned string as _key in the next call to get the previous batch
+        // @note The next key is the last key that was excluded (boundary key), or empty if no more entries
+        // @note Searches both mem_table and all SS_Tables, with newer entries taking precedence
+        std::pair<std::set<Entry>, std::string> get_fb(std::string _key, uint16_t n);
 
         // returns true if removing an entry with provided key was successful
         bool remove(std::string key);
