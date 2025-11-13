@@ -1,4 +1,5 @@
 #include "../include/primary_server.h"
+#include <cstring>
 #include <fcntl.h>
 #include <netdb.h>
 #include <sys/epoll.h>
@@ -240,6 +241,7 @@ int8_t Primary_Server::start() {
                         Server_Message& data = msg -> second;
                         if(this -> is_still_same_client(data.get_cid()) < 0) {
                             this -> write_buffers.erase(socket_fd);
+                            this ->request_epoll_mod(socket_fd, EPOLLIN);
                             break;
                         }
 
@@ -471,20 +473,19 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
         }
         case COMMAND_CODE_GET_KEYS: {
             // extract the cursors name and find it
-            std::string cursor_name;
+            std::pair<std::string, cursor_cap_t> name_cap;
 
             try{
-                cursor_name = this -> extract_cursor_name(msg);
-
+                name_cap = this -> extract_cursor_name_cap(msg);
                 // try to find it
                 {
                     std::shared_lock<std::shared_mutex> lock(this -> client_cursor_map_mutex);
                     std::unordered_map<socket_t, std::unordered_map<std::string, Cursor>>::iterator c_c_it = this -> client_cursor_map.find(client_fd);
                     if(c_c_it != this -> client_cursor_map.end()) {
-                        std::unordered_map<std::string, Cursor>::iterator c_it = c_c_it -> second.find(cursor_name);
+                        std::unordered_map<std::string, Cursor>::iterator c_it = c_c_it -> second.find(name_cap.first);
                         if(c_it != c_c_it -> second.end()) {
-                            // if found
                             Cursor& cursor = c_it -> second;
+                            cursor.set_capacity(name_cap.second);
                             Server_Message p_req = cursor.get_server_msg();
                             Partition_Entry p_entry = this -> get_partition_for_key(cursor.get_next_key());
                             this -> queue_partition_for_response(p_entry.socket_fd, p_req);
@@ -769,15 +770,6 @@ Cursor Primary_Server::extract_cursor_creation(const Server_Message& message) {
     memcpy(&cursor_name[0], &message.c_str()[pos], cursor_len);
     pos += cursor_len;
 
-    if (pos + sizeof(cursor_cap_t) > message.size()) {
-        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
-    }
-
-    cursor_cap_t capacity = 0;
-    memcpy(&capacity, &message.c_str()[pos], sizeof(cursor_cap_t));
-    capacity = cursor_cap_ntoh(capacity);
-    pos += sizeof(cursor_cap_t);
-
     protocol_key_len_t key_len = 0;
     if(pos + sizeof(protocol_key_len_t) > message.size()) {
         throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
@@ -796,13 +788,17 @@ Cursor Primary_Server::extract_cursor_creation(const Server_Message& message) {
     pos += key_len;
 
 
-    Cursor cursor(cursor_name, capacity);
+    Cursor cursor(cursor_name, message.get_cid());
     cursor.set_next_key(key_str);
     cursor.set_cid(message.get_cid());
     return cursor;
 }
 
 std::string Primary_Server::extract_cursor_name(const Server_Message& message) {
+    return this -> extract_cursor_name_pos(message).first;
+}
+
+std::pair<std::string, uint64_t> Primary_Server::extract_cursor_name_pos(const Server_Message& message) {
     cursor_name_len_t cursor_len = 0;
     protocol_msg_len_t pos = PROTOCOL_CURSOR_LEN_POS;
     
@@ -820,7 +816,23 @@ std::string Primary_Server::extract_cursor_name(const Server_Message& message) {
 
     std::string cursor_name(cursor_len, '\0');
     memcpy(&cursor_name[0], &message.c_str()[pos], cursor_len);
+    pos += cursor_len;
 
-    return cursor_name;
+    return std::make_pair(cursor_name, pos);
 }
+
+std::pair<std::string, cursor_cap_t> Primary_Server::extract_cursor_name_cap(const Server_Message& message) {
+    std::pair<std::string, uint64_t> name_pos = this -> extract_cursor_name_pos(message);
+
+    cursor_cap_t cap = 0;
+    memcpy(&cap, &message.c_str()[name_pos.second], sizeof(cursor_cap_t));
+    cap = cursor_name_len_ntoh(cap);
+
+    if(cap > CURSOR_MAX_SIZE) {
+        throw std::length_error(CURSOR_CAPACITY_TOO_BIG_ERR_MSG);
+    }
+
+    return std::make_pair(name_pos.first, cap);
+}
+
 

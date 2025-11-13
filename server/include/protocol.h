@@ -3,6 +3,7 @@
 
 #include "commands.h"
 #include "../../lsm_tree/include/entry.h"
+#include "arpa/inet.h"
 
 using socket_t =
 #ifdef _WIN32

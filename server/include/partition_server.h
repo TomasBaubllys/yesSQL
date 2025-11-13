@@ -36,9 +36,6 @@ class Partition_Server : public Server {
 
         ~Partition_Server();
 
-        // send a response of all the entries contained in the vector
-        std::string create_entries_response(const std::vector<Entry>& entry_array, protocol_id_t client_id)const;
-
         // THROWS
         // extracts the first value string contained in the message
         std::string extract_value(const std::string& raw_message) const;

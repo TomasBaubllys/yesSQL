@@ -127,20 +127,19 @@ func buildRemoveCommand(key string) []byte {
 }
 
 // CREATE_CURSOR -> [msg_len][array_size][cmd_code][cursor_name_len][cursor_name][cursor_capacity][key_len][key_str]
-func buildCreateCursorCommand(cursorName string, capacity uint16, key string) []byte {
+func buildCreateCursorCommand(cursorName string, key string) []byte {
 	cursorNameBytes := []byte(cursorName)
 	cursorNameLen := uint8(len(cursorNameBytes))
 	keyBytes := []byte(key)
 	keyLen := uint16(len(keyBytes))
 
-	totalLen := uint64(8 + 8 + 2 + 1 + len(cursorNameBytes) + 2 + 2 + len(keyBytes))
+	totalLen := uint64(8 + 8 + 2 + 1 + len(cursorNameBytes) + 2 + len(keyBytes))
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, totalLen)
 	binary.Write(buf, binary.BigEndian, uint64(1)) // array size
 	binary.Write(buf, binary.BigEndian, uint16(CMD_CREATE_CURSOR))
 	binary.Write(buf, binary.BigEndian, cursorNameLen)
 	buf.Write(cursorNameBytes)
-	binary.Write(buf, binary.BigEndian, capacity)
 	binary.Write(buf, binary.BigEndian, keyLen)
 	buf.Write(keyBytes)
 	return buf.Bytes()
@@ -288,18 +287,16 @@ func main() {
 			fmt.Println("Response:", cmd)
 
 		case "CREATE_CURSOR":
-			if len(parts) < 3 {
+			if len(parts) < 2 {
 				fmt.Println("Usage: CREATE_CURSOR <name> <capacity> [key]")
 				continue
 			}
 			name := parts[1]
-			var capacity uint16
-			fmt.Sscanf(parts[2], "%d", &capacity)
 			key := ""
-			if len(parts) > 3 {
+			if len(parts) > 2 {
 				key = parts[3]
 			}
-			conn.Write(buildCreateCursorCommand(name, capacity, key))
+			conn.Write(buildCreateCursorCommand(name, key))
 			data, _ := recvExact(conn)
 			cmd, _ := parseResponse(data)
 			fmt.Println("Response:", cmd)

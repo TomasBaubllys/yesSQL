@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include "fd_context.h"
 #include "cursor.h"
+#include "server_message.h"
 
 #define PRIMARY_SERVER_THREAD_POOL_SIZE_ENV_VAR "PRIMARY_SERVER_THREAD_POOL_SIZE"
 
@@ -115,6 +116,11 @@ class Primary_Server : public Server {
         Cursor extract_cursor_creation(const Server_Message& message);
 
         std::string extract_cursor_name(const Server_Message& message);
+
+        std::pair<std::string, uint64_t> extract_cursor_name_pos(const Server_Message& message);
+
+
+        std::pair<std::string, cursor_cap_t> extract_cursor_name_cap(const Server_Message& message);
 
     public:
         Primary_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL,  uint32_t thread_pool_size = SERVER_DEFAULT_THREAD_POOL_VAL);

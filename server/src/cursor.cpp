@@ -1,53 +1,44 @@
 #include "../include/cursor.h"
+#include <cstring>
+#include <stdexcept>
 
-Cursor::Cursor() : cid(0), curr_msg(), name(""), size(0), capacity(0), next_key_str("") {
+Cursor::Cursor() : cid(0), name(""), size(0), capacity(0), next_key_str("") {
 
 }
 
-Cursor::Cursor(const std::string& cursor_name, const cursor_cap_t& cursor_capacity) {
-    if(cursor_capacity > CURSOR_MAX_SIZE) {
-        throw std::length_error(CURSOR_CAPACITY_TOO_BIG_ERR_MSG);
-    }
-
+Cursor::Cursor(const std::string& cursor_name) {
     if(cursor_name.size() > CURSOR_MAX_NAME_LEN) {
         throw std::length_error(CURSOR_NAME_TOO_BIG_ERR_MSG);
     }
 
-    this -> capacity = cursor_capacity;
+    this -> capacity = 0;
     this -> name = cursor_name;
     this -> size = 0;
 }
 
 
-Cursor::Cursor(const std::string& cursor_name, const protocol_id_t& client_id, const cursor_cap_t& cursor_capacity) {
-    if(cursor_capacity > CURSOR_MAX_SIZE) {
-        throw std::length_error(CURSOR_CAPACITY_TOO_BIG_ERR_MSG);
-    }
-
+Cursor::Cursor(const std::string& cursor_name, const protocol_id_t& client_id) {
     if(cursor_name.size() > CURSOR_MAX_NAME_LEN) {
         throw std::length_error(CURSOR_NAME_TOO_BIG_ERR_MSG);
     }
 
     this -> cid = client_id;
     this -> name = cursor_name;
-    this -> capacity = cursor_capacity;
+    this -> capacity = 0;
     this -> size = 0;
     this -> next_key_str = "";
 }
 
-Cursor::Cursor(const std::string& cursor_name, const protocol_id_t& client_id, const cursor_cap_t& cursor_capacity, const std::string& next_key) {
-    if(cursor_capacity > CURSOR_MAX_SIZE) {
-        throw std::runtime_error(CURSOR_CAPACITY_TOO_BIG_ERR_MSG);
-    }
-
+Cursor::Cursor(const std::string& cursor_name, const protocol_id_t& client_id, const std::string& next_key, const protocol_key_len_t& key_len) {
     if(cursor_name.size() > CURSOR_MAX_NAME_LEN) {
         throw std::runtime_error(CURSOR_NAME_TOO_BIG_ERR_MSG);
     }
 
     this -> cid = client_id;
     this -> name = cursor_name;
-    this -> capacity = cursor_capacity;
+    this -> capacity = 0;
     this -> next_key_str = next_key;
+    this -> next_key_len = key_len;
     this -> size = 1;
 }
 
@@ -64,16 +55,46 @@ Server_Message Cursor::get_client_msg() const {
 }
 
 void Cursor::clear_msg() {
-    this -> curr_msg.clear();
+    this -> fetched_entries.clear();
     this -> size = 1;
 }
 
-Server_Message Cursor::get_server_msg() const {
-    return Server_Message();
+Server_Message Cursor::get_server_msg(Command_Code com_code) const {
+    protocol_msg_len_t msg_len = sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t) + sizeof(protocol_key_len_t) + this -> next_key_str.size();
+
+    // [msg_len]
+    std::string msg(msg_len, '\0');
+    msg_len = protocol_msg_len_hton(msg_len);
+    uint64_t pos = 0;
+    memcpy(&msg[pos], &msg_len, sizeof(protocol_msg_len_t));
+    pos += sizeof(protocol_msg_len_t);
+
+    // [arr] <- the amount of key to request (lower bytes in big endian)
+    pos += sizeof(protocol_array_len_t) - sizeof(cursor_cap_t);
+    cursor_cap_t net_cap = cursor_cap_hton(this -> capacity);
+    memcpy(&msg[pos], &net_cap, sizeof(cursor_cap_t));
+    pos += sizeof(cursor_cap_t);
+
+    // [com_code]
+    command_code_t net_com_code = command_hton(com_code);
+    memcpy(&msg[pos], &net_com_code, sizeof(net_com_code));
+    pos += sizeof(command_code_t);
+
+    // [key_len]
+    protocol_key_len_t net_key_len = protocol_key_len_hton(this -> next_key_len);
+    memcpy(&msg[pos], &net_key_len, sizeof(protocol_key_len_t));
+    pos += sizeof(protocol_key_len_t);
+
+    // [key]
+    memcpy(&msg[pos], &this -> next_key_str[0], this -> next_key_len);
+
+    // construct the server message
+    return Server_Message(msg, this -> cid);
 }
 
-void Cursor::set_next_key(const std::string& key) {
+void Cursor::set_next_key(const std::string& key, const protocol_key_len_t& key_len) {
     this -> next_key_str = key;
+    this -> next_key_len = key_len;
 }
 
 std::string Cursor::get_name() const {
@@ -86,4 +107,20 @@ void Cursor::print() {
 
 std::string Cursor::get_next_key() const {
     return this -> next_key_str;
+}
+
+void Cursor::set_capacity(cursor_cap_t new_cap) {
+    if(new_cap > CURSOR_MAX_SIZE) {
+        throw std::length_error(CURSOR_CAPACITY_TOO_BIG_ERR_MSG);
+    }
+
+    this -> capacity = new_cap;
+}
+
+cursor_cap_t Cursor::get_capacity() {
+    return this -> capacity;
+}
+
+cursor_cap_t Cursor::get_remaining() {
+    return this -> capacity - this -> size;
 }

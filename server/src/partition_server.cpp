@@ -182,59 +182,6 @@ std::string Partition_Server::extract_value(const std::string& raw_message) cons
     return value_str;
 }
 
-std::string Partition_Server::create_entries_response(const std::vector<Entry>& entry_array, protocol_id_t client_id) const{
-    protocol_msg_len_t msg_len = sizeof(protocol_id_t) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t);
-    for(const Entry& entry : entry_array) {
-        msg_len += sizeof(protocol_key_len_t) + sizeof(protocol_value_len_type);
-        msg_len += entry.get_key_length() + entry.get_value_length();
-    }
-
-    protocol_array_len_t array_len = entry_array.size();
-    command_code_t com_code = COMMAND_CODE_OK;
-    array_len = protocol_arr_len_hton(array_len);
-    protocol_msg_len_t net_msg_len = protocol_msg_len_hton(msg_len);
-    com_code = command_hton(com_code);
-    protocol_id_t net_cid = protocol_id_hton(client_id); 
-
-    size_t curr_pos = 0;
-    std::string raw_message(msg_len, '\0');
-    memcpy(&raw_message[0], &net_msg_len, sizeof(net_msg_len));
-    curr_pos += sizeof(net_msg_len);
-
-    memcpy(&raw_message[curr_pos], &net_cid, sizeof(net_cid));
-    curr_pos += sizeof(net_cid);
-    
-    memcpy(&raw_message[curr_pos], &array_len, sizeof(array_len));
-    curr_pos += sizeof(array_len);
-    
-    memcpy(&raw_message[curr_pos], &com_code, sizeof(com_code));
-    curr_pos += sizeof(com_code);
-
-    for(const Entry& entry : entry_array) {
-        protocol_key_len_t key_len = entry.get_key_length();
-        protocol_value_len_type value_len = entry.get_value_length();
-        protocol_key_len_t net_key_len = protocol_key_len_hton(key_len);
-        protocol_value_len_type net_value_len = protocol_value_len_hton(value_len);
-
-        memcpy(&raw_message[curr_pos], &net_key_len, sizeof(net_key_len));
-        curr_pos += sizeof(net_key_len);
-
-        std::string key_bytes = entry.get_key_string();
-        memcpy(&raw_message[curr_pos], &key_bytes[0], key_len);
-        curr_pos += key_len;
-
-        memcpy(&raw_message[curr_pos], &net_value_len, sizeof(net_value_len));
-        curr_pos += sizeof(net_value_len);
-
-        std::string value_bytes = entry.get_value_string();
-        // std::cout << "Sending value: " << value_bytes << std::endl;
-        memcpy(&raw_message[curr_pos], &value_bytes[0], value_len);
-        curr_pos += value_len;
-    }
-
-    return raw_message;
-}
-
 int8_t Partition_Server::process_request(socket_t socket_fd, const Server_Message& serv_msg) {
         // extract the command code
     Command_Code com_code = this -> extract_command_code(serv_msg.string(), true);
