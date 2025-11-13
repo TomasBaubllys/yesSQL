@@ -270,10 +270,10 @@ int8_t Primary_Server::start() {
                     if(ev.events & EPOLLIN) {
                         // read the message
                         std::vector<Server_Message> serv_msgs = this -> read_messages(socket_fd);
-                        for(const Server_Message& serv_msg : serv_msgs) {
+                        for(Server_Message& serv_msg : serv_msgs) {
                             if(!serv_msg.is_empty()) {
-                                this -> thread_pool.enqueue([this, serv_msg]() {
-                                    this -> process_partition_response(serv_msg);
+                                this -> thread_pool.enqueue([this, moved_msg = std::move(serv_msg)]() mutable {
+                                    this -> process_partition_response(std::move(moved_msg));
                                 });
                             }
                         }
@@ -410,7 +410,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
             }
 
             try {
-                this -> queue_partition_for_response(partition_fd, msg);
+                this -> queue_partition_for_response(partition_fd, std::move(msg));
             }
             catch(const std::exception& e) {
                 if(this -> verbose > 0) {
@@ -471,6 +471,8 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
 
             break;
         }
+        case COMMAND_CODE_GET_FF:
+        case COMMAND_CODE_GET_FB:
         case COMMAND_CODE_GET_KEYS: {
             // extract the cursors name and find it
             std::pair<std::string, cursor_cap_t> name_cap;
@@ -489,7 +491,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                             Server_Message p_req = cursor.get_server_msg(com_code);
                             Partition_Entry p_entry = this -> get_partition_for_key(cursor.get_next_key());
                             lock.unlock();
-                            this -> queue_partition_for_response(p_entry.socket_fd, p_req);
+                            this -> queue_partition_for_response(p_entry.socket_fd, std::move(p_req));
                             break;
                         }
                         else {
@@ -519,12 +521,6 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
         case COMMAND_CODE_GET_KEYS_PREFIX: {
             break;
         }
-        case COMMAND_CODE_GET_FF: {
-            break;
-        }
-        case COMMAND_CODE_GET_FB: {
-            break;
-        }
         default: {
             this -> queue_client_for_error_response(client_fd, msg.get_cid());
             break;
@@ -536,38 +532,58 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
 }
 
 // create a message for the client with no id in it, 
-int8_t Primary_Server::process_partition_response(Server_Message msg) {
+int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
     msg.remove_cid();
     msg.reset_processed();
 
+    // open the message check for command code, if the command code is not get_ff, get_fb, get_keys, COMMAND_CODE_GET_KEYS_PREFIX
+    Command_Code com_code = this ->extract_command_code(msg.get_string_data(), true);
+
+    switch(com_code) {
+        case Command_Code::COMMAND_CODE_GET_FB:
+        case Command_Code::COMMAND_CODE_GET_FF:
+        case Command_Code::COMMAND_CODE_GET_KEYS: {
+            break;
+        }
+
+        case Command_Code::COMMAND_CODE_GET_KEYS_PREFIX : {
+
+            break;
+        }
+
+        default: {
+            try {
+                this -> queue_client_for_response(std::move(msg));
+            }
+            catch(const std::exception& e){
+                if(this -> verbose > 0) {
+                    std::cerr << e.what() << std::endl;
+                }
+
+                return -1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+void Primary_Server::queue_client_for_response(Server_Message &&msg) {
     socket_t client_fd;
     {
         std::shared_lock<std::shared_mutex> lock(id_client_map_mutex);
         client_fd = this -> id_client_map[msg.get_cid()];
     }
-    
+
     {
         std::unique_lock<std::shared_mutex> lock(this -> write_buffers_mutex);
         if(client_fd >= 0) {
             write_buffers[client_fd] = std::move(msg);
         }
-        
+
     }
 
-    try {
-        this -> request_epoll_mod(client_fd, EPOLLOUT); // | EPOLLET);
-    }
-    catch(const std::exception& e){
-        if(this -> verbose > 0) {
-            std::cerr << e.what() << std::endl;
-        }
-
-        // this -> request_to_remove_fd(client_fd);
-
-        return -1;
-    }
-
-    return 0;
+    this -> request_epoll_mod(client_fd, EPOLLOUT); // | EPOLLET);
 }
 
 void Primary_Server::add_partitions_to_epoll() {
@@ -790,7 +806,7 @@ Cursor Primary_Server::extract_cursor_creation(const Server_Message& message) {
 
 
     Cursor cursor(cursor_name, message.get_cid());
-    cursor.set_next_key(key_str);
+    cursor.set_next_key(key_str, key_len);
     cursor.set_cid(message.get_cid());
     return cursor;
 }

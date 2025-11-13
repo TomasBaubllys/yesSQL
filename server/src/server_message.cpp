@@ -105,3 +105,9 @@ protocol_msg_len_t Server_Message::size() const {
 const char* Server_Message::c_str() const {
     return this -> msg.c_str();
 }
+
+void Server_Message::set_message_eat(std::string &&new_msg) {
+    this -> msg = std::move(new_msg);
+    this -> bytes_processed = 0;
+    this -> bytes_to_process = this -> msg.size();
+}

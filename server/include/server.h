@@ -113,7 +113,7 @@ class Server {
 
         // send a response of all the entries contained in the vector
         // ADD A BOOLEAN TO TELL IF TO CONTAIN CID
-        std::string create_entries_response(const std::vector<Entry>& entry_array, protocol_id_t client_id) const;
+        std::string create_entries_response(const std::vector<Entry>& entry_array, bool contain_cid, protocol_id_t client_id) const;
 
         
     public:
@@ -146,7 +146,7 @@ class Server {
         // THROWS
         std::vector<Server_Message> read_messages(socket_t socket);
 
-        void queue_partition_for_response(socket_t socket_fd, const Server_Message& message);
+        void queue_partition_for_response(socket_t socket_fd, Server_Message&& message);
 
         // THROWS
         int64_t send_message(socket_t socket, Server_Message& serv_msg);

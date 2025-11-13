@@ -356,7 +356,7 @@ void Server::process_remove_queue() {
 
 }
 
-void Server::queue_partition_for_response(socket_t socket_fd, const Server_Message& message) {
+void Server::queue_partition_for_response(socket_t socket_fd, Server_Message&& message) {
     std::unique_lock<std::shared_mutex> lock(partition_queues_mutex);
     this -> partition_queues[socket_fd].push(std::move(message));
     this -> request_epoll_mod(socket_fd, EPOLLIN | EPOLLOUT);
@@ -408,8 +408,8 @@ void Server::apply_epoll_mod_q() {
 }
 
 
-std::string Server::create_entries_response(const std::vector<Entry>& entry_array, protocol_id_t client_id) const{
-    protocol_msg_len_t msg_len = sizeof(protocol_id_t) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t);
+std::string Server::create_entries_response(const std::vector<Entry>& entry_array, bool contain_cid, protocol_id_t client_id) const{
+    protocol_msg_len_t msg_len = (contain_cid? sizeof(protocol_id_t) : 0) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t);
     for(const Entry& entry : entry_array) {
         msg_len += sizeof(protocol_key_len_t) + sizeof(protocol_value_len_type);
         msg_len += entry.get_key_length() + entry.get_value_length();
@@ -420,15 +420,17 @@ std::string Server::create_entries_response(const std::vector<Entry>& entry_arra
     array_len = protocol_arr_len_hton(array_len);
     protocol_msg_len_t net_msg_len = protocol_msg_len_hton(msg_len);
     com_code = command_hton(com_code);
-    protocol_id_t net_cid = protocol_id_hton(client_id);
 
     size_t curr_pos = 0;
     std::string raw_message(msg_len, '\0');
     memcpy(&raw_message[0], &net_msg_len, sizeof(net_msg_len));
     curr_pos += sizeof(net_msg_len);
 
-    memcpy(&raw_message[curr_pos], &net_cid, sizeof(net_cid));
-    curr_pos += sizeof(net_cid);
+    if(contain_cid) {
+        protocol_id_t net_cid = protocol_id_hton(client_id);
+        memcpy(&raw_message[curr_pos], &net_cid, sizeof(net_cid));
+        curr_pos += sizeof(net_cid);
+    }
 
     memcpy(&raw_message[curr_pos], &array_len, sizeof(array_len));
     curr_pos += sizeof(array_len);

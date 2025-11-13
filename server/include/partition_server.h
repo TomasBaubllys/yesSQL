@@ -1,10 +1,13 @@
 #ifndef YSQL_PARTITION_SERVER_H_INCLUDED
 #define YSQL_PARTITION_SERVER_H_INCLUDED
 
+#include "commands.h"
 #include "cursor.h"
+#include "protocol.h"
 #include "server.h"
 #include <cstdio>
 #include "../../lsm_tree/include/lsm_tree.h"
+#include "server_message.h"
 #include <shared_mutex>
 
 #define PARTITION_SERVER_NAME_PREFIX "yessql-partition_server-"
@@ -55,6 +58,9 @@ class Partition_Server : public Server {
 
         int8_t handle_get_keys_request(socket_t socket_fd, const Server_Message& message);
 
+        // handles both GET_FF and GET_FB
+        int8_t handle_get_fx_request(socket_t socket_fd, const Server_Message& message, Command_Code com_code);
+
         std::pair<std::string, cursor_cap_t> extract_key_and_cap(const Server_Message& message);
 
         void queue_socket_for_not_found_response(socket_t socket_fd, protocol_id_t client_id);
@@ -62,6 +68,9 @@ class Partition_Server : public Server {
         void queue_socket_for_err_response(socket_t socket_fd, protocol_id_t client_id);
 
         void queue_socket_for_ok_response(socket_t socket_fd, protocol_id_t client_id);
+
+        // pass either GET_FF or GET_FB as the command_code arguments
+        Server_Message create_entries_set_resp(Command_Code com_code, std::set<Entry> entries_set, std::string next_key, bool contain_cid, protocol_id_t client_id);
 
         // @brief handles client requests
         // calls the handle int8_t process_request(socket_t, string);

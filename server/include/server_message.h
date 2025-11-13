@@ -52,6 +52,9 @@ class Server_Message {
 
         void append_string(std::string string_to_append, size_t bytes_to_append);
 
+        // literally eats the string, dont expect it back
+        void set_message_eat(std::string &&new_msg);
+
         void set_cid(protocol_id_t client_id);
 
         void reset();

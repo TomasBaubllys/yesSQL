@@ -300,9 +300,9 @@ int8_t Partition_Server::handle_get_request(socket_t socket_fd, const Server_Mes
             return 0;
         }
         else {
-            std::string entries_resp = this -> create_entries_response({entry}, serv_msg.get_cid());
+            std::string entries_resp = this -> create_entries_response({entry}, true, serv_msg.get_cid());
             Server_Message serv_resp(entries_resp, serv_msg.get_cid());
-            this -> queue_partition_for_response(socket_fd, serv_resp);
+            this -> queue_partition_for_response(socket_fd, std::move(serv_resp));
             return 0;
         }
     }
@@ -365,17 +365,17 @@ void Partition_Server::handle_client(socket_t socket_fd, Server_Message message)
 
 void Partition_Server::queue_socket_for_not_found_response(socket_t socket_fd, protocol_id_t client_id) {
     Server_Message resp = this -> create_status_response(Command_Code::COMMAND_CODE_DATA_NOT_FOUND, true, client_id);
-    this -> queue_partition_for_response(socket_fd, resp);
+    this -> queue_partition_for_response(socket_fd, std::move(resp));
 }
 
 void Partition_Server::queue_socket_for_err_response(socket_t socket_fd, protocol_id_t client_id) {
     Server_Message resp = this -> create_status_response(Command_Code::COMMAND_CODE_ERR, true, client_id);
-    this -> queue_partition_for_response(socket_fd, resp);
+    this -> queue_partition_for_response(socket_fd, std::move(resp));
 }
 
 void Partition_Server::queue_socket_for_ok_response(socket_t socket_fd, protocol_id_t client_id) {
     Server_Message resp = this -> create_status_response(Command_Code::COMMAND_CODE_OK, true, client_id);
-    this -> queue_partition_for_response(socket_fd, resp);
+    this -> queue_partition_for_response(socket_fd, std::move(resp));
 }
 
 void Partition_Server::process_remove_queue() { 
@@ -431,6 +431,8 @@ int8_t Partition_Server::handle_get_keys_request(socket_t socket_fd, const Serve
     std::pair<std::string, cursor_cap_t> key_and_cap;
     try {
         key_and_cap = this -> extract_key_and_cap(message);
+        throw std::runtime_error("LOL");
+        //lsm_tree.get_keys();
     }
     catch(const std::exception& e) {
         if(this -> verbose > 0) {
@@ -449,4 +451,99 @@ int8_t Partition_Server::handle_get_keys_request(socket_t socket_fd, const Serve
 
     // call lsm get_keys(n)
     // format the req and send it back
+}
+
+int8_t Partition_Server::handle_get_fx_request(socket_t socket_fd, const Server_Message& message, Command_Code com_code) {
+    std::pair<std::string, cursor_cap_t> key_and_cap;
+    std::pair<std::set<Entry>, std::string> entries_key;
+    try {
+        key_and_cap = this -> extract_key_and_cap(message);
+        std::shared_lock<std::shared_mutex> lsm_lock(this -> lsm_tree_mutex);
+        if(com_code == Command_Code::COMMAND_CODE_GET_FB) {
+            entries_key = this -> lsm_tree.get_fb(key_and_cap.first, key_and_cap.second);
+        }
+        else if(com_code == Command_Code::COMMAND_CODE_GET_FF) {
+            entries_key = this ->lsm_tree.get_ff(key_and_cap.first, key_and_cap.second);
+        }
+        else {
+            this -> queue_socket_for_err_response(socket_fd, message.get_cid());
+            return 0;
+        }
+
+        Server_Message serv_msg = this -> create_entries_set_resp(com_code, entries_key.first, entries_key.second, true, message.get_cid());
+        this -> queue_partition_for_response(socket_fd, std::move(serv_msg));
+
+    }
+    catch(const std::exception& e) {
+        if(this -> verbose > 0) {
+            std::cerr << e.what() << std::endl;
+        }
+
+        this -> queue_socket_for_err_response(socket_fd, message.get_cid());
+        return 0;
+    }
+
+}
+
+Server_Message Partition_Server::create_entries_set_resp(Command_Code com_code, std::set<Entry> entries_set, std::string next_key, bool contain_cid, protocol_id_t client_id) {
+    protocol_msg_len_t msg_len = (contain_cid? sizeof(protocol_id_t) : 0) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t) + next_key.size() + sizeof(protocol_key_len_t);
+    for(const Entry& entry : entries_set) {
+        msg_len += sizeof(protocol_key_len_t) + sizeof(protocol_value_len_type);
+        msg_len += entry.get_key_length() + entry.get_value_length();
+    }
+
+    protocol_array_len_t array_len = entries_set.size();
+    command_code_t net_com_code = command_hton(com_code);
+    array_len = protocol_arr_len_hton(array_len);
+    protocol_msg_len_t net_msg_len = protocol_msg_len_hton(msg_len);
+
+    size_t curr_pos = 0;
+    std::string raw_message(msg_len, '\0');
+    memcpy(&raw_message[0], &net_msg_len, sizeof(net_msg_len));
+    curr_pos += sizeof(net_msg_len);
+
+    if(contain_cid) {
+        protocol_id_t net_cid = protocol_id_hton(client_id);
+        memcpy(&raw_message[curr_pos], &net_cid, sizeof(net_cid));
+        curr_pos += sizeof(net_cid);
+    }
+
+    memcpy(&raw_message[curr_pos], &array_len, sizeof(array_len));
+    curr_pos += sizeof(array_len);
+
+    memcpy(&raw_message[curr_pos], &com_code, sizeof(com_code));
+    curr_pos += sizeof(com_code);
+
+    for(const Entry& entry : entries_set) {
+        protocol_key_len_t key_len = entry.get_key_length();
+        protocol_value_len_type value_len = entry.get_value_length();
+        protocol_key_len_t net_key_len = protocol_key_len_hton(key_len);
+        protocol_value_len_type net_value_len = protocol_value_len_hton(value_len);
+
+        memcpy(&raw_message[curr_pos], &net_key_len, sizeof(net_key_len));
+        curr_pos += sizeof(net_key_len);
+
+        std::string key_bytes = entry.get_key_string();
+        memcpy(&raw_message[curr_pos], &key_bytes[0], key_len);
+        curr_pos += key_len;
+
+        memcpy(&raw_message[curr_pos], &net_value_len, sizeof(net_value_len));
+        curr_pos += sizeof(net_value_len);
+
+        std::string value_bytes = entry.get_value_string();
+        memcpy(&raw_message[curr_pos], &value_bytes[0], value_len);
+        curr_pos += value_len;
+    }
+
+    // IN SQL WE TRUST IF THIS EVER FAILS, DONT BLAME !
+    protocol_key_len_t key_len = static_cast<protocol_key_len_t>(next_key.size());
+    key_len = protocol_key_len_hton(key_len);
+    memcpy(&raw_message[curr_pos], &key_len, sizeof(protocol_key_len_t));
+    curr_pos += sizeof(protocol_key_len_t);
+    memcpy(&raw_message[curr_pos], &next_key[0], next_key.size());
+
+    Server_Message serv_msg;
+    serv_msg.set_message_eat(std::move(raw_message));
+    serv_msg.set_cid(client_id);
+    return serv_msg;
 }

@@ -94,7 +94,7 @@ class Primary_Server : public Server {
 
         int8_t process_client_in(socket_t client_fd, Server_Message msg);
 
-        int8_t process_partition_response(Server_Message msg);
+        int8_t process_partition_response(Server_Message&& msg);
 
         void add_partitions_to_epoll();
 
@@ -102,6 +102,9 @@ class Primary_Server : public Server {
         void queue_client_for_error_response(socket_t client_fd, protocol_id_t client_id);
 
         void queue_client_for_ok_response(socket_t client_fd, protocol_id_t client_id);
+
+        // THROWS
+        void queue_client_for_response(Server_Message &&serv_msg);
 
         // checks if the socket still belongs to the same client
         // returns the socket if it is still the same client
