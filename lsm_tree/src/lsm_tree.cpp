@@ -165,7 +165,7 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
         for(uint16_t i = sstable_count-1; i != _UI16_MAX; --i){
             const SS_Table* ss_table = ss_table_controller.at(i);
 
-            std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_larger_or_equal(key_bits, n);
+            std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_larger_or_equal_alive(key_bits, n);
 
             ff_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
             next_key = clean_forward_set(ff_entries, true, key_bits, n);
@@ -194,7 +194,7 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint1
         for(uint16_t i = sstable_count-1; i != _UI16_MAX; --i){
             const SS_Table* ss_table = ss_table_controller.at(i);
 
-            std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_smaller_or_equal(key_bits, n);
+            std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_smaller_or_equal_alive(key_bits, n);
 
             fb_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
             next_key = clean_forward_set(fb_entries, false, key_bits, n);
