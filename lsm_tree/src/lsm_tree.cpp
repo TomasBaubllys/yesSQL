@@ -112,9 +112,7 @@ std::pair<std::set<Bits>, uint16_t> LSM_Tree::get_keys(std::string prefix, uint1
         if(keys.size() >= n){break;}
         Bits key = entry.get_key();
 
-        keys.emplace(entry.get_key());
-
-        if(key.get_string().rfind("prefix", string_start_position)){
+        if(key.get_string().rfind(prefix, string_start_position) == 0){
             keys.emplace(key);
         }
     }
@@ -127,7 +125,7 @@ std::pair<std::set<Bits>, uint16_t> LSM_Tree::get_keys(std::string prefix, uint1
             if(keys.size() >= n){break;}
             std::vector<Bits> sstable_keys = ss_table_controller.at(i)->get_all_keys_alive();
             for(const Bits& key : sstable_keys){
-                if(key.get_string().rfind("prefix", string_start_position)){
+                if(key.get_string().rfind(prefix, string_start_position) == 0){
                     keys.emplace(key);
                 }
             }
