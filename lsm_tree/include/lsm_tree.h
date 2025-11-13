@@ -91,12 +91,18 @@ class LSM_Tree{
         // returns true if inserting a value was successful
         bool set(std::string key, std::string value);
 
-        // returns a pair containing a set of n keys and the number of keys that were returned
-        // @note skip_n is used in case of needing the next n keys. In that scenario input the returned uint16_t into the skip_n parameter
+        // Returns a pair containing a set of up to n keys and the skip value for the next call
+        // @param n - number of keys to return
+        // @param skip_n - number of keys to skip from the beginning (default: 0)
+        // @return pair of: (1) set of keys, (2) skip value to use for next pagination call
+        // @note For pagination: use the returned uint16_t as skip_n in the next call to get the next batch
         std::pair<std::set<Bits>, uint16_t> get_keys(uint16_t n, uint16_t skip_n = 0);
 
-        // returns a pair containing a set of n keys with specified prefix and the number of keys that were returned
-        // @note skip_n is used in case of needing the next n keys. In that scenario input the returned uint16_t into the skip_n parameter
+        // Returns a pair containing a set of up to n keys with specified prefix and the skip value for the next call
+        // @param n - number of keys to return
+        // @param skip_n - number of keys to skip from the beginning (default: 0)
+        // @return pair of: (1) set of keys, (2) skip value to use for next pagination call
+        // @note For pagination: use the returned uint16_t as skip_n in the next call to get the next batch
         std::pair<std::set<Bits>, uint16_t> get_keys(std::string prefix, uint16_t n, uint16_t skip_n = 0);
 
         // returns all keys forward from the provided key
