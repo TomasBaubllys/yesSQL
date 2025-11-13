@@ -143,6 +143,77 @@ std::pair<std::set<Bits>, uint16_t> LSM_Tree::get_keys(std::string prefix, uint1
     return std::make_pair(keys, next_skip);
 };
 
+std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor(std::string cursor = "", uint16_t n){
+    Bits key_bits(cursor);
+    std::set<Bits> keys;
+    Bits next_key(ENTRY_PLACEHOLDER_KEY);
+
+    std::vector<Entry> mem_table_entries = mem_table.dump_entries();
+
+    if(!mem_table_entries.empty() && !(mem_table_entries.back().get_key() < key_bits)){
+        for(const Entry& mem_table_entry : mem_table_entries){
+            const Bits& entry_key = mem_table_entry.get_key();
+            if(entry_key >= key_bits){
+                keys.emplace(entry_key);
+            }
+        }
+    }
+    mem_table_entries.clear();
+    
+    for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
+        uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
+
+        for(uint16_t i = sstable_count-1; i != _UI16_MAX; --i){
+            const SS_Table* ss_table = ss_table_controller.at(i);
+
+            std::pair<std::vector<Bits>, Bits> temp_pair = ss_table -> get_n_next_keys_alive(key_bits, n);
+
+            keys.insert(temp_pair.first.begin(), temp_pair.first.end());
+            next_key = clean_forward_set_keys(keys, n);
+        }
+    }
+    return std::make_pair(keys, next_key.get_string());
+};
+
+std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor_prefix(std::string prefix,std::string cursor = "", uint16_t n){
+
+    Bits key_bits(cursor);
+    const uint32_t string_start_position = 0;
+    std::set<Bits> keys;
+    Bits next_key(ENTRY_PLACEHOLDER_KEY);
+
+    std::vector<Entry> mem_table_entries = mem_table.dump_entries();
+
+    if(!mem_table_entries.empty() && !(mem_table_entries.back().get_key() < key_bits)){
+        for(const Entry& mem_table_entry : mem_table_entries){
+            const Bits& entry_key = mem_table_entry.get_key();
+            if(entry_key >= key_bits && entry_key.get_string().rfind(prefix, string_start_position) == 0){
+                keys.emplace(entry_key);
+            }
+        }
+    }
+    mem_table_entries.clear();
+    
+    for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
+        uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
+
+        for(uint16_t i = sstable_count-1; i != _UI16_MAX; --i){
+            const SS_Table* ss_table = ss_table_controller.at(i);
+
+            std::vector<Bits> no_prefix_keys = ss_table -> get_all_keys_alive();
+
+            for(const Bits& key : no_prefix_keys){
+                if(key >= key_bits && key.get_string().rfind(prefix, string_start_position) == 0){
+                    keys.emplace(key);
+                }
+            }
+
+            next_key = clean_forward_set_keys(keys, n);
+        }
+    }
+    return std::make_pair(keys, next_key.get_string());
+};
+
 std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint16_t n){
     std::set<Entry> ff_entries;
     Bits key_bits(_key);
@@ -166,7 +237,7 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
             std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_larger_or_equal_alive(key_bits, n);
 
             ff_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
-            next_key = clean_forward_set(ff_entries, true, key_bits, n);
+            next_key = clean_forward_set(ff_entries, true, n);
         }
     }
     
@@ -195,7 +266,7 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint1
             std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_smaller_or_equal_alive(key_bits, n);
 
             fb_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
-            next_key = clean_forward_set(fb_entries, false, key_bits, n);
+            next_key = clean_forward_set(fb_entries, false, n);
         }
     }
 
@@ -214,7 +285,7 @@ void LSM_Tree::forward_validate(std::set<Entry>& entries,const Entry& entry_to_a
     }
 };
 
-Bits LSM_Tree::clean_forward_set(std::set<Entry>& set_to_clean,const bool is_greater_operation,const Bits key_value, uint16_t n){
+Bits LSM_Tree::clean_forward_set(std::set<Entry>& set_to_clean,const bool is_greater_operation, uint16_t n){
     Bits last_key(ENTRY_PLACEHOLDER_KEY);
     if(set_to_clean.size() <= n){
         return last_key;
@@ -240,7 +311,20 @@ Bits LSM_Tree::clean_forward_set(std::set<Entry>& set_to_clean,const bool is_gre
         set_to_clean.erase(set_to_clean.begin(), it);
     }
     return last_key;
-}
+};
+Bits LSM_Tree::clean_forward_set_keys(std::set<Bits>& set_to_clean, uint16_t n){
+    Bits last_key(ENTRY_PLACEHOLDER_KEY);
+    if(set_to_clean.size() <= n){
+        return last_key;
+    };
+    std::set<Bits>::iterator it = set_to_clean.begin();
+    for(uint16_t i = 0; i < n; ++i){
+        ++it;
+    }
+    last_key = *it;
+    set_to_clean.erase(it, set_to_clean.end());
+    return last_key;
+};
 
 bool LSM_Tree::remove(std::string key){
 

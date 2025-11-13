@@ -62,11 +62,14 @@ class LSM_Tree{
             std::filesystem::path offset_file;
         };
 
-         // performs validation with given set and inserts if operation matches
-        void forward_validate(std::set<Entry>& entries,const Entry& entry_to_append ,bool is_greater_operation,const Bits key_value);
+        // performs validation with given set and inserts if operation matches
+        void forward_validate(std::set<Entry>& entries, const Entry& entry_to_append, bool is_greater_operation, const Bits key_value);
 
-        // performs cleaning operation on the given set to keep only the LSM_TREE_FORWARD_MAX_RETURN number of entries
-        Bits clean_forward_set(std::set<Entry>& set_to_clean,const bool is_greater_operation,const Bits key_value, uint16_t n);
+        // performs cleaning operation on the given set to keep only the n number of entries
+        Bits clean_forward_set(std::set<Entry>& set_to_clean,const bool is_greater_operation, uint16_t n);
+
+        // performs cleaning operation on the given set to keep only the n number of entries
+        Bits clean_forward_set_keys(std::set<Bits>& set_to_clean, uint16_t n);
 
     public:
         // default constructor initializes mem_table 
@@ -94,6 +97,10 @@ class LSM_Tree{
         // @return pair of: (1) set of keys, (2) skip value to use for next pagination call
         // @note For pagination: use the returned uint16_t as skip_n in the next call to get the next batch
         std::pair<std::set<Bits>, uint16_t> get_keys(std::string prefix, uint16_t n, uint16_t skip_n = 0);
+
+        std::pair<std::set<Bits>, std::string> get_keys_cursor(std::string cursor, uint16_t n);
+
+        std::pair<std::set<Bits>, std::string> get_keys_cursor_prefix(std::string prefix,std::string cursor, uint16_t n);
 
         // Returns up to n entries with keys greater than or equal to the given key (forward pagination)
         // @param _key - the starting key (inclusive) for the search
