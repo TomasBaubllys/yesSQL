@@ -168,13 +168,8 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
             std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_larger_or_equal(key_bits, n);
 
             ff_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
-            clean_forward_set(ff_entries, true, key_bits, n);
+            next_key = clean_forward_set(ff_entries, true, key_bits, n);
         }
-    }
-
-    if(!ff_entries.empty()){
-        const Entry& last_entry = *ff_entries.rbegin();
-        next_key = last_entry.get_key();
     }
     
     return std::make_pair(ff_entries, next_key.get_string());
@@ -202,14 +197,10 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint1
             std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_smaller_or_equal(key_bits, n);
 
             fb_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
-            clean_forward_set(fb_entries, false, key_bits, n);
+            next_key = clean_forward_set(fb_entries, false, key_bits, n);
         }
     }
 
-    if(!fb_entries.empty()){
-        const Entry& last_entry = *fb_entries.begin();
-        next_key = last_entry.get_key();
-    }
     return std::make_pair(fb_entries, next_key.get_string());
 };
 
@@ -225,26 +216,32 @@ void LSM_Tree::forward_validate(std::set<Entry>& entries,const Entry& entry_to_a
     }
 };
 
-void LSM_Tree::clean_forward_set(std::set<Entry>& set_to_clean,const bool is_greater_operation,const Bits key_value, uint16_t n){
-
+Bits LSM_Tree::clean_forward_set(std::set<Entry>& set_to_clean,const bool is_greater_operation,const Bits key_value, uint16_t n){
+    Bits last_key(ENTRY_PLACEHOLDER_KEY);
     if(set_to_clean.size() <= n){
-        return;
+        return last_key;
     };
     if(is_greater_operation){
         std::set<Entry>::iterator it = set_to_clean.begin();
-        for(size_t i = 0; i < n; ++i){
+        for(uint16_t i = 0; i < n; ++i){
             ++it;
         }
+        last_key = it -> get_key();
         set_to_clean.erase(it, set_to_clean.end());
     }
     else{
         std::set<Entry>::iterator it = set_to_clean.begin();
-        size_t elements_to_skip = set_to_clean.size() - n;
-        for(size_t i = 0; i < elements_to_skip; ++i){
+        uint16_t elements_to_skip = set_to_clean.size() - n;
+        for(uint16_t i = 0; i < elements_to_skip; ++i){
             ++it;
         }
+        std::set<Entry>::iterator prev_it = it;
+        --prev_it;
+        last_key = prev_it -> get_key();
+
         set_to_clean.erase(set_to_clean.begin(), it);
     }
+    return last_key;
 }
 
 bool LSM_Tree::remove(std::string key){
