@@ -1,4 +1,5 @@
 #include "../include/partition_server.h"
+#include <cstdint>
 #include <cstring>
 
 Partition_Server::Partition_Server(uint16_t port, uint8_t verbose, uint32_t thread_pool_size) : Server(port, verbose, thread_pool_size), lsm_tree() {
@@ -453,14 +454,20 @@ int8_t Partition_Server::handle_get_keys_request(socket_t socket_fd, const Serve
     // format the req and send it back
 }
 
-int8_t Partition_Server::handle_get_fx_request(socket_t socket_fd, const Server_Message& message, Command_Code com_code) {
+int8_t Partition_Server::handle_get_fx_request(socket_t socket_fd, Server_Message& message, Command_Code com_code) {
     std::pair<std::string, cursor_cap_t> key_and_cap;
     std::pair<std::set<Entry>, std::string> entries_key;
     try {
         key_and_cap = this -> extract_key_and_cap(message);
         std::shared_lock<std::shared_mutex> lsm_lock(this -> lsm_tree_mutex);
         if(com_code == Command_Code::COMMAND_CODE_GET_FB) {
-            entries_key = this -> lsm_tree.get_fb(key_and_cap.first, key_and_cap.second);
+            if(this -> is_fb_edge_flag_set(message.get_string_data())) {
+                std::string max_key(UINT16_MAX, '\xFF');
+                entries_key = this ->lsm_tree.get_fb(max_key, key_and_cap.second);
+            }
+            else {
+                entries_key = this -> lsm_tree.get_fb(key_and_cap.first, key_and_cap.second);
+            }
         }
         else if(com_code == Command_Code::COMMAND_CODE_GET_FF) {
             entries_key = this ->lsm_tree.get_ff(key_and_cap.first, key_and_cap.second);
@@ -483,6 +490,7 @@ int8_t Partition_Server::handle_get_fx_request(socket_t socket_fd, const Server_
         return 0;
     }
 
+    return 0;
 }
 
 Server_Message Partition_Server::create_entries_set_resp(Command_Code com_code, std::set<Entry> entries_set, std::string next_key, bool contain_cid, protocol_id_t client_id) {
@@ -511,8 +519,8 @@ Server_Message Partition_Server::create_entries_set_resp(Command_Code com_code, 
     memcpy(&raw_message[curr_pos], &array_len, sizeof(array_len));
     curr_pos += sizeof(array_len);
 
-    memcpy(&raw_message[curr_pos], &com_code, sizeof(com_code));
-    curr_pos += sizeof(com_code);
+    memcpy(&raw_message[curr_pos], &net_com_code, sizeof(net_com_code));
+    curr_pos += sizeof(command_code_t);
 
     for(const Entry& entry : entries_set) {
         protocol_key_len_t key_len = entry.get_key_length();
@@ -546,4 +554,10 @@ Server_Message Partition_Server::create_entries_set_resp(Command_Code com_code, 
     serv_msg.set_message_eat(std::move(raw_message));
     serv_msg.set_cid(client_id);
     return serv_msg;
+}
+
+bool Partition_Server::is_fb_edge_flag_set(std::string& msg) {
+    uint8_t flag = 0;
+    memcpy(&flag, &msg[PROTOCOL_EDGE_FB_FLAG_POS], sizeof(uint8_t));
+    return flag & PROTOCOL_FB_EDGE_FLAG_BIT;
 }

@@ -20,6 +20,8 @@ using cursor_cap_t = uint16_t;
 #define cursor_name_len_hton(x) (x)
 #define cursor_name_len_ntoh(x) (x)
 
+#define PROTOCOL_EDGE_FB_FLAG_POS (sizeof(protocol_msg_len_t) + sizeof(protocol_id_t) + sizeof(protocol_array_len_t) - sizeof(cursor_cap_t) - 1)
+
 class Cursor {
     private:
         // client id 

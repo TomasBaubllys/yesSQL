@@ -59,7 +59,7 @@ class Partition_Server : public Server {
         int8_t handle_get_keys_request(socket_t socket_fd, const Server_Message& message);
 
         // handles both GET_FF and GET_FB
-        int8_t handle_get_fx_request(socket_t socket_fd, const Server_Message& message, Command_Code com_code);
+        int8_t handle_get_fx_request(socket_t socket_fd, Server_Message& message, Command_Code com_code);
 
         std::pair<std::string, cursor_cap_t> extract_key_and_cap(const Server_Message& message);
 
@@ -71,6 +71,9 @@ class Partition_Server : public Server {
 
         // pass either GET_FF or GET_FB as the command_code arguments
         Server_Message create_entries_set_resp(Command_Code com_code, std::set<Entry> entries_set, std::string next_key, bool contain_cid, protocol_id_t client_id);
+
+        // used for extracting special edge case
+        bool is_fb_edge_flag_set(std::string& msg);
 
         // @brief handles client requests
         // calls the handle int8_t process_request(socket_t, string);
