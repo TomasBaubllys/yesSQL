@@ -91,10 +91,12 @@ class LSM_Tree{
         // returns true if inserting a value was successful
         bool set(std::string key, std::string value);
 
-        // returns a vector of all keys in current database
+        // returns a pair containing a set of n keys and the number of keys that were returned
+        // @note skip_n is used in case of needing the next n keys. In that scenario input the returned uint16_t into the skip_n parameter
         std::pair<std::set<Bits>, uint16_t> get_keys(uint16_t n, uint16_t skip_n = 0);
 
-        // returns a vector of all keys with provided prefix
+        // returns a pair containing a set of n keys with specified prefix and the number of keys that were returned
+        // @note skip_n is used in case of needing the next n keys. In that scenario input the returned uint16_t into the skip_n parameter
         std::pair<std::set<Bits>, uint16_t> get_keys(std::string prefix, uint16_t n, uint16_t skip_n = 0);
 
         // returns all keys forward from the provided key
