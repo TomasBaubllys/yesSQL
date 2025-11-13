@@ -92,10 +92,10 @@ class LSM_Tree{
         bool set(std::string key, std::string value);
 
         // returns a vector of all keys in current database
-        std::pair<std::set<Bits>, std::string> get_keys(uint16_t n);
+        std::pair<std::set<Bits>, uint16_t> get_keys(uint16_t n, uint16_t skip_n = 0);
 
         // returns a vector of all keys with provided prefix
-        std::pair<std::set<Bits>, std::string> get_keys(std::string prefix, uint16_t n);
+        std::pair<std::set<Bits>, uint16_t> get_keys(std::string prefix, uint16_t n, uint16_t skip_n = 0);
 
         // returns all keys forward from the provided key
         std::pair<std::set<Entry>, std::string> get_ff(std::string _key, uint16_t n);
