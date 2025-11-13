@@ -471,7 +471,45 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
         }
         case COMMAND_CODE_GET_KEYS: {
             // extract the cursors name and find it
-            //
+            std::string cursor_name;
+
+            try{
+                cursor_name = this -> extract_cursor_name(msg);
+
+                // try to find it
+                {
+                    std::shared_lock<std::shared_mutex> lock(this -> client_cursor_map_mutex);
+                    std::unordered_map<socket_t, std::unordered_map<std::string, Cursor>>::iterator c_c_it = this -> client_cursor_map.find(client_fd);
+                    if(c_c_it != this -> client_cursor_map.end()) {
+                        std::unordered_map<std::string, Cursor>::iterator c_it = c_c_it -> second.find(cursor_name);
+                        if(c_it != c_c_it -> second.end()) {
+                            // if found
+                            Cursor& cursor = c_it -> second;
+                            Server_Message p_req = cursor.get_server_msg();
+                            Partition_Entry p_entry = this -> get_partition_for_key(cursor.get_next_key());
+                            this -> queue_partition_for_response(p_entry.socket_fd, p_req);
+                            break;
+                        }
+                        else {
+                            lock.unlock();
+                            this -> queue_client_for_error_response(client_fd, msg.get_cid());
+                        }
+                    }
+                    else {
+                        lock.unlock();
+                        this -> queue_client_for_error_response(client_fd, msg.get_cid());
+                    }
+                }
+
+            }
+            catch(const std::exception& e) {
+                if(this -> verbose > 0) {
+                    std::cerr << e.what() << std::endl;
+                }
+                this -> queue_client_for_error_response(client_fd, msg.get_cid());
+            }
+            // find to which partition the key in the current cursors belongs to
+            // create a message for the partition and query it
 
 
             break;

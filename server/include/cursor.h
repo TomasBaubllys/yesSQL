@@ -57,6 +57,8 @@ class Cursor {
 
         void set_next_key(const std::string& key);
 
+        std::string get_next_key() const;
+
         std::string get_name() const;
         // used for debugging
         void print();

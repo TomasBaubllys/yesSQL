@@ -83,3 +83,7 @@ std::string Cursor::get_name() const {
 void Cursor::print() {
     std::cout << "name" << name << "\n" << "capacity: " << capacity << std::endl; 
 }
+
+std::string Cursor::get_next_key() const {
+    return this -> next_key_str;
+}
