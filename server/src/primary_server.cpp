@@ -435,8 +435,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
             
             {
                 std::unique_lock<std::shared_mutex> lock(this -> client_cursor_map_mutex);
-                this -> client_cursor_map[client_fd].push_back(cursor);
-                std::cout << "cursor created: " << std::endl;
+                this -> client_cursor_map[client_fd][cursor.get_name()] = (cursor);
                 cursor.print(); 
             }
 
@@ -458,26 +457,23 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
 
             {
                 std::shared_lock<std::shared_mutex> lock(this -> client_cursor_map_mutex);
-                std::unordered_map<socket_t, std::vector<Cursor>>::iterator curs_it = this -> client_cursor_map.find(client_fd);
-                if(curs_it != this -> client_cursor_map.end()) {
-                    for(std::vector<Cursor>::iterator vec_it = curs_it -> second.begin(); vec_it != curs_it -> second.end(); ++vec_it) {
-                        if(vec_it -> get_name() == cursor_name) {
-                            curs_it -> second.erase(vec_it);
-                            lock.unlock();
-                            this -> queue_client_for_ok_response(client_fd, msg.get_cid());
-                            return 0;
-                        }
-                    }
-                    this -> queue_client_for_error_response(client_fd, msg.get_cid());
-                    return 0;
+                std::unordered_map<socket_t, std::unordered_map<std::string, Cursor>>::iterator c_c_it = this -> client_cursor_map.find(client_fd);
+                if(c_c_it -> second.erase(cursor_name) > 0) {
+                    this -> queue_client_for_ok_response(client_fd, msg.get_cid());
+                    
                 }
-                
-                this -> queue_client_for_error_response(client_fd, msg.get_cid());
+                else {
+                    this -> queue_client_for_error_response(client_fd, msg.get_cid());
+                }
             }
 
             break;
         }
         case COMMAND_CODE_GET_KEYS: {
+            // extract the cursors name and find it
+            //
+
+
             break;
         }
         case COMMAND_CODE_GET_KEYS_PREFIX: {
@@ -673,6 +669,11 @@ void Primary_Server::remove_client(socket_t client_fd) {
         this -> write_buffers.erase(client_fd);
     }
 
+    {
+        std::unique_lock<std::shared_mutex> lock(this -> client_cursor_map_mutex);
+        this -> client_cursor_map.erase(client_fd);
+    }
+
     protocol_id_t cid = 0;
     bool found = false;
     {
@@ -756,6 +757,7 @@ Cursor Primary_Server::extract_cursor_creation(const Server_Message& message) {
     memcpy(&key_str[0], &message.c_str()[pos], key_len);
     pos += key_len;
 
+
     Cursor cursor(cursor_name, capacity);
     cursor.set_next_key(key_str);
     cursor.set_cid(message.get_cid());
@@ -780,7 +782,7 @@ std::string Primary_Server::extract_cursor_name(const Server_Message& message) {
 
     std::string cursor_name(cursor_len, '\0');
     memcpy(&cursor_name[0], &message.c_str()[pos], cursor_len);
-    
+
     return cursor_name;
 }
 

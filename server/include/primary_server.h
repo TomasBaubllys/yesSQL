@@ -71,7 +71,7 @@ class Primary_Server : public Server {
 
         // map for client cursors
         std::shared_mutex client_cursor_map_mutex;
-        std::unordered_map<socket_t, std::vector<Cursor>> client_cursor_map;
+        std::unordered_map<socket_t, std::unordered_map<std::string,Cursor>> client_cursor_map;
 
         // functions for partition monitoring, currently unused
         std::vector<bool> get_partitions_status() const;
