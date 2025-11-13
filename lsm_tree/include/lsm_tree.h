@@ -92,22 +92,22 @@ class LSM_Tree{
         bool set(std::string key, std::string value);
 
         // returns a vector of all keys in current database
-        std::set<Bits> get_keys();
+        std::pair<std::set<Bits>, std::string> get_keys(uint16_t n);
 
         // returns a vector of all keys with provided prefix
-        std::set<Bits> get_keys(std::string prefix);
+        std::pair<std::set<Bits>, std::string> get_keys(std::string prefix, uint16_t n);
 
         // returns all keys forward from the provided key
-        std::pair<std::set<Entry>, std::string> get_ff(std::string _key, uint8_t n);
+        std::pair<std::set<Entry>, std::string> get_ff(std::string _key, uint16_t n);
 
         // returns all keys backwards from the provided key
-        std::pair<std::set<Entry>, std::string> get_fb(std::string _key, uint8_t n);
+        std::pair<std::set<Entry>, std::string> get_fb(std::string _key, uint16_t n);
 
         // performs validation with given set and inserts if operation matches
         void forward_validate(std::set<Entry>& entries,const Entry& entry_to_append ,bool is_greater_operation,const Bits key_value);
 
         // performs cleaning operation on the given set to keep only the LSM_TREE_FORWARD_MAX_RETURN number of entries
-        void clean_forward_set(std::set<Entry>& set_to_clean,const bool is_greater_operation,const Bits key_value, uint8_t n);
+        void clean_forward_set(std::set<Entry>& set_to_clean,const bool is_greater_operation,const Bits key_value, uint16_t n);
 
         // returns true if removing an entry with provided key was successful
         bool remove(std::string key);
