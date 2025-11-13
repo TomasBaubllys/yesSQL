@@ -486,8 +486,9 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                         if(c_it != c_c_it -> second.end()) {
                             Cursor& cursor = c_it -> second;
                             cursor.set_capacity(name_cap.second);
-                            Server_Message p_req = cursor.get_server_msg();
+                            Server_Message p_req = cursor.get_server_msg(com_code);
                             Partition_Entry p_entry = this -> get_partition_for_key(cursor.get_next_key());
+                            lock.unlock();
                             this -> queue_partition_for_response(p_entry.socket_fd, p_req);
                             break;
                         }

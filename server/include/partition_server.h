@@ -1,6 +1,7 @@
 #ifndef YSQL_PARTITION_SERVER_H_INCLUDED
 #define YSQL_PARTITION_SERVER_H_INCLUDED
 
+#include "cursor.h"
 #include "server.h"
 #include <cstdio>
 #include "../../lsm_tree/include/lsm_tree.h"
@@ -51,6 +52,10 @@ class Partition_Server : public Server {
 
         // handles REMOVE, responds to the socket_fd, upon failure returns <0 on success >= 0 
         int8_t handle_remove_request(socket_t socket_fd, const Server_Message& message);
+
+        int8_t handle_get_keys_request(socket_t socket_fd, const Server_Message& message);
+
+        std::pair<std::string, cursor_cap_t> extract_key_and_cap(const Server_Message& message);
 
         void queue_socket_for_not_found_response(socket_t socket_fd, protocol_id_t client_id);
 

@@ -1,4 +1,5 @@
 #include "../include/partition_server.h"
+#include <cstring>
 
 Partition_Server::Partition_Server(uint16_t port, uint8_t verbose, uint32_t thread_pool_size) : Server(port, verbose, thread_pool_size), lsm_tree() {
 
@@ -188,18 +189,15 @@ int8_t Partition_Server::process_request(socket_t socket_fd, const Server_Messag
 
     switch(com_code) {
         case COMMAND_CODE_GET: {
-            std::shared_lock<std::shared_mutex> lsm_lock(this -> lsm_tree_mutex);
             return this -> handle_get_request(socket_fd, serv_msg);
         }
         case COMMAND_CODE_SET: {
             // extract the key
-            std::unique_lock<std::shared_mutex> lsm_lock(this -> lsm_tree_mutex);
             return this -> handle_set_request(socket_fd, serv_msg);
         }
 
         case COMMAND_CODE_GET_KEYS: {
-
-            break;
+            return this ->handle_get_keys_request(socket_fd, serv_msg);
         }
 
         case COMMAND_CODE_GET_KEYS_PREFIX: {
@@ -218,7 +216,6 @@ int8_t Partition_Server::process_request(socket_t socket_fd, const Server_Messag
         }
 
         case COMMAND_CODE_REMOVE: {
-            std::unique_lock<std::shared_mutex> lsm_lock(this -> lsm_tree_mutex);
             return this -> handle_remove_request(socket_fd, serv_msg);
         }
 
@@ -260,7 +257,13 @@ int8_t Partition_Server::handle_set_request(socket_t socket_fd, const Server_Mes
     }
 
     // insert the key value pair into the inner lsm tree
-    if(this -> lsm_tree.set(key_str, value_str)) {
+    bool set = false;
+    {
+        std::unique_lock<std::shared_mutex> lsm_lock(this -> lsm_tree_mutex);
+        set = this -> lsm_tree.set(key_str, value_str);
+    }
+
+    if(set) {
         this -> queue_socket_for_ok_response(socket_fd, serv_msg.get_cid());
         return 0;
     }
@@ -287,7 +290,11 @@ int8_t Partition_Server::handle_get_request(socket_t socket_fd, const Server_Mes
 
     std::string value_str;
     try {
-        Entry entry = lsm_tree.get(key_str);
+        Entry entry(Bits(ENTRY_PLACEHOLDER_KEY), Bits(ENTRY_PLACEHOLDER_VALUE));
+        {
+            std::shared_lock<std::shared_mutex> lsm_lock(this -> lsm_tree_mutex);
+            entry = lsm_tree.get(key_str);
+        }
         if(entry.is_deleted() || entry.get_string_key_bytes() == ENTRY_PLACEHOLDER_KEY) {
             this -> queue_socket_for_not_found_response(socket_fd, serv_msg.get_cid());
             return 0;
@@ -323,7 +330,13 @@ int8_t Partition_Server::handle_remove_request(socket_t socket_fd, const Server_
         return 0;
     }
 
-    if(lsm_tree.remove(key_str)) {
+    bool remove = false;
+    {
+        std::unique_lock<std::shared_mutex> lsm_lock(this -> lsm_tree_mutex);
+        remove = lsm_tree.remove(key_str);
+    }
+
+    if(remove) {
         this -> queue_socket_for_ok_response(socket_fd, serv_msg.get_cid());
         return 0;
     }
@@ -402,4 +415,38 @@ void Partition_Server::process_remove_queue() {
 
         close(sock_fd);
     }
+}
+
+std::pair<std::string, cursor_cap_t> Partition_Server::extract_key_and_cap(const Server_Message& message) {
+    std::string key_str = this -> extract_key_str_from_msg(message.string(), true);
+    uint64_t pos = sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) - sizeof(cursor_cap_t);
+    cursor_cap_t cap = 0;
+    memcpy(&cap, &message.c_str()[pos], sizeof(cursor_cap_t));
+    cap = cursor_cap_ntoh(cap);
+    return std::make_pair(key_str, cap);
+}
+
+int8_t Partition_Server::handle_get_keys_request(socket_t socket_fd, const Server_Message& message) {
+    // extract the key
+    std::pair<std::string, cursor_cap_t> key_and_cap;
+    try {
+        key_and_cap = this -> extract_key_and_cap(message);
+    }
+    catch(const std::exception& e) {
+        if(this -> verbose > 0) {
+            std::cerr << e.what() << std::endl;
+        }
+
+        this -> queue_socket_for_err_response(socket_fd, message.get_cid());
+        return 0;
+    }
+
+    std::vector<Entry> entries;
+    {
+
+    }
+    return 0;
+
+    // call lsm get_keys(n)
+    // format the req and send it back
 }

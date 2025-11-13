@@ -113,7 +113,7 @@ class Server {
 
         // send a response of all the entries contained in the vector
         // ADD A BOOLEAN TO TELL IF TO CONTAIN CID
-        std::string create_entries_response(const std::vector<Entry>& entry_array, protocol_id_t client_id)const;
+        std::string create_entries_response(const std::vector<Entry>& entry_array, protocol_id_t client_id) const;
 
         
     public:
