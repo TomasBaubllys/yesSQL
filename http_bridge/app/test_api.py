@@ -24,16 +24,44 @@ async def remove_key(client, key):
     except httpx.RequestError as e:
         print(f"REMOVE {key} failed: {e!r} ")
 
-async def simulate_clients(num_clients=1):
+async def create_cursor(client, name, key):
+    try:
+        resp = await client.post(f"{BASE_URL}/create_cursor/{name}/{key}")
+        print(f"CREATE CURSOR {name} {key} -> {resp.json()}")
+    except httpx.RequestError as e:
+        print(f"CREATE CURSOR {name} {key} failed: {e!r}")
+
+async def delete_cursor(client, name):
+    try:
+        resp = await client.delete(f"{BASE_URL}/delete_cursor/{name}")
+        print(f"DELETE CURSOR {name} -> {resp.json()}")
+    except httpx.RequestError as e:
+        print(f"DELETE CURSOR {name} failed: {e!r}")
+
+async def get_ff(client, cursor, amount):
+    try:
+        resp = await client.get(f"{BASE_URL}/get_ff/{cursor}/{amount}")
+        print(f"GET_FF {cursor} {amount} -> {resp.json()}")
+    except httpx.RequestError as e:
+        print(f"GET_FF {cursor} failed: {e!r}")
+
+
+
+async def simulate_clients(num_clients=20):
     async with httpx.AsyncClient() as client:
         tasks = []
         for i in range(num_clients):
             key = f"key_{i}"
             value = f"value_{i}"
+            name = f"name_{i}"
             # Schedule both SET and GET for each key
             tasks.append(set_key(client, key, value))
             tasks.append(get_key(client, key))
-            #tasks.append(remove_key(client, key))
+            tasks.append(remove_key(client, key))
+            tasks.append(create_cursor(client, name, key))
+            tasks.append(delete_cursor(client, name))
+            #tasks.append(get_ff(client, name, i))
+
         await asyncio.gather(*tasks)
 
 if __name__ == "__main__":

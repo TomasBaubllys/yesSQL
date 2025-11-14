@@ -7,17 +7,9 @@ router = APIRouter()
 @router.get("/get/{key}")
 async def get_value(key: str):
     async with pool.get_connection() as conn:
-        print("here1")
-
         msg = builder.build_get_request(key)
-        print("here2")
-
         resp = await conn.send(msg)
-        print("here3")
-
         parsed = parser.dispatch(resp)
-        print("here4")
-
         return parsed
 
 
@@ -34,6 +26,31 @@ async def set_value(key: str, value: str):
 async def remove_value(key: str):
     async with pool.get_connection() as conn:
         msg = builder.build_remove(key)
+        resp = await conn.send(msg)
+        parsed = parser.dispatch(resp)
+        return parsed
+    
+@router.post("/create_cursor/{name}/{key}")
+async def create_cursor(name: str, key: str):
+    async with pool.get_connection() as conn:
+        msg = builder.create_cursor(name, key)
+        resp = await conn.send(msg)
+        parsed = parser.dispatch(resp)
+        return parsed
+    
+
+@router.delete("/delete_cursor/{name}")
+async def delete_cursor(name: str):
+    async with pool.get_connection() as conn:
+        msg = builder.delete_cursor(name)
+        resp = await conn.send(msg)
+        parsed = parser.dispatch(resp)
+        return parsed
+    
+@router.get("/get_ff/{name}/{amount}")
+async def get_ff(name: str, amount: str):
+    async with pool.get_connection() as conn:
+        msg = builder.get_ff(name, amount)
         resp = await conn.send(msg)
         parsed = parser.dispatch(resp)
         return parsed

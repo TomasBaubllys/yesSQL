@@ -12,7 +12,14 @@ class TCP_Connection:
         self.writer = None
 
     async def connect(self):
-        self.reader, self.writer = await asyncio.open_connection(self.host, self.port)
+        try:
+            self.reader, self.writer = await asyncio.open_connection(self.host, self.port)
+            peer = self.writer.get_extra_info("peername")
+            print(f"[TCP] Connected to {self.host}:{self.port} (server peer={peer})")
+        except Exception as e:
+            print(f"[TCP] FAILED to connect to {self.host}:{self.port}: {e}")
+            raise
+
 
     async def send(self, data: bytes) -> bytes:
         self.writer.write(data)

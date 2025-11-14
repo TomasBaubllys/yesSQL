@@ -1,8 +1,8 @@
 import re
 from pathlib import Path 
 
-INPUT_PATH = Path("../../server/include/commands.h")
-OUTPUT_PATH = Path("constants.py")
+INPUT_PATH = Path("../server/include/commands.h")
+OUTPUT_PATH = Path("command_codes.py")
 
 enum_name = "Command_Code"
 commands = {}
@@ -22,6 +22,9 @@ for line in INPUT_PATH.read_text().splitlines():
         line = line.rstrip(",")
 
         if not line:
+            continue
+
+        if line.startswith("//"):
             continue
 
         if "=" in line:

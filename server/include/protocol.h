@@ -86,6 +86,7 @@ using protocol_id_t = uint64_t;
 
 /* CREATE/DELETE cursor
  *  [msg_len][cursor_size][cursor_cmd][curs_len][curs_name][key_len][key]
+ *   (uint64_t)[msg_len](uint64)[array_len]=0  (uint16_t)[cursor_cmd](uint8_t)[curs_len][curs_name](uint16_t)[key_len][key]
  */
 
 #endif // YSQL_PROTOCOL_H_INCLUDED 
