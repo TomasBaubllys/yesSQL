@@ -1,6 +1,7 @@
 #include "../include/partition_server.h"
 #include <cstdint>
 #include <cstring>
+#include <stdexcept>
 
 Partition_Server::Partition_Server(uint16_t port, uint8_t verbose, uint32_t thread_pool_size) : Server(port, verbose, thread_pool_size), lsm_tree() {
 
@@ -184,7 +185,7 @@ std::string Partition_Server::extract_value(const std::string& raw_message) cons
     return value_str;
 }
 
-int8_t Partition_Server::process_request(socket_t socket_fd, const Server_Message& serv_msg) {
+int8_t Partition_Server::process_request(socket_t socket_fd, Server_Message& serv_msg) {
         // extract the command code
     Command_Code com_code = this -> extract_command_code(serv_msg.string(), true);
 
@@ -198,7 +199,7 @@ int8_t Partition_Server::process_request(socket_t socket_fd, const Server_Messag
         }
 
         case COMMAND_CODE_GET_KEYS: {
-            return this ->handle_get_keys_request(socket_fd, serv_msg);
+            return this -> handle_get_keys_request(socket_fd, serv_msg);
         }
 
         case COMMAND_CODE_GET_KEYS_PREFIX: {
@@ -418,20 +419,58 @@ void Partition_Server::process_remove_queue() {
     }
 }
 
-std::pair<std::string, cursor_cap_t> Partition_Server::extract_key_and_cap(const Server_Message& message) {
-    std::string key_str = this -> extract_key_str_from_msg(message.string(), true);
+std::pair<std::string, Cursor_Info> Partition_Server::extract_key_and_cursinf(Server_Message& message) {
+    Cursor_Info curs_inf;
+    // check if the command is long enough
     uint64_t pos = sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) - sizeof(cursor_cap_t);
     cursor_cap_t cap = 0;
     memcpy(&cap, &message.c_str()[pos], sizeof(cursor_cap_t));
     cap = cursor_cap_ntoh(cap);
-    return std::make_pair(key_str, cap);
+
+    pos = PROTOCOL_FIRST_KEY_LEN_POS;
+
+    if(pos + sizeof(protocol_key_len_t)  > message.size()) {
+        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+    }
+
+    protocol_key_len_t key_len = 0;
+
+    memcpy(&key_len, &message.c_str()[pos], sizeof(key_len));
+    key_len = ntohs(key_len);
+    pos += sizeof(protocol_key_len_t);
+
+    if(pos + key_len > message.size()) {
+        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+    }
+
+    std::string key_str(key_len, '\0');
+    memcpy(&key_str[0], &message.c_str()[pos], key_len);
+    pos += key_len;
+
+    if(pos + sizeof(cursor_name_len_t) > message.size()) {
+        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+    }
+
+    cursor_name_len_t curs_name_len = 0;
+    memcpy(&curs_name_len, &message.c_str()[pos], sizeof(cursor_name_len_t));
+    curs_name_len = cursor_name_len_ntoh(curs_name_len);
+    pos += sizeof(cursor_name_len_t);
+
+    if(pos + curs_name_len > message.size()) {
+        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+    }
+
+    std::string curs_name(curs_name_len, '\0');
+    memcpy(&curs_name[0], &message.c_str()[pos], curs_name_len);
+
+    return std::make_pair(key_str, curs_inf);
 }
 
-int8_t Partition_Server::handle_get_keys_request(socket_t socket_fd, const Server_Message& message) {
+int8_t Partition_Server::handle_get_keys_request(socket_t socket_fd, Server_Message& message) {
     // extract the key
-    std::pair<std::string, cursor_cap_t> key_and_cap;
+    std::pair<std::string, Cursor_Info> key_and_cap;
     try {
-        key_and_cap = this -> extract_key_and_cap(message);
+        key_and_cap = this -> extract_key_and_cursinf(message);
         throw std::runtime_error("LOL");
         //lsm_tree.get_keys();
     }
@@ -455,29 +494,29 @@ int8_t Partition_Server::handle_get_keys_request(socket_t socket_fd, const Serve
 }
 
 int8_t Partition_Server::handle_get_fx_request(socket_t socket_fd, Server_Message& message, Command_Code com_code) {
-    std::pair<std::string, cursor_cap_t> key_and_cap;
+    std::pair<std::string, Cursor_Info> key_and_curs;
     std::pair<std::set<Entry>, std::string> entries_key;
     try {
-        key_and_cap = this -> extract_key_and_cap(message);
+        key_and_curs = this -> extract_key_and_cursinf(message);
         std::shared_lock<std::shared_mutex> lsm_lock(this -> lsm_tree_mutex);
         if(com_code == Command_Code::COMMAND_CODE_GET_FB) {
             if(this -> is_fb_edge_flag_set(message.get_string_data())) {
                 std::string max_key(UINT16_MAX, '\xFF');
-                entries_key = this ->lsm_tree.get_fb(max_key, key_and_cap.second);
+                entries_key = this ->lsm_tree.get_fb(max_key, key_and_curs.second.cap);
             }
             else {
-                entries_key = this -> lsm_tree.get_fb(key_and_cap.first, key_and_cap.second);
+                entries_key = this -> lsm_tree.get_fb(key_and_curs.first, key_and_curs.second.cap);
             }
         }
         else if(com_code == Command_Code::COMMAND_CODE_GET_FF) {
-            entries_key = this ->lsm_tree.get_ff(key_and_cap.first, key_and_cap.second);
+            entries_key = this ->lsm_tree.get_ff(key_and_curs.first, key_and_curs.second.cap);
         }
         else {
             this -> queue_socket_for_err_response(socket_fd, message.get_cid());
             return 0;
         }
 
-        Server_Message serv_msg = this -> create_entries_set_resp(com_code, entries_key.first, entries_key.second, true, message.get_cid());
+        Server_Message serv_msg = this -> create_entries_set_resp(com_code, entries_key.first, entries_key.second, message.get_cid(), key_and_curs.second);
         this -> queue_partition_for_response(socket_fd, std::move(serv_msg));
 
     }
@@ -493,8 +532,8 @@ int8_t Partition_Server::handle_get_fx_request(socket_t socket_fd, Server_Messag
     return 0;
 }
 
-Server_Message Partition_Server::create_entries_set_resp(Command_Code com_code, std::set<Entry> entries_set, std::string next_key, bool contain_cid, protocol_id_t client_id) {
-    protocol_msg_len_t msg_len = (contain_cid? sizeof(protocol_id_t) : 0) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t) + next_key.size() + sizeof(protocol_key_len_t);
+Server_Message Partition_Server::create_entries_set_resp(Command_Code com_code, std::set<Entry> entries_set, std::string next_key, protocol_id_t client_id, Cursor_Info& curs_info) {
+    protocol_msg_len_t msg_len = sizeof(protocol_id_t) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t) + next_key.size() + sizeof(protocol_key_len_t) + sizeof(cursor_name_len_t) + curs_info.name_len;
     for(const Entry& entry : entries_set) {
         msg_len += sizeof(protocol_key_len_t) + sizeof(protocol_value_len_type);
         msg_len += entry.get_key_length() + entry.get_value_length();
@@ -510,11 +549,9 @@ Server_Message Partition_Server::create_entries_set_resp(Command_Code com_code, 
     memcpy(&raw_message[0], &net_msg_len, sizeof(net_msg_len));
     curr_pos += sizeof(net_msg_len);
 
-    if(contain_cid) {
-        protocol_id_t net_cid = protocol_id_hton(client_id);
-        memcpy(&raw_message[curr_pos], &net_cid, sizeof(net_cid));
-        curr_pos += sizeof(net_cid);
-    }
+    protocol_id_t net_cid = protocol_id_hton(client_id);
+    memcpy(&raw_message[curr_pos], &net_cid, sizeof(net_cid));
+    curr_pos += sizeof(net_cid);
 
     memcpy(&raw_message[curr_pos], &array_len, sizeof(array_len));
     curr_pos += sizeof(array_len);
@@ -545,10 +582,19 @@ Server_Message Partition_Server::create_entries_set_resp(Command_Code com_code, 
 
     // IN SQL WE TRUST IF THIS EVER FAILS, DONT BLAME !
     protocol_key_len_t key_len = static_cast<protocol_key_len_t>(next_key.size());
-    key_len = protocol_key_len_hton(key_len);
-    memcpy(&raw_message[curr_pos], &key_len, sizeof(protocol_key_len_t));
+    protocol_id_t net_key_len = protocol_key_len_hton(key_len);
+    memcpy(&raw_message[curr_pos], &net_key_len, sizeof(protocol_key_len_t));
     curr_pos += sizeof(protocol_key_len_t);
+
     memcpy(&raw_message[curr_pos], &next_key[0], next_key.size());
+    curr_pos += key_len;
+
+    // append the cursor info to the end
+    cursor_name_len_t net_curs_name = cursor_name_len_hton(curs_info.name_len);
+    memcpy(&raw_message[curr_pos], &net_curs_name, sizeof(cursor_name_len_t));
+    curr_pos += curs_info.name_len;
+
+    memcpy(&raw_message[curr_pos], &curs_info.name[0], curs_info.name_len);
 
     Server_Message serv_msg;
     serv_msg.set_message_eat(std::move(raw_message));

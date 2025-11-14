@@ -114,22 +114,10 @@ class Server {
         // send a response of all the entries contained in the vector
         // ADD A BOOLEAN TO TELL IF TO CONTAIN CID
         std::string create_entries_response(const std::vector<Entry>& entry_array, bool contain_cid, protocol_id_t client_id) const;
-
-        
-    public:
-        // THROWS
-        Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL, uint32_t thread_pool_size = SERVER_DEFAULT_THREAD_POOL_VAL);
-
-        virtual ~Server();
-
-        // @brief virtual method to start the server
-        // overriden by other server implementations
-        virtual int8_t start();
-
         // @brief makes client_fd (the return value) non-blocking
         // and adds it to inner epoll sockets
         std::vector<socket_t> add_client_socket_to_epoll();
-        
+
         // @brief initializes the epoll, (create1)
         void init_epoll();
 
@@ -141,7 +129,7 @@ class Server {
         // @brief waits for epoll to spit out some sockets
         int32_t server_epoll_wait();
 
-        // @brief reads a message of structure defined in protocol.h 
+        // @brief reads a message of structure defined in protocol.h
         // should work for both blocking and non-blocking sockets
         // THROWS
         std::vector<Server_Message> read_messages(socket_t socket);
@@ -158,7 +146,7 @@ class Server {
         // @brief checks a connectivity to a certain socket
         bool try_connect(const std::string& hostname, uint16_t port, uint32_t timeout_sec = 1) const;
 
-        // @brief connects and returns a socket descriptor 
+        // @brief connects and returns a socket descriptor
         // on success >=0 on error < 0
         socket_t connect_to(const std::string& hostname, uint16_t port, bool& is_successful) const;
 
@@ -180,6 +168,20 @@ class Server {
         void request_epoll_mod(socket_t socket_fd, int32_t events);
 
         void apply_epoll_mod_q();
+
+        protocol_array_len_t extract_array_size(std::string msg, bool contains_cid);
+
+        
+    public:
+        // THROWS
+        Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL, uint32_t thread_pool_size = SERVER_DEFAULT_THREAD_POOL_VAL);
+
+        virtual ~Server();
+
+        // @brief virtual method to start the server
+        // overriden by other server implementations
+        virtual int8_t start();
+
 };
 
 #endif // YSQL_SERVER_H_INCLUDED

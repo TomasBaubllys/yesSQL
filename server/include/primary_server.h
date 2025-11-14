@@ -111,7 +111,7 @@ class Primary_Server : public Server {
         // not recomended for threads, use with the main thread before sending a message
         socket_t is_still_same_client(protocol_id_t client_id);
 
-        void process_remove_queue();
+        void process_remove_queue() override;
 
         // not thread safe, use only it main thread when a send / receive returns 0
         void remove_client(socket_t client_fd);

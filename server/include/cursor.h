@@ -22,6 +22,13 @@ using cursor_cap_t = uint16_t;
 
 #define PROTOCOL_EDGE_FB_FLAG_POS (sizeof(protocol_msg_len_t) + sizeof(protocol_id_t) + sizeof(protocol_array_len_t) - sizeof(cursor_cap_t) - 1)
 
+// used by paritition servers to track cursor info without cursor class overhead
+typedef struct Cursor_Info {
+    std::string name;
+    cursor_name_len_t name_len;
+    cursor_cap_t cap;
+} Cursor_Info;
+
 class Cursor {
     private:
         // client id 
@@ -36,6 +43,9 @@ class Cursor {
         // string of the next key
         std::string next_key_str;
         protocol_key_len_t next_key_len;
+
+        // stores last called parition id
+        uint16_t l_called_pid;
 
     public:
         Cursor();
@@ -74,6 +84,10 @@ class Cursor {
         std::string get_name() const;
 
         protocol_key_len_t get_key_len();
+
+        uint32_t get_last_called_part_id();
+
+        void set_last_called_part_id(uint16_t last_called_partition_id);
 
         // used for debugging
         void print();

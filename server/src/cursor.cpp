@@ -124,3 +124,12 @@ cursor_cap_t Cursor::get_capacity() {
 cursor_cap_t Cursor::get_remaining() {
     return this -> capacity - this -> size;
 }
+
+
+uint32_t Cursor::get_last_called_part_id() {
+    return this -> l_called_pid;
+}
+
+void Cursor::set_last_called_part_id(uint16_t last_called_partition_id) {
+    this -> l_called_pid = last_called_partition_id;
+}

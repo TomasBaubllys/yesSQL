@@ -52,6 +52,17 @@ using protocol_id_t = uint64_t;
 #define PROTOCOL_CURSOR_LEN_POS (PROTOCOL_COMMAND_NUMBER_POS + sizeof(command_code_t))
 #define PROTOCOL_FB_EDGE_FLAG_BIT 0x01
 
+
+/**
+ * Commands for exchanging servers <-> server
+ *
+ *
+ * Commands for exchanging server <-> client
+ *
+ *
+ *
+ * /
+
 /* General command exchange
  * <(uint64_t) length of the whole message>
  * [uint64_t] client_id - only for the internal messages
@@ -69,7 +80,8 @@ using protocol_id_t = uint64_t;
 
 /*   GET_FF, GET_KEYS, GET_FB, GET_KEYS_PREFIX
  *   For client [msg_len]GET_FF/GET_FB[num_of_els][curs_name_len][cursorname]
- *   For partition [msg_len]GET_FF[num_of_els][cid][key_len][key]
+ *   For partition [msg_len]GET_FF[num_of_els][cid][key_len][key][curs_len][cursor_name]
+*    For primary [msg_len]GET_FF[num_of_els][cid][key_len][key][val_len][val]....[next_key_len][next_key][curs_len][cursor_name]
 */
 
 /* CREATE/DELETE cursor

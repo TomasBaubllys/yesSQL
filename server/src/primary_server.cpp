@@ -489,7 +489,18 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                             Cursor& cursor = c_it -> second;
                             cursor.set_capacity(name_cap.second);
                             Server_Message p_req = cursor.get_server_msg(com_code);
+
+                            // append a cursors name to the end
+                            cursor_name_len_t cursor_name_len = cursor.get_name().size();
+                            std::string cursor_msg_ext(cursor_name_len + sizeof(cursor_name_len_t), '\0');
+                            cursor_name_len_t net_cursor_name_len = cursor_name_len_hton(cursor_name_len);
+                            memcpy(&cursor_msg_ext[0], &net_cursor_name_len, sizeof(cursor_name_len_t));
+                            memcpy(&cursor_msg_ext[sizeof(cursor_name_len_t)], &cursor.get_name()[0], cursor_name_len);
+                            p_req.append_string(cursor_msg_ext, cursor_msg_ext.size());
+
                             Partition_Entry p_entry = this -> get_partition_for_key(cursor.get_next_key());
+                            cursor.set_last_called_part_id(p_entry.id);
+
                             lock.unlock();
                             this -> queue_partition_for_response(p_entry.socket_fd, std::move(p_req));
                             break;
@@ -537,12 +548,24 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
     msg.reset_processed();
 
     // open the message check for command code, if the command code is not get_ff, get_fb, get_keys, COMMAND_CODE_GET_KEYS_PREFIX
-    Command_Code com_code = this ->extract_command_code(msg.get_string_data(), true);
+    Command_Code com_code = this -> extract_command_code(msg.get_string_data(), true);
 
     switch(com_code) {
         case Command_Code::COMMAND_CODE_GET_FB:
         case Command_Code::COMMAND_CODE_GET_FF:
         case Command_Code::COMMAND_CODE_GET_KEYS: {
+            // check how many elements were returned
+            protocol_array_len_t el_returned_tmp = this -> extract_array_size(msg.get_string_data(), true);
+            cursor_cap_t el_returned = static_cast<cursor_cap_t>(el_returned_tmp);
+
+            // if enough elements, reconstruct a client message with OK and elements
+            // locate the cursor.... WHAT CURSOR YOU ASK????
+            // if(el_returned >= )
+
+            // if not enough either query the forward or the backward partitions
+
+
+
             break;
         }
 

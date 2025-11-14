@@ -1,6 +1,7 @@
 #include "../include/server.h"
 #include <cerrno>
 #include <fcntl.h>
+#include <stdexcept>
 #include <sys/eventfd.h>
 
 Server::Server(uint16_t port, uint8_t verbose, uint32_t thread_pool_size) : port(port), verbose(verbose), epoll_events(SERVER_DEFAULT_EPOLL_EVENT_VAL), thread_pool(thread_pool_size) {
@@ -461,4 +462,15 @@ std::string Server::create_entries_response(const std::vector<Entry>& entry_arra
     }
 
     return raw_message;
+}
+
+protocol_array_len_t Server::extract_array_size(std::string msg, bool contains_cid) {
+    if(msg.size() < sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + (contains_cid? sizeof(protocol_id_t) : 0)) {
+        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+    }
+
+    protocol_array_len_t array_len = 0;
+    memcpy(&array_len, &msg[sizeof(protocol_msg_len_t) + (contains_cid? sizeof(protocol_id_t) : 0)], sizeof(protocol_array_len_t));
+
+    return array_len;
 }
