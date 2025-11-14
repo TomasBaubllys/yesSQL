@@ -61,7 +61,7 @@ using protocol_id_t = uint64_t;
  *
  *
  *
- * /
+ */
 
 /* General command exchange
  * <(uint64_t) length of the whole message>
