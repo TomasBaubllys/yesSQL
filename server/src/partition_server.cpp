@@ -188,6 +188,14 @@ std::string Partition_Server::extract_value(const std::string& raw_message) cons
 int8_t Partition_Server::process_request(socket_t socket_fd, Server_Message& serv_msg) {
         // extract the command code
     Command_Code com_code = this -> extract_command_code(serv_msg.string(), true);
+    
+    std::cout << serv_msg.get_string_data() << std::endl;
+    for(int i = 0; i < serv_msg.get_string_data().size(); ++i) {
+    std::cout << int(serv_msg.get_string_data()[i]) << " ";
+    }
+
+    std::cout << std::endl;
+
 
     switch(com_code) {
         case COMMAND_CODE_GET: {
@@ -207,14 +215,9 @@ int8_t Partition_Server::process_request(socket_t socket_fd, Server_Message& ser
             break;
         }
 
-        case COMMAND_CODE_GET_FF: {
-
-            break;
-        }
-
+        case COMMAND_CODE_GET_FF: 
         case COMMAND_CODE_GET_FB: {
-
-            break;
+            return this -> handle_get_fx_request(socket_fd, serv_msg, com_code);
         }
 
         case COMMAND_CODE_REMOVE: {

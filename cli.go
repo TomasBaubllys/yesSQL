@@ -18,9 +18,9 @@ const (
 	PORT = 8080
 )
 
-// ==================================================
+// ===============================================
 // Command Codes
-// ==================================================
+// ===============================================
 const (
 	CMD_OK              = 0
 	CMD_ERR             = 1
@@ -53,18 +53,18 @@ var COMMAND_NAMES = map[uint16]string{
 	CMD_INVALID_COMMAND: "INVALID_COMMAND",
 }
 
-// ==================================================
+// ===============================================
 // Colors
-// ==================================================
+// ===============================================
 var (
 	ColorRed   = "\033[91m"
 	ColorGreen = "\033[92m"
 	ColorReset = "\033[0m"
 )
 
-// ==================================================
-// Utilities
-// ==================================================
+// ===============================================
+// Helpers
+// ===============================================
 func randomKey() string {
 	n := rand.Intn(112) + 16
 	b := make([]byte, n)
@@ -79,99 +79,144 @@ func randomValue() string {
 	return hex.EncodeToString(b)
 }
 
-// ==================================================
+// ===============================================
 // Command Builders
-// ==================================================
+// ===============================================
 func buildSetCommand(key, value string) []byte {
 	keyBytes := []byte(key)
 	valBytes := []byte(value)
-	keyLen := len(keyBytes)
-	valLen := len(valBytes)
-	totalLen := uint64(8 + 8 + 2 + 2 + keyLen + 4 + valLen)
 
+	totalLen := uint64(8 + 8 + 2 + 2 + len(keyBytes) + 4 + len(valBytes))
 	buf := new(bytes.Buffer)
+
 	binary.Write(buf, binary.BigEndian, totalLen)
 	binary.Write(buf, binary.BigEndian, uint64(1))
 	binary.Write(buf, binary.BigEndian, uint16(CMD_SET))
-	binary.Write(buf, binary.BigEndian, uint16(keyLen))
+	binary.Write(buf, binary.BigEndian, uint16(len(keyBytes)))
 	buf.Write(keyBytes)
-	binary.Write(buf, binary.BigEndian, uint32(valLen))
+	binary.Write(buf, binary.BigEndian, uint32(len(valBytes)))
 	buf.Write(valBytes)
 	return buf.Bytes()
 }
 
 func buildGetCommand(key string) []byte {
 	keyBytes := []byte(key)
-	keyLen := len(keyBytes)
-	totalLen := uint64(8 + 8 + 2 + 2 + keyLen)
+	totalLen := uint64(8 + 8 + 2 + 2 + len(keyBytes))
+
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, totalLen)
 	binary.Write(buf, binary.BigEndian, uint64(1))
 	binary.Write(buf, binary.BigEndian, uint16(CMD_GET))
-	binary.Write(buf, binary.BigEndian, uint16(keyLen))
+	binary.Write(buf, binary.BigEndian, uint16(len(keyBytes)))
 	buf.Write(keyBytes)
 	return buf.Bytes()
 }
 
 func buildRemoveCommand(key string) []byte {
 	keyBytes := []byte(key)
-	keyLen := len(keyBytes)
-	totalLen := uint64(8 + 8 + 2 + 2 + keyLen)
+	totalLen := uint64(8 + 8 + 2 + 2 + len(keyBytes))
+
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, totalLen)
 	binary.Write(buf, binary.BigEndian, uint64(1))
 	binary.Write(buf, binary.BigEndian, uint16(CMD_REMOVE))
-	binary.Write(buf, binary.BigEndian, uint16(keyLen))
+	binary.Write(buf, binary.BigEndian, uint16(len(keyBytes)))
 	buf.Write(keyBytes)
 	return buf.Bytes()
 }
 
-// CREATE_CURSOR -> [msg_len][array_size][cmd_code][cursor_name_len][cursor_name][cursor_capacity][key_len][key_str]
+// CREATE_CURSOR ---------------------------------------
 func buildCreateCursorCommand(cursorName string, key string) []byte {
-	cursorNameBytes := []byte(cursorName)
-	cursorNameLen := uint8(len(cursorNameBytes))
+	cursorBytes := []byte(cursorName)
 	keyBytes := []byte(key)
-	keyLen := uint16(len(keyBytes))
 
-	totalLen := uint64(8 + 8 + 2 + 1 + len(cursorNameBytes) + 2 + len(keyBytes))
+	totalLen := uint64(8 + 8 + 2 + 1 + len(cursorBytes) + 2 + len(keyBytes))
+
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, totalLen)
-	binary.Write(buf, binary.BigEndian, uint64(1)) // array size
+	binary.Write(buf, binary.BigEndian, uint64(1))
 	binary.Write(buf, binary.BigEndian, uint16(CMD_CREATE_CURSOR))
-	binary.Write(buf, binary.BigEndian, cursorNameLen)
-	buf.Write(cursorNameBytes)
-	binary.Write(buf, binary.BigEndian, keyLen)
+	binary.Write(buf, binary.BigEndian, uint8(len(cursorBytes)))
+	buf.Write(cursorBytes)
+	binary.Write(buf, binary.BigEndian, uint16(len(keyBytes)))
 	buf.Write(keyBytes)
 	return buf.Bytes()
 }
 
-// DELETE_CURSOR -> [msg_len][array_size][cmd_code][cursor_name_len][cursor_name]
-func buildDeleteCursorCommand(cursorName string) []byte {
-	cursorNameBytes := []byte(cursorName)
-	cursorNameLen := uint8(len(cursorNameBytes))
-	totalLen := uint64(8 + 8 + 2 + 1 + len(cursorNameBytes))
+// DELETE_CURSOR ---------------------------------------
+func buildDeleteCursorCommand(name string) []byte {
+	nameBytes := []byte(name)
+	totalLen := uint64(8 + 8 + 2 + 1 + len(nameBytes))
 
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, totalLen)
 	binary.Write(buf, binary.BigEndian, uint64(1))
 	binary.Write(buf, binary.BigEndian, uint16(CMD_DELETE_CURSOR))
-	binary.Write(buf, binary.BigEndian, cursorNameLen)
-	buf.Write(cursorNameBytes)
+	binary.Write(buf, binary.BigEndian, uint8(len(nameBytes)))
+	buf.Write(nameBytes)
 	return buf.Bytes()
 }
 
-// ==================================================
-// Response Parser
-// ==================================================
+// =====================================================
+// NEW: GET_FF + GET_FB builder functions
+// =====================================================
+/*
+GET_FF format:
+[uint64 msg_len]
+[6 bytes 0]
+[2 bytes: number of entries requested]
+[2 bytes command code]
+[1 byte cursor name length]
+[cursor name]
+*/
+func buildGetFFCommand(cursor string, count uint16) []byte {
+	nameBytes := []byte(cursor)
+	totalLen := uint64(8 + 6 + 2 + 2 + 1 + len(nameBytes))
+
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.BigEndian, totalLen)
+
+	// 6 bytes zero
+	buf.Write([]byte{0, 0, 0, 0, 0, 0})
+
+	binary.Write(buf, binary.BigEndian, count)
+	binary.Write(buf, binary.BigEndian, uint16(CMD_GET_FF))
+	binary.Write(buf, binary.BigEndian, uint8(len(nameBytes)))
+	buf.Write(nameBytes)
+
+	return buf.Bytes()
+}
+
+func buildGetFBCommand(cursor string, count uint16) []byte {
+	nameBytes := []byte(cursor)
+	totalLen := uint64(8 + 6 + 2 + 2 + 1 + len(nameBytes))
+
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.BigEndian, totalLen)
+
+	buf.Write([]byte{0, 0, 0, 0, 0, 0})
+	binary.Write(buf, binary.BigEndian, count)
+	binary.Write(buf, binary.BigEndian, uint16(CMD_GET_FB))
+	binary.Write(buf, binary.BigEndian, uint8(len(nameBytes)))
+	buf.Write(nameBytes)
+
+	return buf.Bytes()
+}
+
+// =====================================================
+// Response Parsing
+// =====================================================
 func recvExact(conn net.Conn) ([]byte, error) {
 	header := make([]byte, 8)
 	_, err := conn.Read(header)
 	if err != nil {
 		return nil, err
 	}
+
 	totalLen := binary.BigEndian.Uint64(header)
 	data := make([]byte, totalLen)
 	copy(data, header)
+
 	read := 8
 	for read < int(totalLen) {
 		n, err := conn.Read(data[read:])
@@ -180,6 +225,7 @@ func recvExact(conn net.Conn) ([]byte, error) {
 		}
 		read += n
 	}
+
 	return data, nil
 }
 
@@ -187,35 +233,48 @@ func parseResponse(data []byte) (string, map[string]string) {
 	if len(data) < 18 {
 		return "INVALID", nil
 	}
+
 	numElems := binary.BigEndian.Uint64(data[8:16])
 	cmdCode := binary.BigEndian.Uint16(data[16:18])
+
 	cmdName := COMMAND_NAMES[cmdCode]
 	pos := 18
-
 	results := make(map[string]string)
-	for i := uint64(0); i < numElems && pos+2 <= len(data); i++ {
+
+	for i := uint64(0); i < numElems; i++ {
+		if pos+2 > len(data) {
+			break
+		}
+
 		keyLen := binary.BigEndian.Uint16(data[pos : pos+2])
 		pos += 2
+
 		key := string(data[pos : pos+int(keyLen)])
 		pos += int(keyLen)
-		if pos >= len(data) {
+
+		if pos+4 > len(data) {
 			results[key] = ""
 			break
 		}
+
 		valLen := binary.BigEndian.Uint32(data[pos : pos+4])
 		pos += 4
+
 		val := string(data[pos : pos+int(valLen)])
 		pos += int(valLen)
+
 		results[key] = val
 	}
+
 	return cmdName, results
 }
 
-// ==================================================
+// =====================================================
 // Main
-// ==================================================
+// =====================================================
 func main() {
 	rand.Seed(time.Now().UnixNano())
+
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", HOST, PORT))
 	if err != nil {
 		fmt.Println("Failed to connect:", err)
@@ -224,96 +283,120 @@ func main() {
 	defer conn.Close()
 
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Connected to server.")
+
+	fmt.Println("Connected.")
 	fmt.Println("Commands:")
 	fmt.Println("  SET <key> <value>")
 	fmt.Println("  GET <key>")
 	fmt.Println("  REMOVE <key>")
-	fmt.Println("  CREATE_CURSOR <name> <capacity> [key]")
+	fmt.Println("  CREATE_CURSOR <name> <key>")
 	fmt.Println("  DELETE_CURSOR <name>")
+	fmt.Println("  GET_FF <cursor> <count>")
+	fmt.Println("  GET_FB <cursor> <count>")
 	fmt.Println("  exit")
 
 	for {
 		fmt.Print("yessql> ")
 		line, _ := reader.ReadString('\n')
 		line = strings.TrimSpace(line)
+
 		if line == "" {
 			continue
 		}
-		if strings.ToLower(line) == "exit" {
+		if line == "exit" {
 			break
 		}
 
 		parts := strings.Fields(line)
-		op := strings.ToUpper(parts[0])
+		cmd := strings.ToUpper(parts[0])
 
-		switch op {
+		switch cmd {
+
 		case "SET":
-			if len(parts) < 3 {
-				fmt.Println("Usage: SET <key> <value>")
-				continue
-			}
 			key := parts[1]
 			value := strings.Join(parts[2:], " ")
 			conn.Write(buildSetCommand(key, value))
 			data, _ := recvExact(conn)
-			cmd, _ := parseResponse(data)
-			fmt.Println("Response:", cmd)
+			resp, _ := parseResponse(data)
+			fmt.Println("Response:", resp)
 
 		case "GET":
-			if len(parts) != 2 {
-				fmt.Println("Usage: GET <key>")
-				continue
-			}
 			key := parts[1]
 			conn.Write(buildGetCommand(key))
 			data, _ := recvExact(conn)
-			cmd, res := parseResponse(data)
-			if val, ok := res[key]; ok {
-				fmt.Printf("Response: %s\nValue: %s\n", cmd, val)
-			} else {
-				fmt.Println("Response:", cmd)
-			}
+			resp, res := parseResponse(data)
+			fmt.Println("Response:", resp)
+			fmt.Println(res)
 
 		case "REMOVE":
-			if len(parts) != 2 {
-				fmt.Println("Usage: REMOVE <key>")
-				continue
-			}
 			key := parts[1]
 			conn.Write(buildRemoveCommand(key))
 			data, _ := recvExact(conn)
-			cmd, _ := parseResponse(data)
-			fmt.Println("Response:", cmd)
+			resp, _ := parseResponse(data)
+			fmt.Println("Response:", resp)
 
 		case "CREATE_CURSOR":
-			if len(parts) < 2 {
-				fmt.Println("Usage: CREATE_CURSOR <name> <capacity> [key]")
-				continue
-			}
 			name := parts[1]
 			key := ""
 			if len(parts) > 2 {
-				key = parts[3]
+				key = parts[2]
 			}
 			conn.Write(buildCreateCursorCommand(name, key))
 			data, _ := recvExact(conn)
-			cmd, _ := parseResponse(data)
-			fmt.Println("Response:", cmd)
+			resp, _ := parseResponse(data)
+			fmt.Println("Response:", resp)
 
 		case "DELETE_CURSOR":
-			if len(parts) != 2 {
-				fmt.Println("Usage: DELETE_CURSOR <name>")
-				continue
-			}
 			name := parts[1]
 			conn.Write(buildDeleteCursorCommand(name))
 			data, _ := recvExact(conn)
-			cmd, _ := parseResponse(data)
-			fmt.Println("Response:", cmd)
+			resp, _ := parseResponse(data)
+			fmt.Println("Response:", resp)
+
+		// ==================================================
+		// NEW GET_FF
+		// ==================================================
+		case "GET_FF":
+			if len(parts) != 3 {
+				fmt.Println("Usage: GET_FF <cursor> <count>")
+				continue
+			}
+			cursor := parts[1]
+			var count uint16
+			fmt.Sscanf(parts[2], "%d", &count)
+
+			conn.Write(buildGetFFCommand(cursor, count))
+			data, _ := recvExact(conn)
+			resp, res := parseResponse(data)
+
+			fmt.Println("Response:", resp)
+			for k, v := range res {
+				fmt.Println(k, "=>", v)
+			}
+
+		// ==================================================
+		// NEW GET_FB
+		// ==================================================
+		case "GET_FB":
+			if len(parts) != 3 {
+				fmt.Println("Usage: GET_FB <cursor> <count>")
+				continue
+			}
+			cursor := parts[1]
+			var count uint16
+			fmt.Sscanf(parts[2], "%d", &count)
+
+			conn.Write(buildGetFBCommand(cursor, count))
+			data, _ := recvExact(conn)
+			resp, res := parseResponse(data)
+
+			fmt.Println("Response:", resp)
+			for k, v := range res {
+				fmt.Println(k, "=>", v)
+			}
 
 		default:
-			fmt.Println("Unknown command. Try: SET, GET, REMOVE, CREATE_CURSOR, DELETE_CURSOR, exit")
+			fmt.Println("Unknown command.")
 		}
 	}
 }

@@ -60,10 +60,10 @@ class Cursor {
         protocol_id_t get_cid() const;
 
         // constructs a message to the client to send collected keys
-        Server_Message get_client_msg() const;
+        // Server_Message get_client_msg() const;
 
         // constructs a message to the server to get missing keys
-        Server_Message get_server_msg(Command_Code com_code) const;
+        // Server_Message get_server_msg(Command_Code com_code) const;
 
         void set_capacity(cursor_cap_t new_cap);
 

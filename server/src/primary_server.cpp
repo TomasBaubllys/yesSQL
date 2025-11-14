@@ -423,10 +423,12 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
             break;
         }
         case CREATE_CURSOR: {
-            msg.print();
+            // msg.print();
             Cursor cursor;
             try {
                 cursor = this -> extract_cursor_creation(msg);
+                Partition_Entry p_id = this -> get_partition_for_key(cursor.get_next_key());
+                cursor.set_last_called_part_id(p_id.id);
             } catch (const std::exception& e) {
                 if(this -> verbose > 0) {
                     std::cerr << e.what() << std::endl;
@@ -437,8 +439,8 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
             
             {
                 std::unique_lock<std::shared_mutex> lock(this -> client_cursor_map_mutex);
-                this -> client_cursor_map[client_fd][cursor.get_name()] = (cursor);
-                cursor.print(); 
+                this -> client_cursor_map[client_fd][cursor.get_name()] = std::move(cursor);
+                // cursor.print(); 
             }
 
             this -> queue_client_for_ok_response(client_fd, msg.get_cid());
@@ -474,59 +476,21 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
         case COMMAND_CODE_GET_FF:
         case COMMAND_CODE_GET_FB:
         case COMMAND_CODE_GET_KEYS: {
+            try {
             // extract the cursors name and find it
-            std::pair<std::string, cursor_cap_t> name_cap;
-
-            try{
-                name_cap = this -> extract_cursor_name_cap(msg);
-                // try to find it
-                {
-                    std::shared_lock<std::shared_mutex> lock(this -> client_cursor_map_mutex);
-                    std::unordered_map<socket_t, std::unordered_map<std::string, Cursor>>::iterator c_c_it = this -> client_cursor_map.find(client_fd);
-                    if(c_c_it != this -> client_cursor_map.end()) {
-                        std::unordered_map<std::string, Cursor>::iterator c_it = c_c_it -> second.find(name_cap.first);
-                        if(c_it != c_c_it -> second.end()) {
-                            Cursor& cursor = c_it -> second;
-                            cursor.set_capacity(name_cap.second);
-                            Server_Message p_req = cursor.get_server_msg(com_code);
-
-                            // append a cursors name to the end
-                            cursor_name_len_t cursor_name_len = cursor.get_name().size();
-                            std::string cursor_msg_ext(cursor_name_len + sizeof(cursor_name_len_t), '\0');
-                            cursor_name_len_t net_cursor_name_len = cursor_name_len_hton(cursor_name_len);
-                            memcpy(&cursor_msg_ext[0], &net_cursor_name_len, sizeof(cursor_name_len_t));
-                            memcpy(&cursor_msg_ext[sizeof(cursor_name_len_t)], &cursor.get_name()[0], cursor_name_len);
-                            p_req.append_string(cursor_msg_ext, cursor_msg_ext.size());
-
-                            Partition_Entry p_entry = this -> get_partition_for_key(cursor.get_next_key());
-                            cursor.set_last_called_part_id(p_entry.id);
-
-                            lock.unlock();
-                            this -> queue_partition_for_response(p_entry.socket_fd, std::move(p_req));
-                            break;
-                        }
-                        else {
-                            lock.unlock();
-                            this -> queue_client_for_error_response(client_fd, msg.get_cid());
-                        }
-                    }
-                    else {
-                        lock.unlock();
-                        this -> queue_client_for_error_response(client_fd, msg.get_cid());
-                    }
-                }
-
+                std::pair<std::string, cursor_cap_t> name_cap = this -> extract_cursor_name_cap(msg);
+                Cursor cursor = this -> locate_cursor(client_fd, name_cap.first);
+                cursor.set_capacity(name_cap.second);
+                this -> query_partition_by_cursor(cursor, com_code, msg.get_cid(), false);
+                this -> return_cursor(client_fd, std::move(cursor));
             }
             catch(const std::exception& e) {
                 if(this -> verbose > 0) {
                     std::cerr << e.what() << std::endl;
                 }
+
                 this -> queue_client_for_error_response(client_fd, msg.get_cid());
             }
-            // find to which partition the key in the current cursors belongs to
-            // create a message for the partition and query it
-
-
             break;
         }
         case COMMAND_CODE_GET_KEYS_PREFIX: {
@@ -617,7 +581,7 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
             if(com_code == Command_Code::COMMAND_CODE_GET_FF) {
                 // no more partitions to queue
                 if(cursor.get_next_key() == ENTRY_PLACEHOLDER_KEY) {
-                    if(cursor.get_last_called_part_id() == partition_count - 1) {
+                    if(cursor.get_last_called_part_id() == uint16_t(partition_count - 1)) {
                         // no more entries available
                         std::string resp_str = this -> create_entries_response(cursor.get_entries(), false, msg.get_cid());
                         Server_Message serv_resp;
@@ -630,6 +594,9 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                     }
                     else {
                         cursor.incr_pid();
+                        // WHEN LOOKING FOR BUGS CHECK HERE!!!!
+                        std::string empty_str = "";
+                        cursor.set_next_key(empty_str, 0);
                         this -> query_partition_by_cursor(cursor, com_code, msg.get_cid(), false);
                         this -> return_cursor(client_fd, std::move(cursor));
                         return 0;
@@ -1120,7 +1087,7 @@ int8_t Primary_Server::query_partition_by_cursor(Cursor& cursor, Command_Code co
     memcpy(&msg_str[pos], &net_name_len, sizeof(cursor_name_len_t));
     pos += sizeof(cursor_name_len_t);
 
-    memcpy(&msg_str, &cursor.get_name()[0], cursor.get_name_size());
+    memcpy(&msg_str[pos], &cursor.get_name()[0], cursor.get_name_size());
     
     pos = PROTOCOL_EDGE_FB_FLAG_POS;
     if(edge_fb_case) {
@@ -1140,8 +1107,6 @@ int8_t Primary_Server::query_partition_by_cursor(Cursor& cursor, Command_Code co
         std::shared_lock<std::shared_mutex> lock(this -> partitions_mutex);
         partition_sock = this -> partitions[cursor.get_last_called_part_id()].socket_fd;
     }
-
     this -> queue_partition_for_response(partition_sock, std::move(serv_msg));
-
     return 0;
 }
