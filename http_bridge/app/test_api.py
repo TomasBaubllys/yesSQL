@@ -46,6 +46,14 @@ async def get_ff(client, cursor, amount):
         print(f"GET_FF {cursor} failed: {e!r}")
 
 
+async def get_fb(client, cursor, amount):
+    try:
+        resp = await client.get(f"{BASE_URL}/get_fb/{cursor}/{amount}")
+        print(f"GET_FB {cursor} {amount} -> {resp.json()}")
+    except httpx.RequestError as e:
+        print(f"GET_FB {cursor} failed: {e!r}")
+
+
 
 async def simulate_clients(num_clients=20):
     async with httpx.AsyncClient() as client:

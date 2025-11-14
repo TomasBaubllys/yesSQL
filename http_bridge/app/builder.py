@@ -143,6 +143,21 @@ def get_ff(cursor: str, amount: str):
     return header + body
 
 
+def get_fb(cursor: str, amount: str):
+    cursor_bytes = cursor.encode("utf-8")
+    amount_bytes = amount.encode("utf-8")
+    
+    body = struct.pack("!H", command_codes.COMMAND_CODE_GET_FB)
+    body += struct.pack("!B", len(cursor)) + cursor_bytes
+
+
+    total_length = len(body) + cnt.COMMAND_LENGTH_TOTAL_MESSAGE + cnt.COMMAND_LENGTH_NUM_ELEMENTS
+    header = struct.pack("!Q", total_length) + amount_bytes
+
+    return header + body
+
+
+
 
 
 

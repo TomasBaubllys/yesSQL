@@ -59,8 +59,6 @@ COMMAND_HANDLERS = {
 def dispatch(data: bytes) -> dict:
 
     command_number = struct.unpack_from("!H", data, 16)[0]  
-    print("Command number: ", command_number)  
-
     handler = COMMAND_HANDLERS.get(command_number)
 
 

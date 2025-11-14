@@ -54,4 +54,13 @@ async def get_ff(name: str, amount: str):
         resp = await conn.send(msg)
         parsed = parser.dispatch(resp)
         return parsed
+
+    
+@router.get("/get_fb/{name}/{amount}")
+async def get_ff(name: str, amount: str):
+    async with pool.get_connection() as conn:
+        msg = builder.get_fb(name, amount)
+        resp = await conn.send(msg)
+        parsed = parser.dispatch(resp)
+        return parsed
     
