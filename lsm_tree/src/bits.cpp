@@ -5,16 +5,12 @@ Last updated 9/18/2025
 
 #include "../include/bits.h"
 
-Bits::Bits(std::vector<uint8_t>& bitstream) : arr(bitstream) {
-
+Bits::Bits(std::vector<uint8_t>& bitstream) {
+	this -> arr = std::move(std::string(bitstream.begin(), bitstream.end()));
 };
 	
 Bits::Bits(std::vector<char>& bitstream) {
-	this -> arr.reserve(bitstream.size());
-
-	for(bit_arr_size_type i = 0; i < bitstream.size(); ++i) {
-		this -> arr.push_back(static_cast<uint8_t>(bitstream[i]));
-	}
+	this -> arr = std::move(std::string(bitstream.begin(), bitstream.end()));
 };
 
 Bits::Bits(std::vector<uint32_t>& bitstream) {
@@ -30,10 +26,7 @@ Bits::Bits(std::vector<uint32_t>& bitstream) {
 
 
 Bits::Bits(std::string bytestream) {
-	this -> arr.reserve(bytestream.length());
-	for(bit_arr_size_type i = 0; i < bytestream.length(); ++i) {
-		this -> arr.push_back(static_cast<uint8_t>(bytestream[i]));
-	}
+	this -> arr = bytestream;
 };
 
 Bits::Bits(const Bits& org) {
@@ -59,13 +52,7 @@ std::vector<char> Bits::get_char_vector() const {
 }
 
 std::string Bits::get_string() const {
-	std::string str;
-	
-	for(bit_arr_size_type i = 0; i < this -> arr.size(); ++i) {
-		str += static_cast<char>(this -> arr[i]);
-	}	
-
-	return str;
+	return this -> arr;
 }
 
 std::vector<uint32_t> Bits::get_int_vector() const {
@@ -98,23 +85,9 @@ std::vector<uint32_t> Bits::get_int_vector() const {
 }   
 
 void Bits::update_bits(std::vector<uint8_t> new_bits) {
-	if(new_bits.size() != this -> arr.size()) {
-		throw std::length_error(BIT_LEN_UPDATE_ERR);
-
-	}
-
-	this -> arr = new_bits;
+	this -> arr = std::move(std::string(new_bits.begin(), new_bits.end()));
 }
 
 int8_t Bits::compare_to_str(const std::string& other) const {
-	std::string internal_str = this -> get_string();
-
-	if(internal_str.length() > other.length()) {
-		return 1;
-	}
-	else if(internal_str.length() < other.length()) {
-		return -1;
-	}
-
-	return internal_str.compare(other);
+	return this -> arr.compare(other);
 }

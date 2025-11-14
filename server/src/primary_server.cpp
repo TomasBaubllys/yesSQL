@@ -556,6 +556,7 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
         case Command_Code::COMMAND_CODE_GET_KEYS: {
             // check how many elements were returned
             protocol_array_len_t el_returned_tmp = this -> extract_array_size(msg.get_string_data(), true);
+            // extract all the entries returned, the next_key, and the cursor name
             cursor_cap_t el_returned = static_cast<cursor_cap_t>(el_returned_tmp);
 
             // if enough elements, reconstruct a client message with OK and elements

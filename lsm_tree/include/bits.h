@@ -16,7 +16,8 @@ using bit_arr_size_type = std::vector<uint8_t>::size_type;
 class Bits {
 	private:
 		//Content Bytes
-		std::vector<uint8_t> arr;
+		// std::vector<uint8_t> arr;
+		std::string arr;
 	public:
 		
 		// NO DEFAULT CONSTRUCTOR
@@ -73,53 +74,24 @@ class Bits {
 		//@returns true if this.arr.size() > other.arr.size()
 		//@note if size of Bits arr is equal, compares values
 		inline bool operator>(const Bits& other) const {
-			if(this -> arr.size() > other.arr.size()) {
-				return true;
-			}
-			else if(this -> arr.size() < other.arr.size()) {
-				return false;
-			}
-
 			return this -> arr > other.arr;
 		}	
 		//@brief compares std::vector.size() between Bits
 		//@returns true if this.arr.size() < other.arr.size()
 		//@note if size of Bits arr is equal, compares values
 		inline bool operator<(const Bits& other) const {
-			if(this -> arr.size() > other.arr.size()) {
-				return false;
-			}
-			else if(this -> arr.size() < other.arr.size()) {
-				return true;
-			}
-
-
 			return this -> arr < other.arr;
 		}		
 		//@brief compares std::vector.size() between Bits
 		//@returns true if this.arr.size() < other.arr.size()
 		//@note if size of Bits arr is equal, compares values using std::vector <= operator
 		inline bool operator<=(const Bits& other) const {
-			if(this -> arr.size() > other.arr.size()) {
-				return false;
-			}
-			else if(this -> arr.size() < other.arr.size()) {
-				return true;
-			}
-
 			return this -> arr <= other.arr;
 		}	
 		//@brief compares std::vector.size() between Bits
 		//@returns true if this.arr.size() > other.arr.size()
 		//@note if size of Bits arr is equal, compares values using std::vector >= operator
 		inline bool operator>=(const Bits& other) const {
-			if(this -> arr.size() > other.arr.size()) {
-				return true;
-			}
-			else if(this -> arr.size() < other.arr.size()) {
-				return false;
-			}
-
 			return this -> arr >= other.arr;
 
 		}
