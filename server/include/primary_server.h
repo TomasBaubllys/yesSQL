@@ -121,8 +121,6 @@ class Primary_Server : public Server {
 
         std::string extract_cursor_name(const Server_Message& message);
 
-        std::pair<std::string, uint64_t> extract_cursor_name_pos(const Server_Message& message);
-
         std::pair<std::string, cursor_cap_t> extract_cursor_name_cap(const Server_Message& message);
 
         // returns all entries read, the cursors name, and the next key str

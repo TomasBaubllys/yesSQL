@@ -479,6 +479,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
             try {
             // extract the cursors name and find it
                 std::pair<std::string, cursor_cap_t> name_cap = this -> extract_cursor_name_cap(msg);
+                std::cout << "CAPACITY: " << name_cap.second << std::endl;
                 Cursor cursor = this -> locate_cursor(client_fd, name_cap.first);
                 cursor.set_capacity(name_cap.second);
                 this -> query_partition_by_cursor(cursor, com_code, msg.get_cid(), false);
@@ -919,10 +920,6 @@ Cursor Primary_Server::extract_cursor_creation(const Server_Message& message) {
 }
 
 std::string Primary_Server::extract_cursor_name(const Server_Message& message) {
-    return this -> extract_cursor_name_pos(message).first;
-}
-
-std::pair<std::string, uint64_t> Primary_Server::extract_cursor_name_pos(const Server_Message& message) {
     cursor_name_len_t cursor_len = 0;
     protocol_msg_len_t pos = PROTOCOL_CURSOR_LEN_POS;
     
@@ -942,21 +939,22 @@ std::pair<std::string, uint64_t> Primary_Server::extract_cursor_name_pos(const S
     memcpy(&cursor_name[0], &message.c_str()[pos], cursor_len);
     pos += cursor_len;
 
-    return std::make_pair(cursor_name, pos);
+    return cursor_name;
 }
 
 std::pair<std::string, cursor_cap_t> Primary_Server::extract_cursor_name_cap(const Server_Message& message) {
-    std::pair<std::string, uint64_t> name_pos = this -> extract_cursor_name_pos(message);
+    std::string name = this -> extract_cursor_name(message);
 
     cursor_cap_t cap = 0;
-    memcpy(&cap, &message.c_str()[name_pos.second], sizeof(cursor_cap_t));
-    cap = cursor_name_len_ntoh(cap);
+
+    memcpy(&cap, &message.c_str()[sizeof(protocol_msg_len_t) + sizeof(protocol_id_t) +  sizeof(protocol_array_len_t) - sizeof(cursor_cap_t)], sizeof(cursor_cap_t));
+    cap = cursor_cap_ntoh(cap);
 
     if(cap > CURSOR_MAX_SIZE) {
         throw std::length_error(CURSOR_CAPACITY_TOO_BIG_ERR_MSG);
     }
 
-    return std::make_pair(name_pos.first, cap);
+    return std::make_pair(name, cap);
 }
 
 std::vector<Entry> Primary_Server::extract_got_entries_and_info(const Server_Message& message, Cursor_Info& curs_info, std::string& next_key_str) {
@@ -1059,7 +1057,7 @@ void Primary_Server::return_cursor(socket_t client_fd, Cursor&& cursor) {
 
 int8_t Primary_Server::query_partition_by_cursor(Cursor& cursor, Command_Code com_code, protocol_id_t client_id, bool edge_fb_case) {    
     // construct be response
-    protocol_msg_len_t msg_len = sizeof(protocol_msg_len_t) + sizeof(protocol_id_t) + sizeof(protocol_array_len_t) + sizeof(protocol_key_len_t) + cursor.get_next_key_size() + sizeof(cursor_cap_t) + cursor.get_name_size();
+    protocol_msg_len_t msg_len = sizeof(protocol_msg_len_t) + sizeof(command_code_t) + sizeof(protocol_id_t) + sizeof(protocol_array_len_t) + sizeof(protocol_key_len_t) + cursor.get_next_key_size() + sizeof(cursor_cap_t) + cursor.get_name_size();
     std::string msg_str(msg_len, '\0');
 
     uint64_t pos = 0;
@@ -1075,6 +1073,10 @@ int8_t Primary_Server::query_partition_by_cursor(Cursor& cursor, Command_Code co
     protocol_array_len_t net_arr_len = protocol_arr_len_hton(1);
     memcpy(&msg_str[pos], &net_arr_len, sizeof(protocol_array_len_t));
     pos += sizeof(protocol_array_len_t);
+
+    command_code_t net_com_code = command_hton(com_code);
+    memcpy(&msg_str[pos], &net_com_code, sizeof(command_code_t));
+    pos += sizeof(command_code_t);
 
     protocol_key_len_t net_key_len = protocol_key_len_hton(cursor.get_next_key_size());
     memcpy(&msg_str[pos], &net_key_len, sizeof(protocol_key_len_t));
