@@ -29,6 +29,7 @@
 #define PRIMARY_SERVER_NPOS_FAILED_ERR_MSG "Could not extract the key from the message received - npos failed\n"
 #define PRIMARY_SERVER_NPOS_BAD_ERR_MSG "Bad or corrupted message received, could not extract key\n"
 #define PRIMARY_SERVER_FAILED_PARTITION_ADD_ERR_MSG "Failed to add partitions to epoll: " 
+#define PRIMARY_SERVER_CURSOR_FIND_FAILED_ERR_MSG "Failed to find a cursor with the specified name\n"
 
 #define PRIMARY_SERVER_PARTITION_CHECK_INTERVAL 10
 #define PRIMARY_SERVER_HELLO_MSG "Hello from yesSQL server"
@@ -72,7 +73,7 @@ class Primary_Server : public Server {
 
         // map for client cursors
         std::shared_mutex client_cursor_map_mutex;
-        std::unordered_map<socket_t, std::unordered_map<std::string,Cursor>> client_cursor_map;
+        std::unordered_map<socket_t, std::unordered_map<std::string, Cursor>> client_cursor_map;
 
         // functions for partition monitoring, currently unused
         std::vector<bool> get_partitions_status() const;
@@ -126,6 +127,15 @@ class Primary_Server : public Server {
 
         // returns all entries read, the cursors name, and the next key str
         std::vector<Entry> extract_got_entries_and_info(const Server_Message& message, Cursor_Info& curs_info, std::string& next_key_str);
+
+        socket_t find_client_fd(protocol_id_t client_id);
+
+        // THROWS
+        Cursor locate_cursor(socket_t client_fd, std::string& cursor_name);
+
+        void return_cursor(socket_t client_fd, Cursor&& cursor);
+
+        int8_t query_partition_by_cursor(Cursor& cursor, Command_Code com_code, protocol_id_t client_id, bool edge_fb_case);
 
     public:
         Primary_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL,  uint32_t thread_pool_size = SERVER_DEFAULT_THREAD_POOL_VAL);

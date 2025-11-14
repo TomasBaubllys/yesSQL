@@ -56,7 +56,7 @@ Server_Message Cursor::get_client_msg() const {
 
 void Cursor::clear_msg() {
     this -> fetched_entries.clear();
-    this -> size = 1;
+    this -> size = 0;
 }
 
 Server_Message Cursor::get_server_msg(Command_Code com_code) const {
@@ -133,3 +133,34 @@ uint32_t Cursor::get_last_called_part_id() {
 void Cursor::set_last_called_part_id(uint16_t last_called_partition_id) {
     this -> l_called_pid = last_called_partition_id;
 }
+
+void Cursor::update_receive(cursor_cap_t received) {
+    this -> size += received;
+}
+
+void Cursor::add_new_entries(std::vector<Entry>&& entries) {
+    this -> fetched_entries.insert(this -> fetched_entries.end(), std::make_move_iterator(entries.begin()), std::make_move_iterator(entries.end()));
+    this -> size = this -> fetched_entries.size();
+}
+
+bool Cursor::is_complete() {
+    return this -> capacity <= this -> size;
+}
+
+
+void Cursor::incr_pid(){
+    ++this -> l_called_pid;
+}
+
+void Cursor::decr_pid() {
+    --this -> l_called_pid;
+}
+
+protocol_key_len_t Cursor::get_next_key_size() {
+    return this -> next_key_len;
+}
+
+cursor_name_len_t Cursor::get_name_size() {
+    return this -> name.size();
+}
+

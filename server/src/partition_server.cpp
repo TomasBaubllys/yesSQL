@@ -167,7 +167,7 @@ std::string Partition_Server::extract_value(const std::string& raw_message) cons
     key_len = protocol_key_len_ntoh(key_len);
     curr_pos += key_len + sizeof(key_len);
     
-    protocol_value_len_type value_len;
+    protocol_value_len_t value_len;
     if(curr_pos + sizeof(value_len) > raw_message.size()) {
         throw std::runtime_error(PARTITION_SERVER_FAILED_TO_EXTRACT_DATA_ERR_MSG);
     }
@@ -535,7 +535,7 @@ int8_t Partition_Server::handle_get_fx_request(socket_t socket_fd, Server_Messag
 Server_Message Partition_Server::create_entries_set_resp(Command_Code com_code, std::set<Entry> entries_set, std::string next_key, protocol_id_t client_id, Cursor_Info& curs_info) {
     protocol_msg_len_t msg_len = sizeof(protocol_id_t) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t) + next_key.size() + sizeof(protocol_key_len_t) + sizeof(cursor_name_len_t) + curs_info.name_len;
     for(const Entry& entry : entries_set) {
-        msg_len += sizeof(protocol_key_len_t) + sizeof(protocol_value_len_type);
+        msg_len += sizeof(protocol_key_len_t) + sizeof(protocol_value_len_t);
         msg_len += entry.get_key_length() + entry.get_value_length();
     }
 
@@ -561,9 +561,9 @@ Server_Message Partition_Server::create_entries_set_resp(Command_Code com_code, 
 
     for(const Entry& entry : entries_set) {
         protocol_key_len_t key_len = entry.get_key_length();
-        protocol_value_len_type value_len = entry.get_value_length();
+        protocol_value_len_t value_len = entry.get_value_length();
         protocol_key_len_t net_key_len = protocol_key_len_hton(key_len);
-        protocol_value_len_type net_value_len = protocol_value_len_hton(value_len);
+        protocol_value_len_t net_value_len = protocol_value_len_hton(value_len);
 
         memcpy(&raw_message[curr_pos], &net_key_len, sizeof(net_key_len));
         curr_pos += sizeof(net_key_len);
