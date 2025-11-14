@@ -1,7 +1,6 @@
 #!/bin/bash
 
 source ./docker/database_setup.env
-echo $PARTITION_COUNT
 
 # composes down current containers
 BUILD_FRESH_OPTION="--fresh"

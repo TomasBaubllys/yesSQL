@@ -50,16 +50,16 @@ void Cursor::set_cid(const protocol_id_t& client_id) {
     this -> cid = client_id;
 }
 
-Server_Message Cursor::get_client_msg() const {
-    return Server_Message();
-}
+// Server_Message Cursor::get_client_msg() const {
+//     return Server_Message();
+//}
 
 void Cursor::clear_msg() {
     this -> fetched_entries.clear();
-    this -> size = 1;
+    this -> size = 0;
 }
 
-Server_Message Cursor::get_server_msg(Command_Code com_code) const {
+/*Server_Message Cursor::get_server_msg(Command_Code com_code, bool edge_fb_case) const {
     protocol_msg_len_t msg_len = sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t) + sizeof(protocol_key_len_t) + this -> next_key_str.size();
 
     // [msg_len]
@@ -71,7 +71,7 @@ Server_Message Cursor::get_server_msg(Command_Code com_code) const {
 
     // [arr] <- the amount of key to request (lower bytes in big endian)
     pos += sizeof(protocol_array_len_t) - sizeof(cursor_cap_t);
-    cursor_cap_t net_cap = cursor_cap_hton(this -> capacity);
+    cursor_cap_t net_cap = cursor_cap_hton(this -> capacity - this -> size);
     memcpy(&msg[pos], &net_cap, sizeof(cursor_cap_t));
     pos += sizeof(cursor_cap_t);
 
@@ -90,7 +90,7 @@ Server_Message Cursor::get_server_msg(Command_Code com_code) const {
 
     // construct the server message
     return Server_Message(msg, this -> cid);
-}
+}*/
 
 void Cursor::set_next_key(const std::string& key, const protocol_key_len_t& key_len) {
     this -> next_key_str = key;
@@ -133,3 +133,38 @@ uint32_t Cursor::get_last_called_part_id() {
 void Cursor::set_last_called_part_id(uint16_t last_called_partition_id) {
     this -> l_called_pid = last_called_partition_id;
 }
+
+void Cursor::update_receive(cursor_cap_t received) {
+    this -> size += received;
+}
+
+void Cursor::add_new_entries(std::vector<Entry>&& entries) {
+    this -> fetched_entries.insert(this -> fetched_entries.end(), std::make_move_iterator(entries.begin()), std::make_move_iterator(entries.end()));
+    this -> size = this -> fetched_entries.size();
+}
+
+bool Cursor::is_complete() {
+    return this -> capacity <= this -> size;
+}
+
+
+void Cursor::incr_pid(){
+    ++this -> l_called_pid;
+}
+
+void Cursor::decr_pid() {
+    --this -> l_called_pid;
+}
+
+protocol_key_len_t Cursor::get_next_key_size() {
+    return this -> next_key_len;
+}
+
+cursor_name_len_t Cursor::get_name_size() {
+    return this -> name.size();
+}
+
+std::vector<Entry> Cursor::get_entries() {
+    return this -> fetched_entries;
+}
+

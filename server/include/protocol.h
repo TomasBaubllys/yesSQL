@@ -35,7 +35,7 @@ using protocol_key_len_t = key_len_type;
 #define protocol_key_len_hton(x) htons(x)
 #define protocol_key_len_ntoh(x) ntohs(x)
 
-using protocol_value_len_type = value_len_type;
+using protocol_value_len_t = value_len_type;
 #define protocol_value_len_hton(x) htonl(x)
 #define protocol_value_len_ntoh(x) ntohl(x)
 
