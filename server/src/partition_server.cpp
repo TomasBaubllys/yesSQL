@@ -417,11 +417,6 @@ void Partition_Server::process_remove_queue() {
 std::pair<std::string, Cursor_Info> Partition_Server::extract_key_and_cursinf(Server_Message& message) {
     Cursor_Info curs_inf;
 
-    for(int i = 0; i < message.string().size(); ++i) {
-        std::cout << int(message.string()[i]) << " ";
-    }
-    std::cout << std::endl;
-
     // check if the command is long enough
     uint64_t pos = sizeof(protocol_msg_len_t) + sizeof(protocol_id_t) + sizeof(protocol_array_len_t) - sizeof(cursor_cap_t);
     cursor_cap_t cap = 0;
@@ -513,7 +508,10 @@ int8_t Partition_Server::handle_get_fx_request(socket_t socket_fd, Server_Messag
             }
         }
         else if(com_code == Command_Code::COMMAND_CODE_GET_FF) {
+            std::cout << "requesting: " << key_and_curs.second.cap << std::endl;
             entries_key = this -> lsm_tree.get_ff(key_and_curs.first, key_and_curs.second.cap);
+            std::cout << "ENTRIES SIZE = " << entries_key.first.size() << std::endl;
+
         }
         else {
             this -> queue_socket_for_err_response(socket_fd, message.get_cid());
