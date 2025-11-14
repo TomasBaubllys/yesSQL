@@ -412,7 +412,7 @@ void Server::apply_epoll_mod_q() {
 std::string Server::create_entries_response(const std::vector<Entry>& entry_array, bool contain_cid, protocol_id_t client_id) const{
     protocol_msg_len_t msg_len = (contain_cid? sizeof(protocol_id_t) : 0) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t);
     for(const Entry& entry : entry_array) {
-        msg_len += sizeof(protocol_key_len_t) + sizeof(protocol_value_len_type);
+        msg_len += sizeof(protocol_key_len_t) + sizeof(protocol_value_len_t);
         msg_len += entry.get_key_length() + entry.get_value_length();
     }
 
@@ -441,9 +441,9 @@ std::string Server::create_entries_response(const std::vector<Entry>& entry_arra
 
     for(const Entry& entry : entry_array) {
         protocol_key_len_t key_len = entry.get_key_length();
-        protocol_value_len_type value_len = entry.get_value_length();
+        protocol_value_len_t value_len = entry.get_value_length();
         protocol_key_len_t net_key_len = protocol_key_len_hton(key_len);
-        protocol_value_len_type net_value_len = protocol_value_len_hton(value_len);
+        protocol_value_len_t net_value_len = protocol_value_len_hton(value_len);
 
         memcpy(&raw_message[curr_pos], &net_key_len, sizeof(net_key_len));
         curr_pos += sizeof(net_key_len);

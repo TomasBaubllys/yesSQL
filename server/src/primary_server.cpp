@@ -1,9 +1,9 @@
 #include "../include/primary_server.h"
+#include <cstdint>
 #include <cstring>
 #include <fcntl.h>
 #include <netdb.h>
 #include <sys/epoll.h>
-#include <system_error>
 #include <sys/eventfd.h>
 
 Primary_Server::Primary_Server(uint16_t port, uint8_t verbose, uint32_t thread_pool_size) : Server(port, verbose, thread_pool_size) {
@@ -552,7 +552,19 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
 
     switch(com_code) {
         case Command_Code::COMMAND_CODE_GET_FB:
-        case Command_Code::COMMAND_CODE_GET_FF:
+        case Command_Code::COMMAND_CODE_GET_FF: {
+            // check how many elements were returned
+            protocol_array_len_t el_returned_tmp = this -> extract_array_size(msg.get_string_data(), true);
+            // extract all the entries returned, the next_key, and the cursor name
+            cursor_cap_t el_returned = static_cast<cursor_cap_t>(el_returned_tmp);
+
+            // if enough elements, reconstruct a client message with OK and elements
+            // locate the cursor.... WHAT CURSOR YOU ASK????
+            // if(el_returned >= )
+
+            // if not enough either query the forward or the backward partitions
+
+        }
         case Command_Code::COMMAND_CODE_GET_KEYS: {
             // check how many elements were returned
             protocol_array_len_t el_returned_tmp = this -> extract_array_size(msg.get_string_data(), true);
@@ -874,6 +886,49 @@ std::pair<std::string, cursor_cap_t> Primary_Server::extract_cursor_name_cap(con
     }
 
     return std::make_pair(name_pos.first, cap);
+}
+
+std::vector<Entry> Primary_Server::extract_got_entries_and_info(const Server_Message& message, Cursor_Info& curs_info, std::string& next_key_str) {
+    protocol_array_len_t arr_len = this -> extract_array_size(message.string(), true);
+    std::vector<Entry> entries;
+    entries.reserve(arr_len);
+    uint64_t pos = PROTOCOL_FIRST_KEY_LEN_POS;
+
+    const char* data = message.c_str();
+
+    for(protocol_array_len_t i = 0; i < arr_len; ++i) {
+        protocol_key_len_t key_len = 0;
+        memcpy(&key_len, &data[pos], sizeof(protocol_key_len_t));
+        pos += sizeof(protocol_key_len_t);
+        key_len = protocol_key_len_ntoh(key_len);
+
+        std::string key_str(key_len, '\0');
+        memcpy(&key_str[0], &data[pos], key_len);
+        pos += key_len;
+
+        protocol_value_len_t value_len = 0;
+        memcpy(&value_len, &data[pos], sizeof(protocol_value_len_t));
+        pos += sizeof(value_len);
+        value_len = protocol_value_len_ntoh(value_len);
+
+        std::string val_str(value_len, '\0');
+        memcpy(&val_str[0], &data[pos], value_len);
+        pos += value_len;
+
+        entries.push_back(Entry(Bits(key_str), Bits(val_str)));
+
+    }
+    // pos is now at the next key
+    protocol_key_len_t next_key_len = 0;
+    memcpy(&next_key_len, &data[pos], sizeof(protocol_key_len_t));
+    pos += sizeof(protocol_key_len_t);
+    std::string next_key;
+
+    // read the next_key_len and string
+    // read the cursorlen and name
+
+
+
 }
 
 
