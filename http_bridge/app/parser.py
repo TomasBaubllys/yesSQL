@@ -1,5 +1,6 @@
 import struct
-from .constants import COMMAND_CODE_OK, COMMAND_CODE_ERR, COMMAND_CODE_DATA_NOT_FOUND, COMMAND_LENGTH_COMMAND_MESSAGE, COMMAND_LENGTH_KEY_LENGTH, COMMAND_LENGTH_TOTAL_MESSAGE, COMMAND_LENGTH_VALUE_LENGTH, COMMAND_LENGTH_NUM_ELEMENTS
+from .command_codes import COMMAND_CODE_OK, COMMAND_CODE_ERR, COMMAND_CODE_DATA_NOT_FOUND
+from .constants import COMMAND_LENGTH_COMMAND_MESSAGE, COMMAND_LENGTH_KEY_LENGTH, COMMAND_LENGTH_TOTAL_MESSAGE, COMMAND_LENGTH_VALUE_LENGTH, COMMAND_LENGTH_NUM_ELEMENTS
 #! -> big-endian
 # H = uint16
 # Q = uint64
@@ -56,11 +57,12 @@ COMMAND_HANDLERS = {
 
 
 def dispatch(data: bytes) -> dict:
-    print("here")
 
-    command_number = struct.unpack_from("!H", data, 16)[0]    
+    command_number = struct.unpack_from("!H", data, 16)[0]  
+    print("Command number: ", command_number)  
 
     handler = COMMAND_HANDLERS.get(command_number)
+
 
 
     if handler:
