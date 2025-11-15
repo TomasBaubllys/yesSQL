@@ -157,6 +157,9 @@ std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor(std::string cur
                 keys.emplace(entry_key);
             }
         }
+        if(!keys.empty()){
+            next_key = clean_forward_set_keys(keys, n);
+        }
     }
     mem_table_entries.clear();
     
@@ -169,7 +172,11 @@ std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor(std::string cur
             std::pair<std::vector<Bits>, Bits> temp_pair = ss_table -> get_n_next_keys_alive(key_bits, n);
 
             keys.insert(temp_pair.first.begin(), temp_pair.first.end());
-            next_key = clean_forward_set_keys(keys, n);
+            
+            Bits temp_next_key = clean_forward_set_keys(keys, n);
+            if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
+                next_key = temp_next_key;
+            }
         }
     }
     return std::make_pair(keys, next_key.get_string());
@@ -191,6 +198,9 @@ std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor_prefix(std::str
                 keys.emplace(entry_key);
             }
         }
+        if(!keys.empty()){
+            next_key = clean_forward_set_keys(keys, n);
+        }
     }
     mem_table_entries.clear();
     
@@ -208,7 +218,10 @@ std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor_prefix(std::str
                 }
             }
 
-            next_key = clean_forward_set_keys(keys, n);
+            Bits temp_next_key = clean_forward_set_keys(keys, n);
+            if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
+                next_key = temp_next_key;
+            }
         }
     }
     return std::make_pair(keys, next_key.get_string());
@@ -225,11 +238,14 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
     if(!mem_table_entries.empty() && !(mem_table_entries.back().get_key() < key_bits)){
         for(const Entry& mem_table_entry : mem_table_entries){
             forward_validate(ff_entries, mem_table_entry, true, key_bits);
-            next_key = clean_forward_set(ff_entries, true, n); // <----- TOMO FIX PLZ PAZIUREK
+        }
+        if(!ff_entries.empty()){
+            next_key = clean_forward_set(ff_entries, true, n);
         }
     }
     
-    for(SS_Table_Controller& ss_table_controller : ss_table_controllers) { // <------ CIA NIEKAD NEATEIS JEI NETURIM NIEKO LENTELESE
+    
+    for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
         uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
 
         for(uint16_t i = sstable_count-1; i != UINT16_MAX; --i){
@@ -238,7 +254,12 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
             std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_larger_or_equal_alive(key_bits, n);
 
             ff_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
-            next_key = clean_forward_set(ff_entries, true, n);
+            
+            Bits temp_next_key = clean_forward_set(ff_entries, true, n);
+
+            if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
+                next_key = temp_next_key;
+            }
         }
     }
     
@@ -256,6 +277,9 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint1
         for(const Entry& mem_table_entry : mem_table_entries){
             forward_validate(fb_entries, mem_table_entry, false, key_bits);
         }
+        if(!fb_entries.empty()){
+            next_key = clean_forward_set(fb_entries, false, n);
+        }
     }
     
     for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
@@ -267,7 +291,11 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint1
             std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_smaller_or_equal_alive(key_bits, n);
 
             fb_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
-            next_key = clean_forward_set(fb_entries, false, n);
+
+            Bits temp_next_key = clean_forward_set(fb_entries, false, n);
+            if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
+                next_key = temp_next_key;
+            }
         }
     }
 
