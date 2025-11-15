@@ -718,7 +718,68 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                 std::shared_lock<std::shared_mutex> lock(this -> partitions_mutex);
                 partition_count = this -> partitions.size();
             }
+            if(cursor.is_complete()) {
+                if(next_key_str == ENTRY_PLACEHOLDER_KEY) {
+                    if(cursor.get_last_called_part_id() == partition_count - 1) {
+                        // HOTFIX
+                        protocol_key_len_t next_key_lent = 0;
+                        cursor.set_next_key(std::move(""), next_key_lent);
+                        cursor.set_max_key(true);
+                    }
+                    else {
+                        cursor.set_max_key(false);
+                        protocol_key_len_t next_key_len = 0;
+                        cursor.set_next_key(std::move(""), next_key_len);
+                        cursor.incr_pid();
+                    }
+                }
 
+                std::string resp_str = this -> create_entries_response(cursor.get_entries(), false, msg.get_cid(), true);
+                Server_Message serv_resp;
+                serv_resp.set_message_eat(std::move(resp_str));
+                serv_resp.set_cid(msg.get_cid());
+ 
+                try {
+                    cursor.clear_msg();
+                    this -> return_cursor(client_fd, std::move(cursor));
+                }
+                catch(const std::exception& e) {
+                    if(this -> verbose > 0) {
+                        std::cerr << e.what() << std::endl;
+                    }
+                    this -> queue_client_for_error_response(client_fd, msg.get_cid());
+                    return 0;
+                }
+
+                this -> queue_client_for_response(std::move(serv_resp));
+                return 0;
+            }
+
+            // no more partitions to queue
+            if(cursor.get_next_key() == ENTRY_PLACEHOLDER_KEY) {
+                if(cursor.get_last_called_part_id() == uint16_t(partition_count - 1)) {
+                    // no more entries available
+                    std::string resp_str = this -> create_entries_response(cursor.get_entries(), false, msg.get_cid(), true);
+                    Server_Message serv_resp;
+                    serv_resp.set_message_eat(std::move(resp_str));
+                    serv_resp.set_cid(msg.get_cid()); 
+                    cursor.clear_msg();
+                    cursor.set_max_key(true);
+                    this -> return_cursor(client_fd, std::move(cursor));
+                    this -> queue_client_for_response(std::move(serv_resp));
+                    return 0;
+                }
+                else {
+                    cursor.incr_pid();
+                    // WHEN LOOKING FOR BUGS CHECK HERE!!!!
+                    cursor.set_max_key(false);
+                    std::string empty_str = "";
+                    cursor.set_next_key(empty_str, 0);
+                    this -> query_partition_by_cursor(cursor, com_code, msg.get_cid(), false);
+                    this -> return_cursor(client_fd, std::move(cursor));
+                    return 0;
+                }
+            }
 
             break;
         }
@@ -1027,7 +1088,7 @@ std::pair<std::string, cursor_cap_t> Primary_Server::extract_cursor_name_cap(con
     return std::make_pair(name, cap);
 }
 
-std::vector<Entry> Primary_Server::extract_got_entries_and_info(const Server_Message& message, Cursor_Info& curs_info, std::string& next_key_str) {
+std::vector<Entry> Primary_Server::extract_got_entries_and_info(const Server_Message& message, Cursor_Info& curs_info, std::string& next_key_str, bool keys_only) {
     protocol_array_len_t arr_len = this -> extract_array_size(message.string(), true);
     std::vector<Entry> entries;
     entries.reserve(arr_len);
@@ -1045,14 +1106,19 @@ std::vector<Entry> Primary_Server::extract_got_entries_and_info(const Server_Mes
         memcpy(&key_str[0], &data[pos], key_len);
         pos += key_len;
 
-        protocol_value_len_t value_len = 0;
-        memcpy(&value_len, &data[pos], sizeof(protocol_value_len_t));
-        pos += sizeof(value_len);
-        value_len = protocol_value_len_ntoh(value_len);
+        std::string val_str = "";
 
-        std::string val_str(value_len, '\0');
-        memcpy(&val_str[0], &data[pos], value_len);
-        pos += value_len;
+        if(!keys_only) {
+            protocol_value_len_t value_len = 0;
+            memcpy(&value_len, &data[pos], sizeof(protocol_value_len_t));
+            pos += sizeof(value_len);
+            value_len = protocol_value_len_ntoh(value_len);
+
+            std::string val_str_real(value_len, '\0');
+            memcpy(&val_str[0], &data[pos], value_len);
+            pos += value_len;
+            val_str = std::move(val_str_real);
+        }
 
         entries.push_back(Entry(Bits(key_str), Bits(val_str)));
 
