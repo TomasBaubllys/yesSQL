@@ -143,6 +143,7 @@ void Cursor::update_receive(cursor_cap_t received) {
 
 void Cursor::add_new_entries(std::vector<Entry>&& entries) {
     this -> fetched_entries.insert(this -> fetched_entries.end(), std::make_move_iterator(entries.begin()), std::make_move_iterator(entries.end()));
+    //std::sort(this -> fetched_entries.begin(), this -> fetched_entries.end());
     this -> size = this -> fetched_entries.size();
 }
 

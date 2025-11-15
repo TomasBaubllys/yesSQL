@@ -229,6 +229,53 @@ func recvExact(conn net.Conn) ([]byte, error) {
 	return data, nil
 }
 
+type KV struct {
+	Key string
+	Val string
+}
+
+func parseResponse(data []byte) (string, []KV) {
+	if len(data) < 18 {
+		return "INVALID", nil
+	}
+
+	numElems := binary.BigEndian.Uint64(data[8:16])
+	cmdCode := binary.BigEndian.Uint16(data[16:18])
+
+	cmdName := COMMAND_NAMES[cmdCode]
+	pos := 18
+
+	results := make([]KV, 0, numElems)
+
+	for i := uint64(0); i < numElems; i++ {
+		if pos+2 > len(data) {
+			break
+		}
+
+		keyLen := binary.BigEndian.Uint16(data[pos : pos+2])
+		pos += 2
+
+		key := string(data[pos : pos+int(keyLen)])
+		pos += int(keyLen)
+
+		if pos+4 > len(data) {
+			results = append(results, KV{Key: key, Val: ""})
+			break
+		}
+
+		valLen := binary.BigEndian.Uint32(data[pos : pos+4])
+		pos += 4
+
+		val := string(data[pos : pos+int(valLen)])
+		pos += int(valLen)
+
+		results = append(results, KV{Key: key, Val: val})
+	}
+
+	return cmdName, results
+}
+
+/*
 func parseResponse(data []byte) (string, map[string]string) {
 	if len(data) < 18 {
 		return "INVALID", nil
@@ -268,6 +315,7 @@ func parseResponse(data []byte) (string, map[string]string) {
 
 	return cmdName, results
 }
+	*/
 
 // =====================================================
 // Main
@@ -294,6 +342,71 @@ func main() {
 	fmt.Println("  GET_FF <cursor> <count>")
 	fmt.Println("  GET_FB <cursor> <count>")
 	fmt.Println("  exit")
+
+	// ===========================================================
+	// Preload exactly 20 keys: "a", "aa", "aaa", ...
+	// ===========================================================
+	preload := []string{
+		"!",
+		"!!",
+		"!!!",
+		"a",
+		"aa",
+		"aaa",
+		"aaaa",
+		"aaaaa",
+		"aaaaaa",
+		"aaaaaaa",
+		"aaaaaaaa",
+		"aaaaaaaaa",
+		"aaaaaaaaaa",
+		"aaaaaaaaaaa",
+		"aaaaaaaaaaaa",
+		"aaaaaaaaaaaaa",
+		"aaaaaaaaaaaaaa",
+		"aaaaaaaaaaaaaaa",
+		"aaaaaaaaaaaaaaaa",
+		"aaaaaaaaaaaaaaaaa",
+		"aaaaaaaaaaaaaaaaaa",
+		"aaaaaaaaaaaaaaaaaaa",
+		"aaaaaaaaaaaaaaaaaaaa",
+		"ė",
+		"ėė",
+		"ėėė",
+		"ėėėė",
+		"ėėėėė",
+	}
+
+	fmt.Println("Preloading test keys...")
+	for _, k := range preload {
+		conn.Write(buildSetCommand(k, "1"))
+		data, _ := recvExact(conn)
+		resp, _ := parseResponse(data)
+		fmt.Println("  SET", k, "=>", resp)
+	}
+	fmt.Println("Preload complete.")
+	fmt.Println("================================")
+
+	fmt.Println("Commands:")
+	fmt.Println("  SET <key> <value>")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	for {
 		fmt.Print("yessql> ")
@@ -370,9 +483,12 @@ func main() {
 			resp, res := parseResponse(data)
 
 			fmt.Println("Response:", resp)
-			for k, v := range res {
-				fmt.Println(k, "=>", v)
+
+			for _, kv := range res {
+				fmt.Println(kv.Key, "=>", kv.Val)
 			}
+
+
 
 		// ==================================================
 		// NEW GET_FB
@@ -391,9 +507,10 @@ func main() {
 			resp, res := parseResponse(data)
 
 			fmt.Println("Response:", resp)
-			for k, v := range res {
-				fmt.Println(k, "=>", v)
+			for _, kv := range res {
+				fmt.Println(kv.Key, "=>", kv.Val)
 			}
+
 
 		default:
 			fmt.Println("Unknown command.")

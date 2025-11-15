@@ -523,7 +523,9 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
 
             Cursor_Info curs_inf;
             std::string next_key_str;
-            std::vector<Entry> entries = this -> extract_got_entries_and_info(msg, curs_inf, next_key_str);
+            std::vector<Entry> entries = this -> extract_got_entries_and_info(msg, curs_inf, next_key_str, false);
+
+            std::cout << entries.size() << std::endl;
 
             // based on the given info try to find a cursor
             // 1) find the client_fd
@@ -588,7 +590,8 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                 }
 
 
-                std::string resp_str = this -> create_entries_response(cursor.get_entries(), false, msg.get_cid());
+                std::string resp_str = this -> create_entries_response(cursor.get_entries(), false, msg.get_cid(), false);
+                std::cout << cursor.get_entries().size() << std::endl;
                 Server_Message serv_resp;
                 serv_resp.set_message_eat(std::move(resp_str));
                 serv_resp.set_cid(msg.get_cid());
@@ -614,7 +617,7 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                 if(cursor.get_next_key() == ENTRY_PLACEHOLDER_KEY) {
                     if(cursor.get_last_called_part_id() == uint16_t(partition_count - 1)) {
                         // no more entries available
-                        std::string resp_str = this -> create_entries_response(cursor.get_entries(), false, msg.get_cid());
+                        std::string resp_str = this -> create_entries_response(cursor.get_entries(), false, msg.get_cid(), false);
                         Server_Message serv_resp;
                         serv_resp.set_message_eat(std::move(resp_str));
                         serv_resp.set_cid(msg.get_cid()); 
@@ -646,7 +649,7 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                 // no more partitions to queue
                 if(cursor.get_next_key() == ENTRY_PLACEHOLDER_KEY) {
                     if(cursor.get_last_called_part_id() == 0) {
-                        std::string resp_str = this -> create_entries_response(cursor.get_entries(), false, msg.get_cid());
+                        std::string resp_str = this -> create_entries_response(cursor.get_entries(), false, msg.get_cid(), false);
                         Server_Message serv_resp;
                         serv_resp.set_message_eat(std::move(resp_str));
                         serv_resp.set_cid(msg.get_cid()); 
@@ -1115,7 +1118,7 @@ std::vector<Entry> Primary_Server::extract_got_entries_and_info(const Server_Mes
             value_len = protocol_value_len_ntoh(value_len);
 
             std::string val_str_real(value_len, '\0');
-            memcpy(&val_str[0], &data[pos], value_len);
+            memcpy(&val_str_real[0], &data[pos], value_len);
             pos += value_len;
             val_str = std::move(val_str_real);
         }
