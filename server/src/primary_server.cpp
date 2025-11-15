@@ -549,7 +549,43 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
             cursor.set_next_key(next_key_str, next_key_str.size());
             cursor.add_new_entries(std::move(entries));
 
+            // else cursor is not complete, find to which partition we
+            uint16_t partition_count = 0;
+            {
+                std::shared_lock<std::shared_mutex> lock(this -> partitions_mutex);
+                partition_count = this -> partitions.size();
+            }
+
             if(cursor.is_complete()) {
+                if(com_code == Command_Code::COMMAND_CODE_GET_FF && next_key_str == ENTRY_PLACEHOLDER_KEY) {
+                    if(cursor.get_last_called_part_id() == partition_count - 1) {
+                        // HOTFIX
+                        protocol_key_len_t next_key_lent = UINT16_MAX;
+                        std::string bin(UINT16_MAX, '\xFF');
+                        cursor.set_next_key(std::move(bin), next_key_lent);
+                    }
+                    else {
+                        protocol_key_len_t next_key_len = 0;
+                        cursor.set_next_key(std::move(""), next_key_len);
+                        cursor.incr_pid();
+                    }
+                }
+                else if(com_code == Command_Code::COMMAND_CODE_GET_FB && next_key_str == ENTRY_PLACEHOLDER_KEY) {
+                    if(cursor.get_last_called_part_id() == 0) {
+                        // HOTFIX
+                        protocol_key_len_t next_key_lent = 0;
+                        std::string bin = "";
+                        cursor.set_next_key(std::move(bin), next_key_lent);
+                    }
+                    else {
+                        protocol_key_len_t next_key_lent = UINT16_MAX;
+                        std::string bin(UINT16_MAX, '\xFF');
+                        cursor.set_next_key(std::move(bin), next_key_lent);
+                        cursor.decr_pid();
+                    }
+                }
+
+
                 std::string resp_str = this -> create_entries_response(cursor.get_entries(), false, msg.get_cid());
                 Server_Message serv_resp;
                 serv_resp.set_message_eat(std::move(resp_str));
@@ -569,13 +605,6 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
 
                 this -> queue_client_for_response(std::move(serv_resp));
                 return 0;
-            }
-
-            // else cursor is not complete, find to which partition we
-            uint16_t partition_count = 0;
-            {
-                std::shared_lock<std::shared_mutex> lock(this -> partitions_mutex);
-                partition_count = this -> partitions.size();
             }
 
             if(com_code == Command_Code::COMMAND_CODE_GET_FF) {
