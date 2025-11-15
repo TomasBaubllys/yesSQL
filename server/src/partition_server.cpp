@@ -481,7 +481,7 @@ int8_t Partition_Server::handle_get_keys_request(socket_t socket_fd, Server_Mess
             entries_key = this -> lsm_tree.get_keys(key_and_curs.first, key_and_curs.second.cap);
         }
 
-        return 0;
+        //return 0;
 
                // std::cout << key_and_curs.second.name << "   " << key_and_curs.second.name_len << std::endl;
         Server_Message serv_msg = this -> create_keys_set_resp(Command_Code::COMMAND_CODE_GET_KEYS, entries_key.first, entries_key.second, message.get_cid(), key_and_curs.second);
@@ -519,14 +519,10 @@ int8_t Partition_Server::handle_get_fx_request(socket_t socket_fd, Server_Messag
         else if(com_code == Command_Code::COMMAND_CODE_GET_FF) {
             if(this -> is_fb_edge_flag_set(message.get_string_data())) {
                 std::string max_key(UINT16_MAX, '\xFF');
-                std::cout << "Kiek prasom: " << key_and_curs.second.cap << std::endl;
                 entries_key = this -> lsm_tree.get_ff(max_key, key_and_curs.second.cap);
-                std::cout << "Kiek gaunam: " << entries_key.first.size() << std::endl;
             }
             else {
-                std::cout << "Kiek prasom: " << key_and_curs.second.cap << std::endl;
                 entries_key = this -> lsm_tree.get_ff(key_and_curs.first, key_and_curs.second.cap);
-                std::cout << "Kiek gaunam: " << entries_key.first.size() << std::endl;
 
             }
         }

@@ -203,6 +203,24 @@ func buildGetFBCommand(cursor string, count uint16) []byte {
 	return buf.Bytes()
 }
 
+func buildGetKeysCommand(cursor string, count uint16) []byte{
+	nameBytes := []byte(cursor)
+	totalLen := uint64(8 + 6 + 2 + 2 + 1 + len(nameBytes))
+
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.BigEndian, totalLen)
+
+	buf.Write([]byte{0, 0, 0, 0, 0, 0})
+	binary.Write(buf, binary.BigEndian, count)
+	binary.Write(buf, binary.BigEndian, uint16(CMD_GET_KEYS))
+	binary.Write(buf, binary.BigEndian, uint8(len(nameBytes)))
+	buf.Write(nameBytes)
+
+	return buf.Bytes()
+
+
+}
+
 // =====================================================
 // Response Parsing
 // =====================================================
@@ -341,6 +359,7 @@ func main() {
 	fmt.Println("  DELETE_CURSOR <name>")
 	fmt.Println("  GET_FF <cursor> <count>")
 	fmt.Println("  GET_FB <cursor> <count>")
+	fmt.Println("  GET_KEYS <cursor> <count>")
 	fmt.Println("  exit")
 
 	// ===========================================================
@@ -509,6 +528,24 @@ func main() {
 			fmt.Println("Response:", resp)
 			for _, kv := range res {
 				fmt.Println(kv.Key, "=>", kv.Val)
+			}
+
+		case "GET_KEYS":
+			if len(parts) != 3 {
+				fmt.Println("Usage: GET_KEYS <cursor> <count>")
+				continue
+			}
+			cursor := parts[1]
+			var count uint16
+			fmt.Sscanf(parts[2], "%d", &count)
+
+			conn.Write(buildGetKeysCommand(cursor, count))
+			data, _ := recvExact(conn)
+			resp, res := parseResponse(data)
+
+			fmt.Println("Response:", resp)
+			for _, kv := range res {
+				fmt.Println(kv.Key)
 			}
 
 
