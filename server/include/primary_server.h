@@ -124,7 +124,7 @@ class Primary_Server : public Server {
         std::pair<std::string, cursor_cap_t> extract_cursor_name_cap(const Server_Message& message);
 
         // returns all entries read, the cursors name, and the next key str
-        std::vector<Entry> extract_got_entries_and_info(const Server_Message& message, Cursor_Info& curs_info, std::string& next_key_str);
+        std::vector<Entry> extract_got_entries_and_info(const Server_Message& message, Cursor_Info& curs_info, std::string& next_key_str, bool keys_only = false);
 
         socket_t find_client_fd(protocol_id_t client_id);
 

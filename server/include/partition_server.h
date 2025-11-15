@@ -72,6 +72,8 @@ class Partition_Server : public Server {
         // pass either GET_FF or GET_FB as the command_code arguments
         Server_Message create_entries_set_resp(Command_Code com_code, std::set<Entry> entries_set, std::string next_key, protocol_id_t client_id, Cursor_Info& curs_info);
 
+        Server_Message create_keys_set_resp(Command_Code com_code, std::set<Bits> entries_set, std::string next_key, protocol_id_t client_id, Cursor_Info& curs_info);
+
         // used for extracting special edge case
         bool is_fb_edge_flag_set(std::string& msg);
 
