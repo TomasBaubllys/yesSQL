@@ -66,8 +66,8 @@ async def simulate_clients(num_clients=20):
             tasks.append(set_key(client, key, value))
             tasks.append(get_key(client, key))
             tasks.append(remove_key(client, key))
-            tasks.append(create_cursor(client, name, key))
-            tasks.append(delete_cursor(client, name))
+            #tasks.append(create_cursor(client, name, key))
+            #tasks.append(delete_cursor(client, name))
             #tasks.append(get_ff(client, name, i))
 
         await asyncio.gather(*tasks)
