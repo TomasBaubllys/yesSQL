@@ -2,7 +2,7 @@
 #include <cstring>
 #include <stdexcept>
 
-Cursor::Cursor() : cid(0), name(""), size(0), capacity(0), next_key_str("") {
+Cursor::Cursor() : cid(0), name(""), size(0), capacity(0), next_key_str(""), max_key(false) {
 
 }
 
@@ -14,6 +14,7 @@ Cursor::Cursor(const std::string& cursor_name) {
     this -> capacity = 0;
     this -> name = cursor_name;
     this -> size = 0;
+    this -> max_key = false;
 }
 
 
@@ -27,6 +28,7 @@ Cursor::Cursor(const std::string& cursor_name, const protocol_id_t& client_id) {
     this -> capacity = 0;
     this -> size = 0;
     this -> next_key_str = "";
+    this -> max_key = false;
 }
 
 Cursor::Cursor(const std::string& cursor_name, const protocol_id_t& client_id, const std::string& next_key, const protocol_key_len_t& key_len) {
@@ -39,7 +41,8 @@ Cursor::Cursor(const std::string& cursor_name, const protocol_id_t& client_id, c
     this -> capacity = 0;
     this -> next_key_str = next_key;
     this -> next_key_len = key_len;
-    this -> size = 1;
+    this -> size = 0;
+    this -> max_key = false;
 }
 
 protocol_id_t Cursor::get_cid() const {
@@ -166,5 +169,13 @@ cursor_name_len_t Cursor::get_name_size() {
 
 std::vector<Entry> Cursor::get_entries() {
     return this -> fetched_entries;
+}
+
+bool Cursor::is_max_key() {
+    return this -> max_key; 
+}
+
+void Cursor::set_max_key(bool max_key) {
+    this -> max_key = max_key;
 }
 

@@ -44,6 +44,8 @@ class Cursor {
         std::string next_key_str;
         protocol_key_len_t next_key_len;
 
+        bool max_key;
+
         // stores last called parition id
         uint16_t l_called_pid;
 
@@ -106,6 +108,10 @@ class Cursor {
         protocol_key_len_t get_next_key_size();
 
         cursor_name_len_t get_name_size();
+
+        bool is_max_key();
+
+        void set_max_key(bool max_key);
 
         // used for debugging
         void print();

@@ -481,7 +481,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                 std::pair<std::string, cursor_cap_t> name_cap = this -> extract_cursor_name_cap(msg);
                 Cursor cursor = this -> locate_cursor(client_fd, name_cap.first);
                 cursor.set_capacity(name_cap.second);
-                this -> query_partition_by_cursor(cursor, com_code, msg.get_cid(), false);
+                this -> query_partition_by_cursor(cursor, com_code, msg.get_cid(), cursor.is_max_key());
                 this -> return_cursor(client_fd, std::move(cursor));
             }
             catch(const std::exception& e) {
@@ -560,11 +560,12 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                 if(com_code == Command_Code::COMMAND_CODE_GET_FF && next_key_str == ENTRY_PLACEHOLDER_KEY) {
                     if(cursor.get_last_called_part_id() == partition_count - 1) {
                         // HOTFIX
-                        protocol_key_len_t next_key_lent = UINT16_MAX;
-                        std::string bin(UINT16_MAX, '\xFF');
-                        cursor.set_next_key(std::move(bin), next_key_lent);
+                        protocol_key_len_t next_key_lent = 0;
+                        cursor.set_next_key(std::move(""), next_key_lent);
+                        cursor.set_max_key(true);
                     }
                     else {
+                        cursor.set_max_key(false);
                         protocol_key_len_t next_key_len = 0;
                         cursor.set_next_key(std::move(""), next_key_len);
                         cursor.incr_pid();
@@ -576,11 +577,12 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                         protocol_key_len_t next_key_lent = 0;
                         std::string bin = "";
                         cursor.set_next_key(std::move(bin), next_key_lent);
+                        cursor.set_max_key(false);
                     }
                     else {
-                        protocol_key_len_t next_key_lent = UINT16_MAX;
-                        std::string bin(UINT16_MAX, '\xFF');
-                        cursor.set_next_key(std::move(bin), next_key_lent);
+                        protocol_key_len_t next_key_lent = 0;
+                        cursor.set_next_key(std::move(""), next_key_lent);
+                        cursor.set_max_key(true);
                         cursor.decr_pid();
                     }
                 }
@@ -617,6 +619,7 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                         serv_resp.set_message_eat(std::move(resp_str));
                         serv_resp.set_cid(msg.get_cid()); 
                         cursor.clear_msg();
+                        cursor.set_max_key(true);
                         this -> return_cursor(client_fd, std::move(cursor));
                         this -> queue_client_for_response(std::move(serv_resp));
                         return 0;
@@ -624,6 +627,7 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                     else {
                         cursor.incr_pid();
                         // WHEN LOOKING FOR BUGS CHECK HERE!!!!
+                        cursor.set_max_key(false);
                         std::string empty_str = "";
                         cursor.set_next_key(empty_str, 0);
                         this -> query_partition_by_cursor(cursor, com_code, msg.get_cid(), false);
@@ -632,6 +636,7 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                     }
                 }
                 else {
+                    cursor.set_max_key(false);
                     this -> query_partition_by_cursor(cursor, com_code, msg.get_cid(), false);
                     this -> return_cursor(client_fd, std::move(cursor));
                     return 0;
@@ -646,6 +651,7 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                         serv_resp.set_message_eat(std::move(resp_str));
                         serv_resp.set_cid(msg.get_cid()); 
                         cursor.clear_msg();
+                        cursor.set_max_key(false);
                         this -> return_cursor(client_fd, std::move(cursor));
                         this -> queue_client_for_response(std::move(serv_resp));
                         return 0;
@@ -653,12 +659,14 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                     }
                     else {
                         cursor.decr_pid();
+                        cursor.set_max_key(true);
                         this -> query_partition_by_cursor(cursor, com_code, msg.get_cid(), true);
                         this -> return_cursor(client_fd, std::move(cursor));
                         return 0;
                     }
                 }
                 else {
+                    cursor.set_max_key(false);
                     this -> query_partition_by_cursor(cursor, com_code, msg.get_cid(), false);
                     this -> return_cursor(client_fd, std::move(cursor));
                     return 0;
@@ -676,7 +684,40 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
             // if(el_returned >= )
 
             // if not enough either query the forward or the backward partitions
+            Cursor_Info curs_inf;
+            std::string next_key_str;
+            std::vector<Entry> entries = this -> extract_got_entries_and_info(msg, curs_inf, next_key_str);
 
+            // based on the given info try to find a cursor
+            // 1) find the client_fd
+            socket_t client_fd = this -> find_client_fd(msg.get_cid());
+            if(client_fd < 0) {
+                return -1;
+            }
+
+            // step 2 locate the clients cursor 
+            Cursor cursor;
+            try {
+                cursor = this -> locate_cursor(client_fd, curs_inf.name);
+            }
+            catch(const std::exception& e) {
+                if(this -> verbose > 0) {
+                    std::cerr << e.what() << std::endl;
+                }
+                this -> queue_client_for_error_response(client_fd, msg.get_cid());
+                return -1;
+            }
+
+            // might be a little unsafe cast but who cares
+            cursor.set_next_key(next_key_str, next_key_str.size());
+            cursor.add_new_entries(std::move(entries));
+
+            // else cursor is not complete, find to which partition we
+            uint16_t partition_count = 0;
+            {
+                std::shared_lock<std::shared_mutex> lock(this -> partitions_mutex);
+                partition_count = this -> partitions.size();
+            }
 
 
             break;

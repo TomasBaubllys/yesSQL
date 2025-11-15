@@ -510,11 +510,13 @@ int8_t Partition_Server::handle_get_fx_request(socket_t socket_fd, Server_Messag
             }
         }
         else if(com_code == Command_Code::COMMAND_CODE_GET_FF) {
-            std::cout << "requesting: " << key_and_curs.second.cap << std::endl;
-            std::cout << "KEY:  " << key_and_curs.first << std::endl;
-            entries_key = this -> lsm_tree.get_ff(key_and_curs.first, key_and_curs.second.cap);
-            std::cout << "ENTRIES SIZE = " << entries_key.first.size() << std::endl;
-
+             if(this -> is_fb_edge_flag_set(message.get_string_data())) {
+                std::string max_key(UINT16_MAX, '\xFF');
+                entries_key = this -> lsm_tree.get_ff(max_key, key_and_curs.second.cap);
+            }
+            else {
+                entries_key = this -> lsm_tree.get_ff(key_and_curs.first, key_and_curs.second.cap);
+            }
         }
         else {
             this -> queue_socket_for_err_response(socket_fd, message.get_cid());
