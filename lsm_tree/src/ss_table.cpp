@@ -866,7 +866,7 @@ std::pair<std::vector<Entry>, Bits> SS_Table::get_entries_key_smaller_or_equal(c
 
         // check tombstone
         Entry current_entry(current_key, current_data);
-        if((key_filter == SS_TABLE_FILTER_ALIVE_ENTRIES && !current_entry.is_deleted()) || key_filter == SS_TABLE_FILTER_ALL_ENTRIES) {
+        if((key_filter == SS_TABLE_FILTER_ALIVE_ENTRIES && !current_entry.is_deleted()) || key_filter == SS_TABLE_FILTER_ALL_ENTRIES || map_check) {
             entries.emplace_back(current_entry);
         }
     }
