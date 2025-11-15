@@ -479,7 +479,6 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
             try {
             // extract the cursors name and find it
                 std::pair<std::string, cursor_cap_t> name_cap = this -> extract_cursor_name_cap(msg);
-                std::cout << "CAPACITY: " << name_cap.second << std::endl;
                 Cursor cursor = this -> locate_cursor(client_fd, name_cap.first);
                 cursor.set_capacity(name_cap.second);
                 this -> query_partition_by_cursor(cursor, com_code, msg.get_cid(), false);
@@ -509,7 +508,6 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
 
 // create a message for the client with no id in it, 
 int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
-    msg.remove_cid();
     msg.reset_processed();
 
     // open the message check for command code, if the command code is not get_ff, get_fb, get_keys, COMMAND_CODE_GET_KEYS_PREFIX
@@ -543,6 +541,7 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                 if(this -> verbose > 0) {
                     std::cerr << e.what() << std::endl;
                 }
+                this -> queue_client_for_error_response(client_fd, msg.get_cid());
                 return -1;
             }
 
@@ -661,6 +660,7 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
 
         default: {
             try {
+                msg.remove_cid();
                 this -> queue_client_for_response(std::move(msg));
             }
             catch(const std::exception& e){

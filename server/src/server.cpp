@@ -471,6 +471,6 @@ protocol_array_len_t Server::extract_array_size(std::string msg, bool contains_c
 
     protocol_array_len_t array_len = 0;
     memcpy(&array_len, &msg[sizeof(protocol_msg_len_t) + (contains_cid? sizeof(protocol_id_t) : 0)], sizeof(protocol_array_len_t));
-
+    array_len = protocol_arr_len_ntoh(array_len);
     return array_len;
 }

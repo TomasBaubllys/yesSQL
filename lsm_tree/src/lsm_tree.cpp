@@ -225,10 +225,11 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
     if(!mem_table_entries.empty() && !(mem_table_entries.back().get_key() < key_bits)){
         for(const Entry& mem_table_entry : mem_table_entries){
             forward_validate(ff_entries, mem_table_entry, true, key_bits);
+            next_key = clean_forward_set(ff_entries, true, n); // <----- TOMO FIX PLZ PAZIUREK
         }
     }
     
-    for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
+    for(SS_Table_Controller& ss_table_controller : ss_table_controllers) { // <------ CIA NIEKAD NEATEIS JEI NETURIM NIEKO LENTELESE
         uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
 
         for(uint16_t i = sstable_count-1; i != UINT16_MAX; --i){
