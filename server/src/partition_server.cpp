@@ -510,12 +510,17 @@ int8_t Partition_Server::handle_get_fx_request(socket_t socket_fd, Server_Messag
             }
         }
         else if(com_code == Command_Code::COMMAND_CODE_GET_FF) {
-             if(this -> is_fb_edge_flag_set(message.get_string_data())) {
+            if(this -> is_fb_edge_flag_set(message.get_string_data())) {
                 std::string max_key(UINT16_MAX, '\xFF');
+                std::cout << "Kiek prasom: " << key_and_curs.second.cap << std::endl;
                 entries_key = this -> lsm_tree.get_ff(max_key, key_and_curs.second.cap);
+                std::cout << "Kiek gaunam: " << entries_key.first.size() << std::endl;
             }
             else {
+                std::cout << "Kiek prasom: " << key_and_curs.second.cap << std::endl;
                 entries_key = this -> lsm_tree.get_ff(key_and_curs.first, key_and_curs.second.cap);
+                std::cout << "Kiek gaunam: " << entries_key.first.size() << std::endl;
+
             }
         }
         else {

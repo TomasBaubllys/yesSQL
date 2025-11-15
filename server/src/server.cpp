@@ -409,7 +409,7 @@ void Server::apply_epoll_mod_q() {
 }
 
 
-std::string Server::create_entries_response(const std::vector<Entry>& entry_array, bool contain_cid, protocol_id_t client_id) const{
+std::string Server::create_entries_response(const std::vector<Entry>& entry_array, bool contain_cid, protocol_id_t client_id, bool keys_only) const{
     protocol_msg_len_t msg_len = (contain_cid? sizeof(protocol_id_t) : 0) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t);
     for(const Entry& entry : entry_array) {
         msg_len += sizeof(protocol_key_len_t) + sizeof(protocol_value_len_t);
