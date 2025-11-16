@@ -179,7 +179,8 @@ std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor(std::string cur
             }
         }
     }
-    std::cout << next_key.get_string() << std::endl;
+    //
+    //std::cout << next_key.get_string() << std::endl;
     return std::make_pair(keys, next_key.get_string());
 };
 
@@ -351,7 +352,14 @@ Bits LSM_Tree::clean_forward_set_keys(std::set<Bits>& set_to_clean, uint16_t n){
     for(uint16_t i = 0; i < n; ++i){
         ++it;
     }
-    last_key = *it;
+
+    std::set<Bits>::iterator last_kept_it = it;
+    --last_kept_it;
+
+    last_key = *last_kept_it;
+
+
+    //last_key = *it;
     set_to_clean.erase(it, set_to_clean.end());
     return last_key;
 };

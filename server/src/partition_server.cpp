@@ -493,7 +493,6 @@ int8_t Partition_Server::handle_get_keys_request(socket_t socket_fd, Server_Mess
 
         // std::cout << key_and_curs.second.name << "   " << key_and_curs.second.name_len << std::endl;
         Server_Message serv_msg = this -> create_keys_set_resp(Command_Code::COMMAND_CODE_GET_KEYS, entries_key.first, entries_key.second, message.get_cid(), key_and_curs.second);
-                serv_msg.print();
 
         this -> queue_partition_for_response(socket_fd, std::move(serv_msg));
     }
@@ -692,6 +691,6 @@ Server_Message Partition_Server::create_keys_set_resp(Command_Code com_code, std
     Server_Message serv_msg;
     serv_msg.set_message_eat(std::move(raw_message));
     serv_msg.set_cid(client_id);
-    serv_msg.print();
+    //serv_msg.print();
     return serv_msg;
 }
