@@ -18,6 +18,31 @@ const (
 	PORT = 8080
 )
 
+const TOTAL_KEYS = 100000
+
+func preloadKeys(conn net.Conn) {
+	fmt.Printf("Preloading %d keys...\n", TOTAL_KEYS)
+	for i := 1; i <= TOTAL_KEYS; i++ {
+		key := fmt.Sprintf("%d", i)
+		val := fmt.Sprintf("val-%d", i)
+
+		conn.Write(buildSetCommand(key, val))
+					data, _ := recvExact(conn)
+								resp, _ := parseResponse(data, false)
+
+
+
+		// optional: read response every 1000 keys to avoid overflowing
+		if i%1000 == 0 || i == TOTAL_KEYS {
+			if i%10000 == 0 || i == TOTAL_KEYS {
+				fmt.Printf("[%d/%d] Last response: %s\n", i, TOTAL_KEYS, resp)
+			}
+		}
+	}
+	fmt.Println("Preload complete.")
+}
+
+
 // ===============================================
 // Command Codes
 // ===============================================
@@ -252,47 +277,45 @@ type KV struct {
 	Val string
 }
 
-func parseResponse(data []byte) (string, []KV) {
+func parseResponse(data []byte, keysOnly bool) (string, []KV) {
+    if len(data) < 18 {
+        return "INVALID", nil
+    }
 
-	if len(data) < 18 {
-		return "INVALID", nil
-	}
+    numElems := binary.BigEndian.Uint64(data[8:16])
+    cmdCode := binary.BigEndian.Uint16(data[16:18])
+    cmdName := COMMAND_NAMES[cmdCode]
+    pos := 18
 
-	numElems := binary.BigEndian.Uint64(data[8:16])
-	cmdCode := binary.BigEndian.Uint16(data[16:18])
+    results := make([]KV, 0, numElems)
 
-	cmdName := COMMAND_NAMES[cmdCode]
-	pos := 18
+    for i := uint64(0); i < numElems; i++ {
+        if pos+2 > len(data) {
+            break
+        }
+        keyLen := binary.BigEndian.Uint16(data[pos : pos+2])
+        pos += 2
+        key := string(data[pos : pos+int(keyLen)])
+        pos += int(keyLen)
 
-	results := make([]KV, 0, numElems)
+        if !keysOnly {
+            if pos+4 > len(data) {
+                results = append(results, KV{Key: key, Val: ""})
+                break
+            }
+            valLen := binary.BigEndian.Uint32(data[pos : pos+4])
+            pos += 4
+            val := string(data[pos : pos+int(valLen)])
+            pos += int(valLen)
+            results = append(results, KV{Key: key, Val: val})
+        } else {
+            results = append(results, KV{Key: key})
+        }
+    }
 
-	for i := uint64(0); i < numElems; i++ {
-		if pos+2 > len(data) {
-			break
-		}
-
-		keyLen := binary.BigEndian.Uint16(data[pos : pos+2])
-		pos += 2
-
-		key := string(data[pos : pos+int(keyLen)])
-		pos += int(keyLen)
-
-		if pos+4 > len(data) {
-			results = append(results, KV{Key: key, Val: ""})
-			break
-		}
-
-		valLen := binary.BigEndian.Uint32(data[pos : pos+4])
-		pos += 4
-
-		val := string(data[pos : pos+int(valLen)])
-		pos += int(valLen)
-
-		results = append(results, KV{Key: key, Val: val})
-	}
-
-	return cmdName, results
+    return cmdName, results
 }
+
 
 /*
 func parseResponse(data []byte) (string, map[string]string) {
@@ -366,7 +389,7 @@ func main() {
 	// ===========================================================
 	// Preload exactly 20 keys: "a", "aa", "aaa", ...
 	// ===========================================================
-	preload := []string{
+	/*preload := []string{
 		"!",
 		"!!",
 		"!!!",
@@ -401,30 +424,17 @@ func main() {
 	for _, k := range preload {
 		conn.Write(buildSetCommand(k, "1"))
 		data, _ := recvExact(conn)
-		resp, _ := parseResponse(data)
+		resp, _ := parseResponse(data, false)
 		fmt.Println("  SET", k, "=>", resp)
 	}
 	fmt.Println("Preload complete.")
 	fmt.Println("================================")
+	*/
+
+	preloadKeys(conn)
 
 	fmt.Println("Commands:")
 	fmt.Println("  SET <key> <value>")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -450,14 +460,14 @@ func main() {
 			value := strings.Join(parts[2:], " ")
 			conn.Write(buildSetCommand(key, value))
 			data, _ := recvExact(conn)
-			resp, _ := parseResponse(data)
+			resp, _ := parseResponse(data, false)
 			fmt.Println("Response:", resp)
 
 		case "GET":
 			key := parts[1]
 			conn.Write(buildGetCommand(key))
 			data, _ := recvExact(conn)
-			resp, res := parseResponse(data)
+			resp, res := parseResponse(data, false)
 			fmt.Println("Response:", resp)
 			fmt.Println(res)
 
@@ -465,7 +475,7 @@ func main() {
 			key := parts[1]
 			conn.Write(buildRemoveCommand(key))
 			data, _ := recvExact(conn)
-			resp, _ := parseResponse(data)
+			resp, _ := parseResponse(data, false)
 			fmt.Println("Response:", resp)
 
 		case "CREATE_CURSOR":
@@ -476,14 +486,14 @@ func main() {
 			}
 			conn.Write(buildCreateCursorCommand(name, key))
 			data, _ := recvExact(conn)
-			resp, _ := parseResponse(data)
+			resp, _ := parseResponse(data, false)
 			fmt.Println("Response:", resp)
 
 		case "DELETE_CURSOR":
 			name := parts[1]
 			conn.Write(buildDeleteCursorCommand(name))
 			data, _ := recvExact(conn)
-			resp, _ := parseResponse(data)
+			resp, _ := parseResponse(data, false)
 			fmt.Println("Response:", resp)
 
 		// ==================================================
@@ -500,10 +510,10 @@ func main() {
 
 			conn.Write(buildGetFFCommand(cursor, count))
 			data, _ := recvExact(conn)
-			fmt.Printf("GET_FF RAW: %x\n", data[:40])
+			//fmt.Printf("GET_FF RAW: %x\n", data)
 
 
-			resp, res := parseResponse(data)
+			resp, res := parseResponse(data, false)
 
 			fmt.Println("Response:", resp)
 
@@ -527,7 +537,7 @@ func main() {
 
 			conn.Write(buildGetFBCommand(cursor, count))
 			data, _ := recvExact(conn)
-			resp, res := parseResponse(data)
+			resp, res := parseResponse(data, false)
 
 			fmt.Println("Response:", resp)
 			for _, kv := range res {
@@ -546,9 +556,9 @@ func main() {
 			conn.Write(buildGetKeysCommand(cursor, count))
 			data, _ := recvExact(conn)
 
-						fmt.Printf("GET_KEYS RAW: %x\n", data[:40])
+			//fmt.Printf("GET_KEYS RAW: %x\n", data)
 
-			resp, res := parseResponse(data)
+			resp, res := parseResponse(data, true)
 
 			fmt.Println("Response:", resp)
 			for _, kv := range res {

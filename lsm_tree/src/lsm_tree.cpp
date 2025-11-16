@@ -179,6 +179,7 @@ std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor(std::string cur
             }
         }
     }
+    std::cout << next_key.get_string() << std::endl;
     return std::make_pair(keys, next_key.get_string());
 };
 
