@@ -479,6 +479,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
             try {
             // extract the cursors name and find it
                 std::pair<std::string, cursor_cap_t> name_cap = this -> extract_cursor_name_cap(msg);
+
                 Cursor cursor = this -> locate_cursor(client_fd, name_cap.first);
                 cursor.set_capacity(name_cap.second);
                 this -> query_partition_by_cursor(cursor, com_code, msg.get_cid(), cursor.is_max_key());
@@ -524,8 +525,6 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
             Cursor_Info curs_inf;
             std::string next_key_str;
             std::vector<Entry> entries = this -> extract_got_entries_and_info(msg, curs_inf, next_key_str, false);
-
-            std::cout << entries.size() << std::endl;
 
             // based on the given info try to find a cursor
             // 1) find the client_fd
@@ -689,7 +688,7 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
             // if not enough either query the forward or the backward partitions
             Cursor_Info curs_inf;
             std::string next_key_str;
-            std::vector<Entry> entries = this -> extract_got_entries_and_info(msg, curs_inf, next_key_str);
+            std::vector<Entry> entries = this -> extract_got_entries_and_info(msg, curs_inf, next_key_str, true);
 
             // based on the given info try to find a cursor
             // 1) find the client_fd
@@ -697,6 +696,8 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
             if(client_fd < 0) {
                 return -1;
             }
+
+            std::cout << "here before locate" << std::endl;
 
             // step 2 locate the clients cursor 
             Cursor cursor;
@@ -711,6 +712,9 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                 return -1;
             }
 
+                std::cout << "here after locate" << std::endl;
+
+
             // might be a little unsafe cast but who cares
             cursor.set_next_key(next_key_str, next_key_str.size());
             cursor.add_new_entries(std::move(entries));
@@ -721,6 +725,9 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                 std::shared_lock<std::shared_mutex> lock(this -> partitions_mutex);
                 partition_count = this -> partitions.size();
             }
+
+            std::cout << "here before is complete" << std::endl;
+
             if(cursor.is_complete()) {
                 if(next_key_str == ENTRY_PLACEHOLDER_KEY) {
                     if(cursor.get_last_called_part_id() == partition_count - 1) {
@@ -758,6 +765,11 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                 return 0;
             }
 
+            std::cout << "here after is complete" << std::endl;
+
+            std::cout << "here vbefore no paritions" << std::endl;
+
+
             // no more partitions to queue
             if(cursor.get_next_key() == ENTRY_PLACEHOLDER_KEY) {
                 if(cursor.get_last_called_part_id() == uint16_t(partition_count - 1)) {
@@ -773,6 +785,7 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                     return 0;
                 }
                 else {
+                    std::cout << "aime here" << std::endl;
                     cursor.incr_pid();
                     // WHEN LOOKING FOR BUGS CHECK HERE!!!!
                     cursor.set_max_key(false);
@@ -783,6 +796,8 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
                     return 0;
                 }
             }
+
+            std::cout << "Primary server here " << std::endl;
 
             break;
         }
@@ -1248,6 +1263,9 @@ int8_t Primary_Server::query_partition_by_cursor(Cursor& cursor, Command_Code co
         std::shared_lock<std::shared_mutex> lock(this -> partitions_mutex);
         partition_sock = this -> partitions[cursor.get_last_called_part_id()].socket_fd;
     }
+
+
     this -> queue_partition_for_response(partition_sock, std::move(serv_msg));
+
     return 0;
 }

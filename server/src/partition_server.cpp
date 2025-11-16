@@ -78,6 +78,8 @@ int8_t Partition_Server::start() {
             }
            
             if(this -> epoll_events[i].events & EPOLLOUT) {
+                                        std::cout << "miau second if client" << std::endl;
+
                 // Acquire lock to check/reload buffer
                 std::unique_lock<std::shared_mutex> lock(this -> write_buffers_mutex);
                 std::unordered_map<socket_t, Server_Message>::iterator it = this -> write_buffers.find(socket_fd);
@@ -146,9 +148,17 @@ int8_t Partition_Server::start() {
                 epoll_ctl(epoll_fd, EPOLL_CTL_DEL, socket_fd, nullptr);
                 close(socket_fd);
             }
+
+            std::cout << "miau done if client" << std::endl;
+
         }
 
+                    std::cout << "miau before process remove queue" << std::endl;
+
         this -> process_remove_queue();
+
+                            std::cout << "miau after process remove queue" << std::endl;
+
     }
 
     return 0;
@@ -199,6 +209,7 @@ int8_t Partition_Server::process_request(socket_t socket_fd, Server_Message& ser
         }
 
         case COMMAND_CODE_GET_KEYS: {
+            std::cout << "i come here partition" << std::endl;
             return this -> handle_get_keys_request(socket_fd, serv_msg);
         }
 
@@ -475,18 +486,25 @@ int8_t Partition_Server::handle_get_keys_request(socket_t socket_fd, Server_Mess
         std::shared_lock<std::shared_mutex> lsm_lock(this -> lsm_tree_mutex);
         if(this -> is_fb_edge_flag_set(message.get_string_data())) {
             std::string max_key(UINT16_MAX, '\xFF');
+            std::cout << "here before partition 1" << std::endl;
             entries_key = this -> lsm_tree.get_keys(max_key, key_and_curs.second.cap);
+            std::cout << "here after partition 1" << std::endl;
+
         }
-        else {
+        else {  
+            std::cout << "here before partition 2" << std::endl;
             entries_key = this -> lsm_tree.get_keys(key_and_curs.first, key_and_curs.second.cap);
+            std::cout << "here after partition 2" << std::endl;
         }
 
         //return 0;
 
-               // std::cout << key_and_curs.second.name << "   " << key_and_curs.second.name_len << std::endl;
+        // std::cout << key_and_curs.second.name << "   " << key_and_curs.second.name_len << std::endl;
         Server_Message serv_msg = this -> create_keys_set_resp(Command_Code::COMMAND_CODE_GET_KEYS, entries_key.first, entries_key.second, message.get_cid(), key_and_curs.second);
-        this -> queue_partition_for_response(socket_fd, std::move(serv_msg));
+                serv_msg.print();
 
+        this -> queue_partition_for_response(socket_fd, std::move(serv_msg));
+        std::cout << "after queue partitio for response " << std::endl;
     }
     catch(const std::exception& e) {
         if(this -> verbose > 0) {
@@ -627,7 +645,8 @@ bool Partition_Server::is_fb_edge_flag_set(std::string& msg) {
 Server_Message Partition_Server::create_keys_set_resp(Command_Code com_code, std::set<Bits> bits_set, std::string next_key, protocol_id_t client_id, Cursor_Info& curs_info) {
  protocol_msg_len_t msg_len = sizeof(protocol_id_t) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t) + next_key.size() + sizeof(protocol_key_len_t) + sizeof(cursor_name_len_t) + curs_info.name_len;
     for(const Bits& bit : bits_set) {
-        msg_len += sizeof(protocol_key_len_t) + sizeof(protocol_value_len_t);
+        //msg_len += sizeof(protocol_key_len_t) + sizeof(protocol_value_len_t);
+        msg_len += sizeof(protocol_key_len_t);
         msg_len += bit.size();
     }
 
@@ -682,5 +701,7 @@ Server_Message Partition_Server::create_keys_set_resp(Command_Code com_code, std
     Server_Message serv_msg;
     serv_msg.set_message_eat(std::move(raw_message));
     serv_msg.set_cid(client_id);
+    std::cout << "PARTITION RESPONSE " << std::endl;
+    serv_msg.print();
     return serv_msg;
 }

@@ -253,6 +253,7 @@ type KV struct {
 }
 
 func parseResponse(data []byte) (string, []KV) {
+
 	if len(data) < 18 {
 		return "INVALID", nil
 	}
@@ -499,6 +500,9 @@ func main() {
 
 			conn.Write(buildGetFFCommand(cursor, count))
 			data, _ := recvExact(conn)
+			fmt.Printf("GET_FF RAW: %x\n", data[:40])
+
+
 			resp, res := parseResponse(data)
 
 			fmt.Println("Response:", resp)
@@ -541,6 +545,9 @@ func main() {
 
 			conn.Write(buildGetKeysCommand(cursor, count))
 			data, _ := recvExact(conn)
+
+						fmt.Printf("GET_KEYS RAW: %x\n", data[:40])
+
 			resp, res := parseResponse(data)
 
 			fmt.Println("Response:", resp)
