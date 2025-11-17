@@ -481,10 +481,10 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                 std::pair<std::string, cursor_cap_t> name_cap;
 
                 if(com_code == Command_Code::COMMAND_CODE_GET_KEYS_PREFIX) {
-                    name_cap = this -> extract_cursor_name_cap(msg);
+                    name_cap = this -> extract_cursor_name_cap(msg, &prefix);
                 }
                 else {
-                    name_cap = this -> extract_cursor_name_cap(msg, &prefix);
+                    name_cap = this -> extract_cursor_name_cap(msg);
                 }
 
                 Cursor cursor = this -> locate_cursor(client_fd, name_cap.first);
@@ -1232,6 +1232,17 @@ int8_t Primary_Server::query_partition_by_cursor(Cursor& cursor, Command_Code co
     pos += sizeof(cursor_name_len_t);
 
     memcpy(&msg_str[pos], &cursor.get_name()[0], cursor.get_name_size());
+    pos += cursor.get_name_size();
+
+    if(has_prefix) {
+        std::string prefix = cursor.get_prefix();
+        protocol_key_len_t prefix_len = prefix.size();
+        protocol_key_len_t net_prefix_len = protocol_key_len_hton(prefix_len);
+        memcpy(&msg_str[pos], &net_prefix_len, sizeof(protocol_key_len_t));
+        pos += sizeof(protocol_key_len_t);
+
+        memcpy(&msg_str[pos], &prefix[0], prefix_len);
+    }
     
     pos = PROTOCOL_EDGE_FB_FLAG_POS;
     if(edge_fb_case) {
@@ -1241,16 +1252,6 @@ int8_t Primary_Server::query_partition_by_cursor(Cursor& cursor, Command_Code co
     pos += 1;
     cursor_cap_t net_cap = cursor_cap_hton(cursor.get_remaining());
     memcpy(&msg_str[pos], &net_cap, sizeof(cursor_cap_t));
-
-    if(has_prefix) {
-        std::string prefix = cursor.get_prefix();
-        protocol_key_len_t prefix_len = prefix.size();
-        protocol_key_len_t net_prefix_len = protocol_arr_len_hton(prefix_len);
-        memcpy(&msg_str[pos], &net_prefix_len, sizeof(protocol_key_len_t));
-        pos += sizeof(protocol_key_len_t);
-
-        memcpy(&msg_str[pos], &prefix[0], prefix_len);
-    }
 
     Server_Message serv_msg;
     serv_msg.set_cid(client_id);

@@ -524,7 +524,6 @@ int8_t Partition_Server::handle_get_fx_request(socket_t socket_fd, Server_Messag
     std::pair<std::set<Entry>, std::string> entries_key;
     try {
         key_and_curs = this -> extract_key_and_cursinf(message);
-        // std::cout << key_and_curs.second.name << "   " << key_and_curs.second.name_len << std::endl;
         std::shared_lock<std::shared_mutex> lsm_lock(this -> lsm_tree_mutex);
         if(com_code == Command_Code::COMMAND_CODE_GET_FB) {
             if(this -> is_fb_edge_flag_set(message.get_string_data())) {
@@ -550,7 +549,6 @@ int8_t Partition_Server::handle_get_fx_request(socket_t socket_fd, Server_Messag
             return 0;
         }
 
-               // std::cout << key_and_curs.second.name << "   " << key_and_curs.second.name_len << std::endl;
         Server_Message serv_msg = this -> create_entries_set_resp(com_code, entries_key.first, entries_key.second, message.get_cid(), key_and_curs.second);
         this -> queue_partition_for_response(socket_fd, std::move(serv_msg));
 
@@ -702,7 +700,6 @@ Server_Message Partition_Server::create_keys_set_resp(Command_Code com_code, std
     Server_Message serv_msg;
     serv_msg.set_message_eat(std::move(raw_message));
     serv_msg.set_cid(client_id);
-    //serv_msg.print();
     return serv_msg;
 }
 
@@ -721,7 +718,7 @@ int8_t Partition_Server::handle_get_keys_prefix_request(socket_t socket_fd, Serv
             entries_key = this -> lsm_tree.get_keys_cursor_prefix(prefix, key_and_curs.first, key_and_curs.second.cap);
         }
 
-        Server_Message serv_msg = this -> create_keys_set_resp(Command_Code::COMMAND_CODE_GET_KEYS, entries_key.first, entries_key.second, message.get_cid(), key_and_curs.second);
+        Server_Message serv_msg = this -> create_keys_set_resp(Command_Code::COMMAND_CODE_GET_KEYS_PREFIX, entries_key.first, entries_key.second, message.get_cid(), key_and_curs.second);
 
         this -> queue_partition_for_response(socket_fd, std::move(serv_msg));
     }
