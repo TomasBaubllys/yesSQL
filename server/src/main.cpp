@@ -9,26 +9,19 @@
 
 #define ALLOWED_PORT_RANGE_MSG "Allowed port range is ..."
 #define BAD_PORT_NUMBER_MSG "Bad port number\n"
-#define MIN_PORT_NUMBER 49152
 
-#define BAD_SERVER_TYPE_MSG "Provided server type is incorrect\n"
-#define HELP_MSG "Try \"./server ?\" for more information\n" 
-#define HELP_SYMBOL '?'
+#define HELP_MSG "Missing or incorrect arguments: <server_type>:\n 0 - Primary, 1 - Partition\n<port> - must be a valid port\n<verbose> 0 - no error logging\n1 - log errors to stderr\n"
 
 typedef enum Server_Type {
     PRIMARY_SERVER,
     PARTITION_SERVER
 } Server_Type;
 
-// arguments must be passed like [server_type] [port]
+// arguments must be passed like <server_type> <port> <verbose>
 int main(int argc, char* argv[]) {
-    if(argc != 3 && argc != 4) {
-        // check for ? argument
-        if(argc == 2 && argv[1][0] == HELP_SYMBOL) {
-            // print help msg
-            return 0;
-        }
-        return -1;
+    if(argc != 4) {
+		std::cout << HELP_MSG << std::endl;
+		return -1;
     }
 
     // get which server to create
