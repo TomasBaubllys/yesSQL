@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
                 break;
             }
             default: {
-                std::cerr << BAD_SERVER_TYPE_MSG;
+                std::cerr << HELP_MSG;
                 return -1;
                 break;
             }
