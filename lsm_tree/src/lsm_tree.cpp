@@ -331,7 +331,7 @@ Bits LSM_Tree::clean_forward_set(std::set<Entry>& set_to_clean,const bool is_gre
         for(uint16_t i = 0; i < n; ++i){
             ++it;
         }
-        last_key = it -> get_key();
+        last_key = Bits(it -> get_key());
         set_to_clean.erase(it, set_to_clean.end());
     }
     else{
@@ -342,7 +342,7 @@ Bits LSM_Tree::clean_forward_set(std::set<Entry>& set_to_clean,const bool is_gre
         }
         std::set<Entry>::iterator prev_it = it;
         --prev_it;
-        last_key = prev_it -> get_key();
+        last_key = Bits(prev_it -> get_key());
 
         set_to_clean.erase(set_to_clean.begin(), it);
     }
@@ -357,7 +357,7 @@ Bits LSM_Tree::clean_forward_set_keys(std::set<Bits>& set_to_clean, uint16_t n){
     for(uint16_t i = 0; i < n; ++i){
         ++it;
     }
-    last_key = *it;
+    last_key = Bits(*it);
     set_to_clean.erase(it, set_to_clean.end());
     return last_key;
 };
