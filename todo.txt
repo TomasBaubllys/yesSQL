@@ -1,4 +1,3 @@
-- fix client hang up when a partition is unreachable
-- implement get_keys, get_ff, get_fb
 - add sanity check for msg len
 - add error message codes when returning them to the client
+- rewrite python client

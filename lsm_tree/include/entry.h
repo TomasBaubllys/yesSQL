@@ -156,7 +156,7 @@ class Entry {
 		}
 		//@brief copy assignment operator
 		//@returns reference to this Entry
-		Entry operator=(const Entry& other);
+		Entry& operator=(const Entry& other);
 		// -------------------------------------
 };
 
