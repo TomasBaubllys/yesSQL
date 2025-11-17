@@ -243,6 +243,8 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
         }
         if(!ff_entries.empty()){
             next_key = clean_forward_set(ff_entries, true, n);
+        std::cout << "Last key get_ff mem_table: "<< next_key.get_string() << std::endl;
+
         }
     }
     
@@ -261,6 +263,7 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
 
             if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
                 next_key = temp_next_key;
+                std::cout << "Last key get_ff ss_tables: "<< next_key.get_string() << std::endl;
             }
         }
     }
@@ -281,6 +284,8 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint1
         }
         if(!fb_entries.empty()){
             next_key = clean_forward_set(fb_entries, false, n);
+            std::cout << "Last key get_fb: "<< next_key.get_string() << std::endl;
+
         }
     }
     
