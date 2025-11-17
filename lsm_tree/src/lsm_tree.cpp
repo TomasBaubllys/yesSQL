@@ -175,12 +175,12 @@ std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor(std::string cur
             
             Bits temp_next_key = clean_forward_set_keys(keys, n);
             if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
-                next_key = temp_next_key;
+                if(next_key.get_string() == ENTRY_PLACEHOLDER_KEY || next_key > temp_next_key){
+                    next_key = temp_next_key;
+                }
             }
         }
     }
-    //
-    //std::cout << next_key.get_string() << std::endl;
     return std::make_pair(keys, next_key.get_string());
 };
 
@@ -222,7 +222,9 @@ std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor_prefix(std::str
 
             Bits temp_next_key = clean_forward_set_keys(keys, n);
             if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
-                next_key = temp_next_key;
+                if(next_key.get_string() == ENTRY_PLACEHOLDER_KEY || next_key > temp_next_key){
+                    next_key = temp_next_key;
+                }
             }
         }
     }
@@ -258,9 +260,10 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
             ff_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
             
             Bits temp_next_key = clean_forward_set(ff_entries, true, n);
-
             if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
-                next_key = temp_next_key;
+                if(next_key.get_string() == ENTRY_PLACEHOLDER_KEY || next_key > temp_next_key){
+                    next_key = temp_next_key;
+                }
             }
         }
     }
@@ -296,7 +299,9 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint1
 
             Bits temp_next_key = clean_forward_set(fb_entries, false, n);
             if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
-                next_key = temp_next_key;
+                if(next_key.get_string() == ENTRY_PLACEHOLDER_KEY || next_key < temp_next_key){
+                    next_key = temp_next_key;
+                }
             }
         }
     }
@@ -352,14 +357,7 @@ Bits LSM_Tree::clean_forward_set_keys(std::set<Bits>& set_to_clean, uint16_t n){
     for(uint16_t i = 0; i < n; ++i){
         ++it;
     }
-
-    std::set<Bits>::iterator last_kept_it = it;
-    --last_kept_it;
-
-    last_key = *last_kept_it;
-
-
-    //last_key = *it;
+    last_key = *it;
     set_to_clean.erase(it, set_to_clean.end());
     return last_key;
 };

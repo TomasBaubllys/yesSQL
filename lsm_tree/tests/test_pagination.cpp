@@ -5,10 +5,13 @@
 #include <set>
 #include <string>
 #include <algorithm>
+#include <chrono>
+#include <random>
 
 using namespace std;
+using namespace chrono;
 
-// ANSI color codes for better visibility
+// ANSI color codes
 #define RESET   "\033[0m"
 #define RED     "\033[31m"
 #define GREEN   "\033[32m"
@@ -16,6 +19,9 @@ using namespace std;
 #define BLUE    "\033[34m"
 #define MAGENTA "\033[35m"
 #define CYAN    "\033[36m"
+
+const size_t TOTAL_ENTRIES = 2000000;
+const size_t PAGE_SIZE = 1000;
 
 // Helper to generate test entries with sequential keys
 vector<Entry> generate_sequential_entries(size_t start, size_t count, const string& prefix = "key_") {
@@ -31,413 +37,437 @@ vector<Entry> generate_sequential_entries(size_t start, size_t count, const stri
     return entries;
 }
 
-// Helper to populate LSM tree
-void populate_tree(LSM_Tree& tree, const vector<Entry>& entries) {
-    for (const Entry& entry : entries) {
-        tree.set(entry.get_key().get_string(), entry.get_value().get_string());
-    }
-}
-
-// Helper to print a set of keys
-void print_keys(const set<Bits>& keys, const string& label, int max_display = 10) {
-    cout << CYAN << label << " (" << keys.size() << " keys): " << RESET;
-    int count = 0;
-    for (const Bits& key : keys) {
-        if (count >= max_display) {
-            cout << "...";
-            break;
-        }
-        cout << key.get_string();
-        if (count < keys.size() - 1 && count < max_display - 1) cout << ", ";
-        count++;
-    }
-    cout << endl;
-}
-
-// Helper to print a set of entries
-void print_entries(const set<Entry>& entries, const string& label, int max_display = 10) {
-    cout << CYAN << label << " (" << entries.size() << " entries): " << RESET;
-    int count = 0;
-    for (const Entry& entry : entries) {
-        if (count >= max_display) {
-            cout << "...";
-            break;
-        }
-        cout << entry.get_key().get_string();
-        if (count < entries.size() - 1 && count < max_display - 1) cout << ", ";
-        count++;
-    }
-    cout << endl;
-}
-
-// Analyze next_key value
-void analyze_next_key(const string& next_key, const set<Bits>& returned_keys, const string& test_name) {
-    cout << YELLOW << "\n[" << test_name << "] Next Key Analysis:" << RESET << endl;
-    cout << "  Next key returned: " << MAGENTA << next_key << RESET << endl;
+// Helper to populate LSM tree with progress indicator
+void populate_tree(LSM_Tree& tree, size_t total_entries) {
+    cout << CYAN << "Populating tree with " << total_entries << " entries..." << RESET << endl;
     
-    if (next_key == "ENTRY_PLACEHOLDER_KEY" || next_key == "_placeholder_key") {
-        cout << "  Status: " << GREEN << "End of results (placeholder)" << RESET << endl;
-        return;
-    }
+    auto start = high_resolution_clock::now();
+    const size_t batch_size = 100000;
     
-    // Check if next_key is in the returned set (BUG if true!)
-    bool found_in_results = false;
-    for (const Bits& key : returned_keys) {
-        if (key.get_string() == next_key) {
-            found_in_results = true;
-            break;
-        }
-    }
-    
-    if (found_in_results) {
-        cout << "  Status: " << RED << "ERROR! Next key is IN the returned results!" << RESET << endl;
-    } else {
-        cout << "  Status: " << GREEN << "OK - Next key not in returned results" << RESET << endl;
-    }
-    
-    // Check ordering relative to returned keys
-    if (!returned_keys.empty()) {
-        string last_returned = returned_keys.rbegin()->get_string();
-        cout << "  Last returned key: " << last_returned << endl;
+    for (size_t i = 0; i < total_entries; i += batch_size) {
+        size_t current_batch = min(batch_size, total_entries - i);
+        vector<Entry> batch = generate_sequential_entries(i, current_batch);
         
-        if (next_key <= last_returned) {
-            cout << "  Ordering: " << RED << "ERROR! Next key <= last returned key!" << RESET << endl;
-        } else {
-            cout << "  Ordering: " << GREEN << "OK - Next key > last returned key" << RESET << endl;
+        for (const Entry& entry : batch) {
+            tree.set(entry.get_key().get_string(), entry.get_value().get_string());
         }
-    }
-}
-
-// Analyze next_key for entries
-void analyze_next_key_entries(const string& next_key, const set<Entry>& returned_entries, const string& test_name) {
-    cout << YELLOW << "\n[" << test_name << "] Next Key Analysis:" << RESET << endl;
-    cout << "  Next key returned: " << MAGENTA << next_key << RESET << endl;
-    
-    if (next_key == "ENTRY_PLACEHOLDER_KEY" || next_key == "_placeholder_key") {
-        cout << "  Status: " << GREEN << "End of results (placeholder)" << RESET << endl;
-        return;
-    }
-    
-    // Check if next_key is in the returned set
-    bool found_in_results = false;
-    for (const Entry& entry : returned_entries) {
-        if (entry.get_key().get_string() == next_key) {
-            found_in_results = true;
-            break;
-        }
-    }
-    
-    if (found_in_results) {
-        cout << "  Status: " << RED << "ERROR! Next key is IN the returned results!" << RESET << endl;
-    } else {
-        cout << "  Status: " << GREEN << "OK - Next key not in returned results" << RESET << endl;
-    }
-    
-    // Check ordering
-    if (!returned_entries.empty()) {
-        string last_returned = returned_entries.rbegin()->get_key().get_string();
-        cout << "  Last returned key: " << last_returned << endl;
         
-        if (next_key <= last_returned) {
-            cout << "  Ordering: " << RED << "ERROR! Next key <= last returned key!" << RESET << endl;
-        } else {
-            cout << "  Ordering: " << GREEN << "OK - Next key > last returned key" << RESET << endl;
+        if ((i + current_batch) % 500000 == 0 || i + current_batch == total_entries) {
+            auto elapsed = duration_cast<seconds>(high_resolution_clock::now() - start).count();
+            cout << "  Progress: " << (i + current_batch) << "/" << total_entries 
+                 << " (" << (100.0 * (i + current_batch) / total_entries) << "%) "
+                 << "Time: " << elapsed << "s" << endl;
         }
     }
+    
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(end - start).count();
+    cout << GREEN << "✓ Populated " << total_entries << " entries in " 
+         << duration << "ms" << RESET << endl;
 }
 
-// Test 1: Detailed get_keys_cursor analysis
-void test_get_keys_cursor_detailed() {
-    cout << "\n" << BLUE << "=== Test: get_keys_cursor detailed analysis ===" << RESET << endl;
+// Stress test: Forward pagination through all entries
+void stress_test_forward_pagination() {
+    cout << "\n" << BLUE << "=== STRESS TEST: Forward Pagination ===" << RESET << endl;
+    cout << "Testing get_ff with " << TOTAL_ENTRIES << " entries, page size " << PAGE_SIZE << endl;
+    
     LSM_Tree tree;
+    populate_tree(tree, TOTAL_ENTRIES);
     
-    vector<Entry> entries = generate_sequential_entries(0, 100);
-    populate_tree(tree, entries);
-    
-    cout << "\nInserted 100 entries: key_0 through key_99" << endl;
-    
-    // Page 1
-    cout << "\n" << GREEN << "--- Page 1: Starting from 'key_0', requesting 10 ---" << RESET << endl;
-    auto page1 = tree.get_keys_cursor("key_0", 10);
-    print_keys(page1.first, "Returned keys", 20);
-    analyze_next_key(page1.second, page1.first, "Page 1");
-    
-    // Page 2
-    if (page1.second != "ENTRY_PLACEHOLDER_KEY" && page1.second != "_placeholder_key") {
-        cout << "\n" << GREEN << "--- Page 2: Using cursor '" << page1.second << "', requesting 10 ---" << RESET << endl;
-        auto page2 = tree.get_keys_cursor(page1.second, 10);
-        print_keys(page2.first, "Returned keys", 20);
-        analyze_next_key(page2.second, page2.first, "Page 2");
-        
-        // Check for overlaps
-        cout << "\n" << YELLOW << "Checking for overlaps between Page 1 and Page 2:" << RESET << endl;
-        int overlap_count = 0;
-        for (const Bits& key : page1.first) {
-            if (page2.first.find(key) != page2.first.end()) {
-                cout << "  " << RED << "DUPLICATE: " << key.get_string() << RESET << endl;
-                overlap_count++;
-            }
-        }
-        if (overlap_count == 0) {
-            cout << "  " << GREEN << "No overlaps found!" << RESET << endl;
-        } else {
-            cout << "  " << RED << "Found " << overlap_count << " duplicates!" << RESET << endl;
-        }
-    }
-}
-
-// Test 2: Detailed get_ff analysis
-void test_get_ff_detailed() {
-    cout << "\n" << BLUE << "=== Test: get_ff detailed analysis ===" << RESET << endl;
-    LSM_Tree tree;
-    
-    vector<Entry> entries = generate_sequential_entries(0, 100);
-    populate_tree(tree, entries);
-    
-    cout << "\nInserted 100 entries: key_0 through key_99" << endl;
-    
-    // Page 1
-    cout << "\n" << GREEN << "--- Page 1: Starting from 'key_0', requesting 10 ---" << RESET << endl;
-    auto page1 = tree.get_ff("key_0", 10);
-    print_entries(page1.first, "Returned entries", 20);
-    analyze_next_key_entries(page1.second, page1.first, "get_ff Page 1");
-    
-    // Page 2
-    if (page1.second != "ENTRY_PLACEHOLDER_KEY" && page1.second != "_placeholder_key") {
-        cout << "\n" << GREEN << "--- Page 2: Using cursor '" << page1.second << "', requesting 10 ---" << RESET << endl;
-        auto page2 = tree.get_ff(page1.second, 10);
-        print_entries(page2.first, "Returned entries", 20);
-        analyze_next_key_entries(page2.second, page2.first, "get_ff Page 2");
-        
-        // Check for overlaps
-        cout << "\n" << YELLOW << "Checking for overlaps between Page 1 and Page 2:" << RESET << endl;
-        int overlap_count = 0;
-        for (const Entry& entry1 : page1.first) {
-            for (const Entry& entry2 : page2.first) {
-                if (entry1.get_key() == entry2.get_key()) {
-                    cout << "  " << RED << "DUPLICATE: " << entry1.get_key().get_string() << RESET << endl;
-                    overlap_count++;
-                    break;
-                }
-            }
-        }
-        if (overlap_count == 0) {
-            cout << "  " << GREEN << "No overlaps found!" << RESET << endl;
-        } else {
-            cout << "  " << RED << "Found " << overlap_count << " duplicates!" << RESET << endl;
-        }
-    }
-}
-
-// Test 3: Detailed get_fb analysis
-void test_get_fb_detailed() {
-    cout << "\n" << BLUE << "=== Test: get_fb detailed analysis ===" << RESET << endl;
-    LSM_Tree tree;
-    
-    vector<Entry> entries = generate_sequential_entries(0, 100);
-    populate_tree(tree, entries);
-    
-    cout << "\nInserted 100 entries: key_0 through key_99" << endl;
-    
-    // Page 1
-    cout << "\n" << GREEN << "--- Page 1: Starting from 'key_99', requesting 10 (backward) ---" << RESET << endl;
-    auto page1 = tree.get_fb("key_99", 10);
-    print_entries(page1.first, "Returned entries", 20);
-    analyze_next_key_entries(page1.second, page1.first, "get_fb Page 1");
-    
-    // Page 2
-    if (page1.second != "ENTRY_PLACEHOLDER_KEY" && page1.second != "_placeholder_key") {
-        cout << "\n" << GREEN << "--- Page 2: Using cursor '" << page1.second << "', requesting 10 ---" << RESET << endl;
-        auto page2 = tree.get_fb(page1.second, 10);
-        print_entries(page2.first, "Returned entries", 20);
-        analyze_next_key_entries(page2.second, page2.first, "get_fb Page 2");
-        
-        // Check for overlaps
-        cout << "\n" << YELLOW << "Checking for overlaps between Page 1 and Page 2:" << RESET << endl;
-        int overlap_count = 0;
-        for (const Entry& entry1 : page1.first) {
-            for (const Entry& entry2 : page2.first) {
-                if (entry1.get_key() == entry2.get_key()) {
-                    cout << "  " << RED << "DUPLICATE: " << entry1.get_key().get_string() << RESET << endl;
-                    overlap_count++;
-                    break;
-                }
-            }
-        }
-        if (overlap_count == 0) {
-            cout << "  " << GREEN << "No overlaps found!" << RESET << endl;
-        } else {
-            cout << "  " << RED << "Found " << overlap_count << " duplicates!" << RESET << endl;
-        }
-    }
-}
-
-// Test 4: Multi-page pagination with full trace
-void test_multi_page_pagination() {
-    cout << "\n" << BLUE << "=== Test: Multi-page pagination (get_ff) ===" << RESET << endl;
-    LSM_Tree tree;
-    
-    vector<Entry> entries = generate_sequential_entries(0, 50);
-    populate_tree(tree, entries);
-    
-    cout << "\nInserted 50 entries: key_0 through key_49" << endl;
-    cout << "Will paginate through with page size = 7\n" << endl;
+    auto start = high_resolution_clock::now();
     
     string cursor = "key_0";
-    int page_num = 1;
+    size_t page_num = 0;
+    size_t total_entries_seen = 0;
     set<string> all_keys_seen;
+    size_t duplicate_count = 0;
+    size_t gap_count = 0;
+    string last_key = "";
     
-    while (page_num <= 10) {  // Safety limit
-        cout << "\n" << GREEN << "--- Page " << page_num << ": cursor = '" << cursor << "' ---" << RESET << endl;
-        
-        auto result = tree.get_ff(cursor, 7);
+    while (true) {
+        auto result = tree.get_ff(cursor, PAGE_SIZE);
         
         if (result.first.empty()) {
-            cout << "  Empty result set - end of data" << endl;
-            break;
-        }
-        
-        print_entries(result.first, "  Returned", 10);
-        cout << "  Next cursor: " << MAGENTA << result.second << RESET << endl;
-        
-        // Check for duplicates across pages
-        int dup_count = 0;
-        for (const Entry& entry : result.first) {
-            string key = entry.get_key().get_string();
-            if (all_keys_seen.find(key) != all_keys_seen.end()) {
-                cout << "    " << RED << "DUPLICATE ACROSS PAGES: " << key << RESET << endl;
-                dup_count++;
-            }
-            all_keys_seen.insert(key);
-        }
-        
-        if (dup_count > 0) {
-            cout << "  " << RED << "ERROR: Found " << dup_count << " duplicates!" << RESET << endl;
-        }
-        
-        cursor = result.second;
-        if (cursor == "ENTRY_PLACEHOLDER_KEY" || cursor == "_placeholder_key") {
-            cout << "\n  " << GREEN << "Reached end marker - pagination complete" << RESET << endl;
             break;
         }
         
         page_num++;
-    }
-    
-    cout << "\n" << CYAN << "Total unique keys seen across all pages: " << all_keys_seen.size() << RESET << endl;
-    cout << CYAN << "Expected: 50 keys" << RESET << endl;
-    
-    if (all_keys_seen.size() == 50) {
-        cout << GREEN << "✓ Pagination retrieved all keys exactly once!" << RESET << endl;
-    } else {
-        cout << RED << "✗ Pagination error - wrong number of keys!" << RESET << endl;
-    }
-}
-
-// Test 5: Edge case - cursor at exact key boundaries
-void test_cursor_boundaries() {
-    cout << "\n" << BLUE << "=== Test: Cursor at exact key boundaries ===" << RESET << endl;
-    LSM_Tree tree;
-    
-    vector<Entry> entries = generate_sequential_entries(0, 30);
-    populate_tree(tree, entries);
-    
-    cout << "\nInserted 30 entries: key_0 through key_29" << endl;
-    
-    // Test starting exactly at an existing key
-    cout << "\n" << GREEN << "--- Query from exact key 'key_15' ---" << RESET << endl;
-    auto result1 = tree.get_ff("key_15", 5);
-    print_entries(result1.first, "Returned", 10);
-    
-    bool includes_key15 = false;
-    for (const Entry& e : result1.first) {
-        if (e.get_key().get_string() == "key_15") {
-            includes_key15 = true;
+        
+        // Check for duplicates and gaps
+        for (const Entry& entry : result.first) {
+            string key = entry.get_key().get_string();
+            
+            if (all_keys_seen.find(key) != all_keys_seen.end()) {
+                duplicate_count++;
+                if (duplicate_count <= 10) {
+                    cout << RED << "  DUPLICATE: " << key << RESET << endl;
+                }
+            }
+            
+            all_keys_seen.insert(key);
+            
+            // Check for gaps (missing keys)
+            if (!last_key.empty()) {
+                // Extract numeric part
+                size_t last_num = stoull(last_key.substr(4));
+                size_t curr_num = stoull(key.substr(4));
+                
+                if (curr_num != last_num + 1) {
+                    gap_count++;
+                    if (gap_count <= 10) {
+                        cout << YELLOW << "  GAP: from " << last_key << " to " << key 
+                             << " (missing " << (curr_num - last_num - 1) << " keys)" << RESET << endl;
+                    }
+                }
+            }
+            
+            last_key = key;
+        }
+        
+        total_entries_seen += result.first.size();
+        
+        if (page_num % 100 == 0) {
+            cout << "  Page " << page_num << ": " << total_entries_seen << " entries seen" << endl;
+        }
+        
+        cursor = result.second;
+        if (cursor == "ENTRY_PLACEHOLDER_KEY" || cursor == "_placeholder_key") {
             break;
         }
     }
     
-    if (includes_key15) {
-        cout << "  " << GREEN << "✓ Correctly includes the starting key 'key_15'" << RESET << endl;
-    } else {
-        cout << "  " << RED << "✗ ERROR: Starting key 'key_15' not in results!" << RESET << endl;
-    }
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(end - start).count();
     
-    analyze_next_key_entries(result1.second, result1.first, "Boundary test");
+    // Results
+    cout << "\n" << CYAN << "Forward Pagination Results:" << RESET << endl;
+    cout << "  Total pages: " << page_num << endl;
+    cout << "  Total entries seen: " << total_entries_seen << endl;
+    cout << "  Unique keys: " << all_keys_seen.size() << endl;
+    cout << "  Expected entries: " << TOTAL_ENTRIES << endl;
+    cout << "  Duplicates: " << duplicate_count << endl;
+    cout << "  Gaps detected: " << gap_count << endl;
+    cout << "  Time: " << duration << "ms" << endl;
+    
+    if (all_keys_seen.size() == TOTAL_ENTRIES && duplicate_count == 0 && gap_count == 0) {
+        cout << GREEN << "✓ PASS: Perfect pagination!" << RESET << endl;
+    } else {
+        cout << RED << "✗ FAIL: Pagination issues detected!" << RESET << endl;
+    }
 }
 
-// Test 6: Prefix pagination detailed
-void test_prefix_pagination_detailed() {
-    cout << "\n" << BLUE << "=== Test: Prefix pagination detailed ===" << RESET << endl;
+// Stress test: Backward pagination through all entries
+void stress_test_backward_pagination() {
+    cout << "\n" << BLUE << "=== STRESS TEST: Backward Pagination ===" << RESET << endl;
+    cout << "Testing get_fb with " << TOTAL_ENTRIES << " entries, page size " << PAGE_SIZE << endl;
+    
     LSM_Tree tree;
+    populate_tree(tree, TOTAL_ENTRIES);
     
-    vector<Entry> alpha = generate_sequential_entries(0, 30, "alpha_");
-    vector<Entry> beta = generate_sequential_entries(0, 30, "beta_");
-    vector<Entry> gamma = generate_sequential_entries(0, 30, "gamma_");
+    auto start = high_resolution_clock::now();
     
-    populate_tree(tree, alpha);
-    populate_tree(tree, beta);
-    populate_tree(tree, gamma);
+    string cursor = "key_" + to_string(TOTAL_ENTRIES - 1);
+    size_t page_num = 0;
+    size_t total_entries_seen = 0;
+    set<string> all_keys_seen;
+    size_t duplicate_count = 0;
     
-    cout << "\nInserted 90 entries: 30 with prefix 'alpha_', 30 with 'beta_', 30 with 'gamma_'" << endl;
-    
-    // Paginate through beta_ only
-    cout << "\n" << GREEN << "--- Paginating through 'beta_' prefix only ---" << RESET << endl;
-    
-    string cursor = "beta_0";
-    int page = 1;
-    int total_beta_keys = 0;
-    
-    while (page <= 5) {
-        cout << "\n  Page " << page << ": cursor = '" << cursor << "'" << endl;
-        auto result = tree.get_keys_cursor_prefix("beta_", cursor, 8);
+    while (true) {
+        auto result = tree.get_fb(cursor, PAGE_SIZE);
         
-        if (result.first.empty()) break;
+        if (result.first.empty()) {
+            break;
+        }
         
-        print_keys(result.first, "    Returned", 10);
+        page_num++;
         
-        // Verify all keys have correct prefix
-        int wrong_prefix = 0;
+        for (const Entry& entry : result.first) {
+            string key = entry.get_key().get_string();
+            
+            if (all_keys_seen.find(key) != all_keys_seen.end()) {
+                duplicate_count++;
+                if (duplicate_count <= 10) {
+                    cout << RED << "  DUPLICATE: " << key << RESET << endl;
+                }
+            }
+            
+            all_keys_seen.insert(key);
+        }
+        
+        total_entries_seen += result.first.size();
+        
+        if (page_num % 100 == 0) {
+            cout << "  Page " << page_num << ": " << total_entries_seen << " entries seen" << endl;
+        }
+        
+        cursor = result.second;
+        if (cursor == "ENTRY_PLACEHOLDER_KEY" || cursor == "_placeholder_key") {
+            break;
+        }
+    }
+    
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(end - start).count();
+    
+    cout << "\n" << CYAN << "Backward Pagination Results:" << RESET << endl;
+    cout << "  Total pages: " << page_num << endl;
+    cout << "  Total entries seen: " << total_entries_seen << endl;
+    cout << "  Unique keys: " << all_keys_seen.size() << endl;
+    cout << "  Expected entries: " << TOTAL_ENTRIES << endl;
+    cout << "  Duplicates: " << duplicate_count << endl;
+    cout << "  Time: " << duration << "ms" << endl;
+    
+    if (all_keys_seen.size() == TOTAL_ENTRIES && duplicate_count == 0) {
+        cout << GREEN << "✓ PASS: Perfect backward pagination!" << RESET << endl;
+    } else {
+        cout << RED << "✗ FAIL: Backward pagination issues detected!" << RESET << endl;
+    }
+}
+
+// Stress test: get_keys_cursor pagination
+void stress_test_keys_cursor() {
+    cout << "\n" << BLUE << "=== STRESS TEST: Keys Cursor Pagination ===" << RESET << endl;
+    cout << "Testing get_keys_cursor with " << TOTAL_ENTRIES << " entries, page size " << PAGE_SIZE << endl;
+    
+    LSM_Tree tree;
+    populate_tree(tree, TOTAL_ENTRIES);
+    
+    auto start = high_resolution_clock::now();
+    
+    string cursor = "key_0";
+    size_t page_num = 0;
+    set<string> all_keys_seen;
+    size_t duplicate_count = 0;
+    
+    while (true) {
+        auto result = tree.get_keys_cursor(cursor, PAGE_SIZE);
+        
+        if (result.first.empty()) {
+            break;
+        }
+        
+        page_num++;
+        
         for (const Bits& key : result.first) {
-            if (key.get_string().substr(0, 5) != "beta_") {
-                cout << "      " << RED << "WRONG PREFIX: " << key.get_string() << RESET << endl;
-                wrong_prefix++;
+            string key_str = key.get_string();
+            
+            if (all_keys_seen.find(key_str) != all_keys_seen.end()) {
+                duplicate_count++;
+                if (duplicate_count <= 10) {
+                    cout << RED << "  DUPLICATE: " << key_str << RESET << endl;
+                }
+            }
+            
+            all_keys_seen.insert(key_str);
+        }
+        
+        if (page_num % 100 == 0) {
+            cout << "  Page " << page_num << ": " << all_keys_seen.size() << " unique keys" << endl;
+        }
+        
+        cursor = result.second;
+        if (cursor == "ENTRY_PLACEHOLDER_KEY" || cursor == "_placeholder_key") {
+            break;
+        }
+    }
+    
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(end - start).count();
+    
+    cout << "\n" << CYAN << "Keys Cursor Results:" << RESET << endl;
+    cout << "  Total pages: " << page_num << endl;
+    cout << "  Unique keys: " << all_keys_seen.size() << endl;
+    cout << "  Expected keys: " << TOTAL_ENTRIES << endl;
+    cout << "  Duplicates: " << duplicate_count << endl;
+    cout << "  Time: " << duration << "ms" << endl;
+    
+    if (all_keys_seen.size() == TOTAL_ENTRIES && duplicate_count == 0) {
+        cout << GREEN << "✓ PASS: Perfect keys cursor pagination!" << RESET << endl;
+    } else {
+        cout << RED << "✗ FAIL: Keys cursor pagination issues!" << RESET << endl;
+    }
+}
+
+// Stress test: Random access pagination
+void stress_test_random_access() {
+    cout << "\n" << BLUE << "=== STRESS TEST: Random Access Pagination ===" << RESET << endl;
+    cout << "Testing random starting points with " << TOTAL_ENTRIES << " entries" << endl;
+    
+    LSM_Tree tree;
+    populate_tree(tree, TOTAL_ENTRIES);
+    
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<size_t> dist(0, TOTAL_ENTRIES - 1000);
+    
+    const size_t num_random_tests = 100;
+    size_t successful_tests = 0;
+    
+    auto start = high_resolution_clock::now();
+    
+    for (size_t test = 0; test < num_random_tests; test++) {
+        size_t random_start = dist(gen);
+        string cursor = "key_" + to_string(random_start);
+        
+        set<string> keys_in_test;
+        size_t pages = 0;
+        bool has_duplicates = false;
+        
+        // Paginate forward for 10 pages
+        for (int page = 0; page < 10; page++) {
+            auto result = tree.get_ff(cursor, 100);
+            
+            if (result.first.empty()) break;
+            
+            pages++;
+            
+            for (const Entry& entry : result.first) {
+                string key = entry.get_key().get_string();
+                if (keys_in_test.find(key) != keys_in_test.end()) {
+                    has_duplicates = true;
+                }
+                keys_in_test.insert(key);
+            }
+            
+            cursor = result.second;
+            if (cursor == "ENTRY_PLACEHOLDER_KEY" || cursor == "_placeholder_key") {
+                break;
             }
         }
         
-        if (wrong_prefix == 0) {
-            cout << "    " << GREEN << "✓ All keys have 'beta_' prefix" << RESET << endl;
+        if (!has_duplicates && pages > 0) {
+            successful_tests++;
         }
         
-        total_beta_keys += result.first.size();
-        cursor = result.second;
-        
-        if (cursor == "ENTRY_PLACEHOLDER_KEY" || cursor == "_placeholder_key") break;
-        
-        page++;
+        if ((test + 1) % 20 == 0) {
+            cout << "  Completed " << (test + 1) << "/" << num_random_tests 
+                 << " random tests..." << endl;
+        }
     }
     
-    cout << "\n" << CYAN << "Total 'beta_' keys retrieved: " << total_beta_keys << RESET << endl;
-    cout << CYAN << "Expected: 30" << RESET << endl;
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(end - start).count();
+    
+    cout << "\n" << CYAN << "Random Access Results:" << RESET << endl;
+    cout << "  Tests performed: " << num_random_tests << endl;
+    cout << "  Successful (no duplicates): " << successful_tests << endl;
+    cout << "  Success rate: " << (100.0 * successful_tests / num_random_tests) << "%" << endl;
+    cout << "  Time: " << duration << "ms" << endl;
+    
+    if (successful_tests == num_random_tests) {
+        cout << GREEN << "✓ PASS: All random access tests passed!" << RESET << endl;
+    } else {
+        cout << RED << "✗ FAIL: Some random access tests failed!" << RESET << endl;
+    }
 }
 
-// Main test runner
+// Stress test: Prefix pagination with multiple prefixes
+void stress_test_prefix_pagination() {
+    cout << "\n" << BLUE << "=== STRESS TEST: Prefix Pagination ===" << RESET << endl;
+    
+    const size_t entries_per_prefix = 100000;
+    const size_t num_prefixes = 20;
+    
+    LSM_Tree tree;
+    
+    cout << CYAN << "Populating with " << (entries_per_prefix * num_prefixes) 
+         << " entries across " << num_prefixes << " prefixes..." << RESET << endl;
+    
+    auto pop_start = high_resolution_clock::now();
+    
+    for (size_t p = 0; p < num_prefixes; p++) {
+        string prefix = "prefix" + to_string(p) + "_";
+        vector<Entry> entries = generate_sequential_entries(0, entries_per_prefix, prefix);
+        
+        for (const Entry& entry : entries) {
+            tree.set(entry.get_key().get_string(), entry.get_value().get_string());
+        }
+        
+        if ((p + 1) % 5 == 0) {
+            cout << "  Populated " << (p + 1) << "/" << num_prefixes << " prefixes" << endl;
+        }
+    }
+    
+    auto pop_end = high_resolution_clock::now();
+    cout << GREEN << "✓ Population complete in " 
+         << duration_cast<seconds>(pop_end - pop_start).count() << "s" << RESET << endl;
+    
+    // Test each prefix
+    size_t total_success = 0;
+    auto test_start = high_resolution_clock::now();
+    
+    for (size_t p = 0; p < num_prefixes; p++) {
+        string prefix = "prefix" + to_string(p) + "_";
+        string cursor = prefix + "0";
+        
+        set<string> keys_seen;
+        size_t wrong_prefix_count = 0;
+        
+        while (true) {
+            auto result = tree.get_keys_cursor_prefix(prefix, cursor, PAGE_SIZE);
+            
+            if (result.first.empty()) break;
+            
+            for (const Bits& key : result.first) {
+                string key_str = key.get_string();
+                if (key_str.substr(0, prefix.length()) != prefix) {
+                    wrong_prefix_count++;
+                }
+                keys_seen.insert(key_str);
+            }
+            
+            cursor = result.second;
+            if (cursor == "ENTRY_PLACEHOLDER_KEY" || cursor == "_placeholder_key") {
+                break;
+            }
+        }
+        
+        if (keys_seen.size() == entries_per_prefix && wrong_prefix_count == 0) {
+            total_success++;
+        } else {
+            cout << RED << "  Prefix '" << prefix << "': " << keys_seen.size() 
+                 << "/" << entries_per_prefix << " (wrong: " << wrong_prefix_count << ")" << RESET << endl;
+        }
+    }
+    
+    auto test_end = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(test_end - test_start).count();
+    
+    cout << "\n" << CYAN << "Prefix Pagination Results:" << RESET << endl;
+    cout << "  Prefixes tested: " << num_prefixes << endl;
+    cout << "  Successful: " << total_success << endl;
+    cout << "  Success rate: " << (100.0 * total_success / num_prefixes) << "%" << endl;
+    cout << "  Time: " << duration << "ms" << endl;
+    
+    if (total_success == num_prefixes) {
+        cout << GREEN << "✓ PASS: All prefix pagination tests passed!" << RESET << endl;
+    } else {
+        cout << RED << "✗ FAIL: Some prefix pagination tests failed!" << RESET << endl;
+    }
+}
+
 int main() {
-    cout << BLUE << "\n╔════════════════════════════════════════════════════════════╗" << RESET << endl;
-    cout << BLUE << "║  LSM Tree Cursor Function - In-Depth Analysis Suite       ║" << RESET << endl;
-    cout << BLUE << "╚════════════════════════════════════════════════════════════╝" << RESET << endl;
+    cout << BLUE << "\n╔═══════════════════════════════════════════════════════════╗" << RESET << endl;
+    cout << BLUE << "║       LSM Tree Cursor - STRESS TEST SUITE                ║" << RESET << endl;
+    cout << BLUE << "║       Testing with 2,000,000 entries                     ║" << RESET << endl;
+    cout << BLUE << "╚═══════════════════════════════════════════════════════════╝" << RESET << endl;
+    
+    auto overall_start = high_resolution_clock::now();
     
     try {
-        test_get_keys_cursor_detailed();
-        test_get_ff_detailed();
-        test_get_fb_detailed();
-        test_multi_page_pagination();
-        test_cursor_boundaries();
-        test_prefix_pagination_detailed();
+        stress_test_forward_pagination();
+        stress_test_backward_pagination();
+        stress_test_keys_cursor();
+        stress_test_random_access();
+        stress_test_prefix_pagination();
         
-        cout << "\n" << GREEN << "════════════════════════════════════════════════════════════" << RESET << endl;
-        cout << GREEN << "  All detailed analysis tests completed!" << RESET << endl;
-        cout << GREEN << "════════════════════════════════════════════════════════════" << RESET << endl;
+        auto overall_end = high_resolution_clock::now();
+        auto total_duration = duration_cast<seconds>(overall_end - overall_start).count();
+        
+        cout << "\n" << GREEN << "═══════════════════════════════════════════════════════════" << RESET << endl;
+        cout << GREEN << "  All stress tests completed!" << RESET << endl;
+        cout << GREEN << "  Total time: " << total_duration << " seconds" << RESET << endl;
+        cout << GREEN << "═══════════════════════════════════════════════════════════" << RESET << endl;
         
     } catch (const exception& e) {
         cerr << "\n" << RED << "✗ Test failed with exception: " << e.what() << RESET << endl;
