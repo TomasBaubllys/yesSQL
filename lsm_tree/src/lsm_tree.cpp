@@ -272,6 +272,7 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
 };
 
 std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint16_t n){
+    
     std::set<Entry> fb_entries;
     Bits key_bits = Bits(_key);
     Bits next_key(ENTRY_PLACEHOLDER_KEY);
@@ -306,6 +307,12 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint1
         }
     }
 
+    struct MyCompare {
+        bool operator()(Entry a, Entry b) const {
+            return a > b;   // reverse order
+        }
+    };
+    std::set<Entry, MyCompare> ordered_fb_entries(fb_entries.begin(), fb_entries.end());
     return std::make_pair(fb_entries, next_key.get_string());
 };
 
