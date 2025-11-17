@@ -58,10 +58,12 @@ class Partition_Server : public Server {
 
         int8_t handle_get_keys_request(socket_t socket_fd, Server_Message& message);
 
+        int8_t handle_get_keys_prefix_request(socket_t socket_fd, Server_Message& message);
+
         // handles both GET_FF and GET_FB
         int8_t handle_get_fx_request(socket_t socket_fd, Server_Message& message, Command_Code com_code);
 
-        std::pair<std::string, Cursor_Info> extract_key_and_cursinf(Server_Message& message);
+        std::pair<std::string, Cursor_Info> extract_key_and_cursinf(Server_Message& message, std::string* prefix = nullptr);
 
         void queue_socket_for_not_found_response(socket_t socket_fd, protocol_id_t client_id);
 

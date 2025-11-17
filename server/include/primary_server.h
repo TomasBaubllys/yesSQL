@@ -119,9 +119,9 @@ class Primary_Server : public Server {
 
         Cursor extract_cursor_creation(const Server_Message& message);
 
-        std::string extract_cursor_name(const Server_Message& message);
+        std::string extract_cursor_name(const Server_Message& message, std::string* prefix = nullptr);
 
-        std::pair<std::string, cursor_cap_t> extract_cursor_name_cap(const Server_Message& message);
+        std::pair<std::string, cursor_cap_t> extract_cursor_name_cap(const Server_Message& message, std::string* prefix_str = nullptr);
 
         // returns all entries read, the cursors name, and the next key str
         std::vector<Entry> extract_got_entries_and_info(const Server_Message& message, Cursor_Info& curs_info, std::string& next_key_str, bool keys_only = false);
@@ -133,7 +133,7 @@ class Primary_Server : public Server {
 
         void return_cursor(socket_t client_fd, Cursor&& cursor);
 
-        int8_t query_partition_by_cursor(Cursor& cursor, Command_Code com_code, protocol_id_t client_id, bool edge_fb_case);
+        int8_t query_partition_by_cursor(Cursor& cursor, Command_Code com_code, protocol_id_t client_id, bool edge_fb_case, bool has_prefix = false);
 
     public:
         Primary_Server(uint16_t port, uint8_t verbose = SERVER_DEFAULT_VERBOSE_VAL,  uint32_t thread_pool_size = SERVER_DEFAULT_THREAD_POOL_VAL);
