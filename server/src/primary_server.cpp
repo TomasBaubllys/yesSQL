@@ -559,7 +559,7 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
 
             if(cursor.is_complete()) {
                 if(com_code == Command_Code::COMMAND_CODE_GET_FF && next_key_str == ENTRY_PLACEHOLDER_KEY) {
-                    if(cursor.get_last_called_part_id() == partition_count - 1) {
+                    if(cursor.get_last_called_part_id() == (uint16_t)(partition_count - 1)) {
                         protocol_key_len_t next_key_lent = 0;
                         cursor.set_next_key(std::move(""), next_key_lent);
                         cursor.set_max_key(true);
@@ -1246,7 +1246,7 @@ int8_t Primary_Server::query_partition_by_cursor(Cursor& cursor, Command_Code co
         std::string prefix = cursor.get_prefix();
         protocol_key_len_t prefix_len = prefix.size();
         protocol_key_len_t net_prefix_len = protocol_arr_len_hton(prefix_len);
-        memcpy(&msg_str[pos], &prefix_len, sizeof(protocol_key_len_t));
+        memcpy(&msg_str[pos], &net_prefix_len, sizeof(protocol_key_len_t));
         pos += sizeof(protocol_key_len_t);
 
         memcpy(&msg_str[pos], &prefix[0], prefix_len);
