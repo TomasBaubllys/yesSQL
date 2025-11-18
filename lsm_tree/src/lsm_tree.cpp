@@ -232,6 +232,7 @@ std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor_prefix(std::str
 std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint16_t n){
     std::set<Entry> ff_entries;
     Bits key_bits(_key);
+    std::cout << "Key bits:" << key_bits.get_string() << std::endl;
     Bits next_key(ENTRY_PLACEHOLDER_KEY);
 
     std::vector<Entry> mem_table_entries = mem_table.dump_entries();
@@ -260,7 +261,6 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
             ff_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
             
             Bits temp_next_key = clean_forward_set(ff_entries, true, n);
-
             if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
                 next_key = temp_next_key;
                 std::cout << "Last key get_ff ss_tables: "<< next_key.get_string() << std::endl;
@@ -309,10 +309,11 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint1
     return std::make_pair(fb_entries, next_key.get_string());
 };
 
-void LSM_Tree::forward_validate(std::set<Entry>& entries,const Entry& entry_to_append,const bool is_greater_operation,const Bits key_value){
+void LSM_Tree::forward_validate(std::set<Entry>& entries, const Entry& entry_to_append, const bool is_greater_operation, const Bits key_value){
     if(is_greater_operation){
         if(entry_to_append.get_key() >= key_value){
             entries.emplace(entry_to_append);
+            std::cout << entry_to_append.get_key_string() << std::endl;
         }
     }else{
         if(entry_to_append.get_key() <= key_value){
