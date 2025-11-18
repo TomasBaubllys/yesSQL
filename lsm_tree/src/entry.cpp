@@ -91,7 +91,7 @@ void Entry::update_value(Bits _value){
     return;
 };
 
-Entry Entry::operator=(const Entry& other){
+Entry& Entry::operator=(const Entry& other){
     entry_length = other.entry_length;
     tombstone_flag = other.tombstone_flag;
     key = other.key;
