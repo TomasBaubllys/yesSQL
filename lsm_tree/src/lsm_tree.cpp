@@ -246,7 +246,6 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
         if(!ff_entries.empty()){
             next_key = clean_forward_set(ff_entries, true, n);
         std::cout << "Last key get_ff mem_table: "<< next_key.get_string() << std::endl;
-
         }
     }
     
@@ -256,7 +255,6 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
 
         for(uint16_t i = sstable_count-1; i != UINT16_MAX; --i){
             const SS_Table* ss_table = ss_table_controller.at(i);
-
             std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_larger_or_equal_alive(key_bits, n);
 
             ff_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
@@ -264,7 +262,6 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
             Bits temp_next_key = clean_forward_set(ff_entries, true, n);
             if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
                 next_key = temp_next_key;
-                std::cout << "Last key get_ff ss_tables: "<< next_key.get_string() << std::endl;
             }
         }
     }
@@ -286,8 +283,6 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint1
         }
         if(!fb_entries.empty()){
             next_key = clean_forward_set(fb_entries, false, n);
-            std::cout << "Last key get_fb: "<< next_key.get_string() << std::endl;
-
         }
     }
     
@@ -310,12 +305,6 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint1
         }
     }
 
-    struct MyCompare {
-        bool operator()(Entry a, Entry b) const {
-            return a > b;   // reverse order
-        }
-    };
-    std::set<Entry, MyCompare> ordered_fb_entries(fb_entries.begin(), fb_entries.end());
     return std::make_pair(fb_entries, next_key.get_string());
 };
 

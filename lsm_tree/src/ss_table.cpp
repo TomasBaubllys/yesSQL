@@ -1002,7 +1002,7 @@ std::pair<std::vector<Entry>, Bits> SS_Table::get_entries_key_smaller_or_equal_a
 }
 
 std::pair<std::vector<Entry>, Bits> SS_Table::get_entries_key_larger_or_equal_alive(const Bits& target_key, uint32_t count) const {
-    return this -> get_entries_key_larger_or_equal(target_key, SS_TABLE_FILTER_ALIVE_ENTRIES);
+    return this -> get_entries_key_larger_or_equal(target_key, SS_TABLE_FILTER_ALIVE_ENTRIES, count);
 }
 
 std::pair<std::vector<Entry>, Bits> SS_Table::get_n_entries_alive(uint32_t count) const {
