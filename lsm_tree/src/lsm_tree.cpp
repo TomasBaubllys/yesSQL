@@ -245,6 +245,7 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
         }
         if(!ff_entries.empty()){
             next_key = clean_forward_set(ff_entries, true, n);
+        std::cout << "Last key get_ff mem_table: "<< next_key.get_string() << std::endl;
         }
     }
     
@@ -254,16 +255,13 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
 
         for(uint16_t i = sstable_count-1; i != UINT16_MAX; --i){
             const SS_Table* ss_table = ss_table_controller.at(i);
-
             std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_larger_or_equal_alive(key_bits, n);
 
             ff_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
             
             Bits temp_next_key = clean_forward_set(ff_entries, true, n);
             if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
-                if(next_key.get_string() == ENTRY_PLACEHOLDER_KEY || next_key > temp_next_key){
-                    next_key = temp_next_key;
-                }
+                next_key = temp_next_key;
             }
         }
     }
@@ -307,12 +305,6 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint1
         }
     }
 
-    struct MyCompare {
-        bool operator()(Entry a, Entry b) const {
-            return a > b;   // reverse order
-        }
-    };
-    std::set<Entry, MyCompare> ordered_fb_entries(fb_entries.begin(), fb_entries.end());
     return std::make_pair(fb_entries, next_key.get_string());
 };
 
@@ -338,19 +330,28 @@ Bits LSM_Tree::clean_forward_set(std::set<Entry>& set_to_clean,const bool is_gre
         for(uint16_t i = 0; i < n; ++i){
             ++it;
         }
-        last_key = it -> get_key();
+        std::set<Entry>::iterator last_kept_it = it;
+        --last_kept_it;
+
+        last_key = last_kept_it->get_key();
+        //last_key = it -> get_key();
         set_to_clean.erase(it, set_to_clean.end());
     }
     else{
-        std::set<Entry>::iterator it = set_to_clean.begin();
         uint16_t elements_to_skip = set_to_clean.size() - n;
+
+        std::set<Entry>::iterator it = set_to_clean.begin();
+        //uint16_t elements_to_skip = set_to_clean.size() - n;
         for(uint16_t i = 0; i < elements_to_skip; ++i){
             ++it;
         }
-        std::set<Entry>::iterator prev_it = it;
-        --prev_it;
-        last_key = prev_it -> get_key();
+        //std::set<Entry>::iterator prev_it = it;
+        //--prev_it;
+        //last_key = prev_it -> get_key();
 
+        last_key = it->get_key();
+
+        
         set_to_clean.erase(set_to_clean.begin(), it);
     }
     return last_key;
