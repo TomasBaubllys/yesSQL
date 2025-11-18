@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"net"
@@ -72,35 +71,12 @@ var COMMAND_NAMES = map[uint16]string{
 	CMD_INVALID_COMMAND: "INVALID_COMMAND",
 }
 
-// ===============================================
-// Colors
-// ===============================================
 var (
 	ColorRed   = "\033[91m"
 	ColorGreen = "\033[92m"
 	ColorReset = "\033[0m"
 )
 
-// ===============================================
-// Helpers
-// ===============================================
-func randomKey() string {
-	n := rand.Intn(112) + 16
-	b := make([]byte, n)
-	rand.Read(b)
-	return hex.EncodeToString(b)
-}
-
-func randomValue() string {
-	n := rand.Intn(1024) + 1
-	b := make([]byte, n)
-	rand.Read(b)
-	return hex.EncodeToString(b)
-}
-
-// ===============================================
-// Command Builders
-// ===============================================
 func buildSetCommand(key, value string) []byte {
 	keyBytes := []byte(key)
 	valBytes := []byte(value)
@@ -144,7 +120,6 @@ func buildRemoveCommand(key string) []byte {
 	return buf.Bytes()
 }
 
-// CREATE_CURSOR ---------------------------------------
 func buildCreateCursorCommand(cursorName string, key string) []byte {
 	cursorBytes := []byte(cursorName)
 	keyBytes := []byte(key)
@@ -162,7 +137,6 @@ func buildCreateCursorCommand(cursorName string, key string) []byte {
 	return buf.Bytes()
 }
 
-// DELETE_CURSOR ---------------------------------------
 func buildDeleteCursorCommand(name string) []byte {
 	nameBytes := []byte(name)
 	totalLen := uint64(8 + 8 + 2 + 1 + len(nameBytes))
@@ -176,9 +150,6 @@ func buildDeleteCursorCommand(name string) []byte {
 	return buf.Bytes()
 }
 
-// =====================================================
-// GET_FF / GET_FB
-// =====================================================
 func buildGetFFCommand(cursor string, count uint16) []byte {
 	nameBytes := []byte(cursor)
 	totalLen := uint64(8 + 6 + 2 + 2 + 1 + len(nameBytes))
@@ -211,9 +182,6 @@ func buildGetFBCommand(cursor string, count uint16) []byte {
 	return buf.Bytes()
 }
 
-// =====================================================
-// GET_KEYS
-// =====================================================
 func buildGetKeysCommand(cursor string, count uint16) []byte {
 	nameBytes := []byte(cursor)
 	totalLen := uint64(8 + 6 + 2 + 2 + 1 + len(nameBytes))
@@ -230,9 +198,6 @@ func buildGetKeysCommand(cursor string, count uint16) []byte {
 	return buf.Bytes()
 }
 
-// =====================================================
-// NEW: GET_KEYS_PREFIX
-// =====================================================
 func buildGetKeysPrefixCommand(cursor string, count uint16, prefix string) []byte {
 	nameBytes := []byte(cursor)
 	prefixBytes := []byte(prefix)
@@ -254,9 +219,6 @@ func buildGetKeysPrefixCommand(cursor string, count uint16, prefix string) []byt
 	return buf.Bytes()
 }
 
-// =====================================================
-// Response Parsing
-// =====================================================
 func recvExact(conn net.Conn) ([]byte, error) {
 	header := make([]byte, 8)
 	_, err := conn.Read(header)
@@ -324,9 +286,6 @@ func parseResponse(data []byte, keysOnly bool) (string, []KV) {
 	return cmdName, results
 }
 
-// =====================================================
-// Main
-// =====================================================
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
@@ -454,9 +413,6 @@ func main() {
 				fmt.Println(kv.Key)
 			}
 
-		// ===============================================
-		// NEW COMMAND: GET_KEYS_PREFIX
-		// ===============================================
 		case "GET_KEYS_PREFIX":
 			if len(parts) < 4 {
 				fmt.Println("Usage: GET_KEYS_PREFIX <cursor> <count> <prefix>")
