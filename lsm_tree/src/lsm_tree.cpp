@@ -364,7 +364,12 @@ Bits LSM_Tree::clean_forward_set_keys(std::set<Bits>& set_to_clean, uint16_t n){
     for(uint16_t i = 0; i < n; ++i){
         ++it;
     }
-    last_key = *it;
+    std::set<Bits>::iterator prev_it = it;
+    --prev_it;
+    last_key = *prev_it;
+
+
+    //last_key = *it;
     set_to_clean.erase(it, set_to_clean.end());
     return last_key;
 };
