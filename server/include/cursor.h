@@ -44,6 +44,11 @@ class Cursor {
         std::string next_key_str;
         protocol_key_len_t next_key_len;
 
+        // saves the last called prefix, used with get_keys_prefix
+        std::string prefix;
+
+        bool max_key;
+
         // stores last called parition id
         uint16_t l_called_pid;
 
@@ -107,8 +112,16 @@ class Cursor {
 
         cursor_name_len_t get_name_size();
 
+        bool is_max_key();
+
+        void set_max_key(bool max_key);
+
         // used for debugging
         void print();
+
+        void set_prefix(std::string&& prefix);
+
+        std::string get_prefix() const;
 };
 
 #endif // YSQL_CURSORS_H_INCLUDED

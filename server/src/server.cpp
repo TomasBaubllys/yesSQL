@@ -409,11 +409,17 @@ void Server::apply_epoll_mod_q() {
 }
 
 
-std::string Server::create_entries_response(const std::vector<Entry>& entry_array, bool contain_cid, protocol_id_t client_id) const{
+std::string Server::create_entries_response(const std::vector<Entry>& entry_array, bool contain_cid, protocol_id_t client_id, bool keys_only) const{
     protocol_msg_len_t msg_len = (contain_cid? sizeof(protocol_id_t) : 0) + sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t);
     for(const Entry& entry : entry_array) {
-        msg_len += sizeof(protocol_key_len_t) + sizeof(protocol_value_len_t);
-        msg_len += entry.get_key_length() + entry.get_value_length();
+        msg_len += sizeof(protocol_key_len_t);
+        if(!keys_only) {
+            msg_len += sizeof(protocol_value_len_t);
+        }
+        msg_len += entry.get_key_length();
+        if(!keys_only) {
+            msg_len += entry.get_value_length();
+        }
     }
 
     protocol_array_len_t array_len = entry_array.size();
@@ -452,13 +458,15 @@ std::string Server::create_entries_response(const std::vector<Entry>& entry_arra
         memcpy(&raw_message[curr_pos], &key_bytes[0], key_len);
         curr_pos += key_len;
 
-        memcpy(&raw_message[curr_pos], &net_value_len, sizeof(net_value_len));
-        curr_pos += sizeof(net_value_len);
+        if(!keys_only) {
+            memcpy(&raw_message[curr_pos], &net_value_len, sizeof(net_value_len));
+            curr_pos += sizeof(net_value_len);
 
-        std::string value_bytes = entry.get_value_string();
-        // std::cout << "Sending value: " << value_bytes << std::endl;
-        memcpy(&raw_message[curr_pos], &value_bytes[0], value_len);
-        curr_pos += value_len;
+            std::string value_bytes = entry.get_value_string();
+            // std::cout << "Sending value: " << value_bytes << std::endl;
+            memcpy(&raw_message[curr_pos], &value_bytes[0], value_len);
+            curr_pos += value_len;
+        }
     }
 
     return raw_message;
@@ -471,6 +479,6 @@ protocol_array_len_t Server::extract_array_size(std::string msg, bool contains_c
 
     protocol_array_len_t array_len = 0;
     memcpy(&array_len, &msg[sizeof(protocol_msg_len_t) + (contains_cid? sizeof(protocol_id_t) : 0)], sizeof(protocol_array_len_t));
-
+    array_len = protocol_arr_len_ntoh(array_len);
     return array_len;
 }

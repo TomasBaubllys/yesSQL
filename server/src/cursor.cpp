@@ -2,7 +2,7 @@
 #include <cstring>
 #include <stdexcept>
 
-Cursor::Cursor() : cid(0), name(""), size(0), capacity(0), next_key_str("") {
+Cursor::Cursor() : cid(0), name(""), size(0), capacity(0), next_key_str(""), max_key(false) {
 
 }
 
@@ -14,6 +14,7 @@ Cursor::Cursor(const std::string& cursor_name) {
     this -> capacity = 0;
     this -> name = cursor_name;
     this -> size = 0;
+    this -> max_key = false;
 }
 
 
@@ -27,6 +28,7 @@ Cursor::Cursor(const std::string& cursor_name, const protocol_id_t& client_id) {
     this -> capacity = 0;
     this -> size = 0;
     this -> next_key_str = "";
+    this -> max_key = false;
 }
 
 Cursor::Cursor(const std::string& cursor_name, const protocol_id_t& client_id, const std::string& next_key, const protocol_key_len_t& key_len) {
@@ -39,7 +41,8 @@ Cursor::Cursor(const std::string& cursor_name, const protocol_id_t& client_id, c
     this -> capacity = 0;
     this -> next_key_str = next_key;
     this -> next_key_len = key_len;
-    this -> size = 1;
+    this -> size = 0;
+    this -> max_key = false;
 }
 
 protocol_id_t Cursor::get_cid() const {
@@ -58,39 +61,6 @@ void Cursor::clear_msg() {
     this -> fetched_entries.clear();
     this -> size = 0;
 }
-
-/*Server_Message Cursor::get_server_msg(Command_Code com_code, bool edge_fb_case) const {
-    protocol_msg_len_t msg_len = sizeof(protocol_msg_len_t) + sizeof(protocol_array_len_t) + sizeof(command_code_t) + sizeof(protocol_key_len_t) + this -> next_key_str.size();
-
-    // [msg_len]
-    std::string msg(msg_len, '\0');
-    msg_len = protocol_msg_len_hton(msg_len);
-    uint64_t pos = 0;
-    memcpy(&msg[pos], &msg_len, sizeof(protocol_msg_len_t));
-    pos += sizeof(protocol_msg_len_t);
-
-    // [arr] <- the amount of key to request (lower bytes in big endian)
-    pos += sizeof(protocol_array_len_t) - sizeof(cursor_cap_t);
-    cursor_cap_t net_cap = cursor_cap_hton(this -> capacity - this -> size);
-    memcpy(&msg[pos], &net_cap, sizeof(cursor_cap_t));
-    pos += sizeof(cursor_cap_t);
-
-    // [com_code]
-    command_code_t net_com_code = command_hton(com_code);
-    memcpy(&msg[pos], &net_com_code, sizeof(net_com_code));
-    pos += sizeof(command_code_t);
-
-    // [key_len]
-    protocol_key_len_t net_key_len = protocol_key_len_hton(this -> next_key_len);
-    memcpy(&msg[pos], &net_key_len, sizeof(protocol_key_len_t));
-    pos += sizeof(protocol_key_len_t);
-
-    // [key]
-    memcpy(&msg[pos], &this -> next_key_str[0], this -> next_key_len);
-
-    // construct the server message
-    return Server_Message(msg, this -> cid);
-}*/
 
 void Cursor::set_next_key(const std::string& key, const protocol_key_len_t& key_len) {
     this -> next_key_str = key;
@@ -140,6 +110,7 @@ void Cursor::update_receive(cursor_cap_t received) {
 
 void Cursor::add_new_entries(std::vector<Entry>&& entries) {
     this -> fetched_entries.insert(this -> fetched_entries.end(), std::make_move_iterator(entries.begin()), std::make_move_iterator(entries.end()));
+    //std::sort(this -> fetched_entries.begin(), this -> fetched_entries.end());
     this -> size = this -> fetched_entries.size();
 }
 
@@ -166,5 +137,21 @@ cursor_name_len_t Cursor::get_name_size() {
 
 std::vector<Entry> Cursor::get_entries() {
     return this -> fetched_entries;
+}
+
+bool Cursor::is_max_key() {
+    return this -> max_key; 
+}
+
+void Cursor::set_max_key(bool max_key) {
+    this -> max_key = max_key;
+}
+
+void Cursor::set_prefix(std::string&& prefix) {
+    this -> prefix = std::move(prefix);
+}
+
+std::string Cursor::get_prefix() const {
+    return this -> prefix;
 }
 

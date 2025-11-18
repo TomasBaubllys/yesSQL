@@ -58,10 +58,12 @@ class Partition_Server : public Server {
 
         int8_t handle_get_keys_request(socket_t socket_fd, Server_Message& message);
 
+        int8_t handle_get_keys_prefix_request(socket_t socket_fd, Server_Message& message);
+
         // handles both GET_FF and GET_FB
         int8_t handle_get_fx_request(socket_t socket_fd, Server_Message& message, Command_Code com_code);
 
-        std::pair<std::string, Cursor_Info> extract_key_and_cursinf(Server_Message& message);
+        std::pair<std::string, Cursor_Info> extract_key_and_cursinf(Server_Message& message, std::string* prefix = nullptr);
 
         void queue_socket_for_not_found_response(socket_t socket_fd, protocol_id_t client_id);
 
@@ -71,6 +73,8 @@ class Partition_Server : public Server {
 
         // pass either GET_FF or GET_FB as the command_code arguments
         Server_Message create_entries_set_resp(Command_Code com_code, std::set<Entry> entries_set, std::string next_key, protocol_id_t client_id, Cursor_Info& curs_info);
+
+        Server_Message create_keys_set_resp(Command_Code com_code, std::set<Bits> entries_set, std::string next_key, protocol_id_t client_id, Cursor_Info& curs_info);
 
         // used for extracting special edge case
         bool is_fb_edge_flag_set(std::string& msg);

@@ -8,7 +8,7 @@
 #include <sstream>
 #include <filesystem>
 
-#define WAL_FOLDER_PATH "./data/val/wal/"
+#define WAL_FOLDER_PATH "./data/wal/"
 
 class Wal{
     private:

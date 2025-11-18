@@ -113,7 +113,7 @@ class Server {
 
         // send a response of all the entries contained in the vector
         // ADD A BOOLEAN TO TELL IF TO CONTAIN CID
-        std::string create_entries_response(const std::vector<Entry>& entry_array, bool contain_cid, protocol_id_t client_id) const;
+        std::string create_entries_response(const std::vector<Entry>& entry_array, bool contain_cid, protocol_id_t client_id, bool key_only = false) const;
         // @brief makes client_fd (the return value) non-blocking
         // and adds it to inner epoll sockets
         std::vector<socket_t> add_client_socket_to_epoll();
