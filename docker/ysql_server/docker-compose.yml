@@ -17,9 +17,6 @@ services:
 
   partition_server:
     image: server
-    #build:
-    #  context: ..
-    #  dockerfile: ./docker/Dockerfile
     command: ["1", "9001", "1"]
     expose:
       - "9001"

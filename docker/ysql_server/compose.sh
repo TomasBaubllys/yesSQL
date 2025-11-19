@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ./docker/database_setup.env
+source ./docker/ysql_server/database_setup.env
 
 # composes down current containers
 BUILD_FRESH_OPTION="--fresh"
@@ -20,7 +20,7 @@ fi
 
 if [[ "$1" == "$BUILD_FRESH_OPTION" ]]; then
 	echo "Decomposing docker containers..."
-	docker compose --file docker/docker-compose.yml down
+	docker compose --file docker/ysql_server/docker-compose.yml down
 	echo "Done"
 fi
 
@@ -32,8 +32,8 @@ fi
 
 # docker build -t main_server -f docker/main_server/Dockerfile .
 
-docker build -t server -f docker/Dockerfile .
+docker build -t server -f docker/ysql_server/Dockerfile .
 
 echo "Building docker containers"
-docker compose --file docker/docker-compose.yml up --scale partition_server=${PARTITION_COUNT} -d
+docker compose --file docker/ysql_server/docker-compose.yml up --scale partition_server=${PARTITION_COUNT} -d
 echo "Done"
