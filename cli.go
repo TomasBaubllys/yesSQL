@@ -14,7 +14,7 @@ import (
 
 const (
 	HOST = "127.0.0.1"
-	PORT = 8080
+	PORT = 9000
 )
 
 const TOTAL_KEYS = 100000

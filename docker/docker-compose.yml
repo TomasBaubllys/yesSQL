@@ -3,9 +3,9 @@ name: yesSQL
 services:
   primary_server:
     image: server
-    command: ["0", "8080", "1"]
+    command: ["0", "9000", "1"]
     ports:
-      - "8080:8080"
+      - "9000:9000"
     environment:
       - SERVER_NAME=Primary_Server
     env_file:
@@ -20,9 +20,9 @@ services:
     #build:
     #  context: ..
     #  dockerfile: ./docker/Dockerfile
-    command: ["1", "9000", "1"]
+    command: ["1", "9001", "1"]
     expose:
-      - "9000"
+      - "9001"
     environment:
       - SERVER_NAME=Partition_Server
     env_file:
