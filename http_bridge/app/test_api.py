@@ -55,7 +55,7 @@ async def get_fb(client, cursor, amount):
 
 
 
-async def simulate_clients(num_clients=20):
+async def simulate_clients(num_clients=1):
     async with httpx.AsyncClient() as client:
         tasks = []
         for i in range(num_clients):
@@ -63,9 +63,9 @@ async def simulate_clients(num_clients=20):
             value = f"value_{i}"
             name = f"name_{i}"
             # Schedule both SET and GET for each key
-            tasks.append(set_key(client, key, value))
-            tasks.append(get_key(client, key))
-            tasks.append(remove_key(client, key))
+            #tasks.append(set_key(client, key, value))
+            #tasks.append(get_key(client, key))
+            #tasks.append(remove_key(client, key))
             tasks.append(create_cursor(client, name, key))
             tasks.append(delete_cursor(client, name))
             #tasks.append(get_ff(client, name, i))

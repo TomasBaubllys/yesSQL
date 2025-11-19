@@ -1,5 +1,5 @@
 import asyncio
-import constants
+from . import constants
 import struct
 from contextlib import asynccontextmanager
 
