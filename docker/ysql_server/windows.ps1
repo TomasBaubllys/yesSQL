@@ -2,7 +2,7 @@
 # Load environment variables
 # --------------------------------------------
 if (Test-Path "./docker/database_setup.env.ps1") {
-    . ./docker/database_setup.env.ps1
+    . ./docker/ysql_server/database_setup.env.ps1
 } else {
     Write-Host "Environment file docker/database_setup.env.ps1 not found."
     exit
@@ -31,7 +31,7 @@ if ($current_dir -ne $expected_dir) {
 # --------------------------------------------
 if ($args.Count -ge 1 -and $args[0] -eq $BUILD_FRESH_OPTION) {
     Write-Host "Decomposing docker containers..."
-    docker compose --file docker/docker-compose.yml down
+    docker compose --file docker/ysql_server/docker-compose.yml down
     Write-Host "Done"
 }
 
@@ -48,7 +48,7 @@ if ($args.Count -ge 2 -and $args[1] -eq $REMOVE_IMAGES_OPTION) {
 # Build Docker image
 # --------------------------------------------
 Write-Host "Building server image..."
-docker build -t server -f docker/Dockerfile .
+docker build -t server -f docker/ysql_server/Dockerfile .
 Write-Host "Done"
 
 # --------------------------------------------
@@ -60,5 +60,5 @@ if (!$env:PARTITION_COUNT) {
 }
 
 Write-Host "Starting docker containers..."
-docker compose --file docker/docker-compose.yml up --scale partition_server=$env:PARTITION_COUNT -d
+docker compose --file docker/ysql_server/docker-compose.yml up --scale partition_server=$env:PARTITION_COUNT -d
 Write-Host "Done"
