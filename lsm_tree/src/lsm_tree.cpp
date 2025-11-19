@@ -148,20 +148,12 @@ std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor(std::string cur
     std::set<Bits> keys;
     Bits next_key(ENTRY_PLACEHOLDER_KEY);
 
-    std::vector<Entry> mem_table_entries = mem_table.dump_entries();
+    std::vector<Bits> mem_table_keys = mem_table.get_keys_larger_than_alive(key_bits, n);
 
-    if(!mem_table_entries.empty() && !(mem_table_entries.back().get_key() < key_bits)){
-        for(const Entry& mem_table_entry : mem_table_entries){
-            const Bits& entry_key = mem_table_entry.get_key();
-            if(entry_key >= key_bits){
-                keys.emplace(entry_key);
-            }
-        }
-        if(!keys.empty()){
-            next_key = clean_forward_set_keys(keys, n);
-        }
+    if(!mem_table_keys.empty()){
+        keys.insert(mem_table_keys.begin(), mem_table_keys.end());
+        next_key = clean_forward_set_keys(keys, n);
     }
-    mem_table_entries.clear();
     
     for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
         uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
@@ -190,7 +182,7 @@ std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor_prefix(std::str
     const uint32_t string_start_position = 0;
     std::set<Bits> keys;
     Bits next_key(ENTRY_PLACEHOLDER_KEY);
-
+    //PREEEEEEEEEEEEEEEEEEEEEEEFIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIX
     std::vector<Entry> mem_table_entries = mem_table.dump_entries();
 
     if(!mem_table_entries.empty() && !(mem_table_entries.back().get_key() < key_bits)){
@@ -236,16 +228,11 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
     Bits key_bits(_key);
     Bits next_key(ENTRY_PLACEHOLDER_KEY);
 
-    std::vector<Entry> mem_table_entries = mem_table.dump_entries();
+    std::vector<Entry> mem_table_entries = mem_table.get_entries_larger_than_alive(key_bits, n);
 
-
-    if(!mem_table_entries.empty() && !(mem_table_entries.back().get_key() < key_bits)){
-        for(const Entry& mem_table_entry : mem_table_entries){
-            forward_validate(ff_entries, mem_table_entry, true, key_bits);
-        }
-        if(!ff_entries.empty()){
-            next_key = clean_forward_set(ff_entries, true, n);
-        }
+    if(!mem_table_entries.empty()){
+        ff_entries.insert(mem_table_entries.begin(), mem_table_entries.end());
+        next_key = clean_forward_set(ff_entries, true ,n);
     }
     
     

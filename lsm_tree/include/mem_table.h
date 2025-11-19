@@ -51,6 +51,14 @@ class Mem_Table{
 
         // clears the internal entries of the mem_table
         void make_empty();
+
+        std::vector<Bits> get_keys_larger_than(const Bits& key, uint32_t count);
+
+        std::vector<Entry> get_entries_larger_than(const Bits& key, uint32_t count);
+
+        std::vector<Bits> get_keys_larger_than_alive(const Bits& key, uint32_t count);
+
+        std::vector<Entry> get_entries_larger_than_alive(const Bits& key, uint32_t count);
 };
 
 #endif
