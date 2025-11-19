@@ -56,9 +56,9 @@ class Mem_Table{
 
         std::vector<Entry> get_entries_larger_than(const Bits& key, uint32_t count);
 
-        std::vector<Bits> get_keys_larger_than_alive(const Bits& key, uint32_t count);
+        std::vector<Bits> get_keys_larger_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys);
 
-        std::vector<Entry> get_entries_larger_than_alive(const Bits& key, uint32_t count);
+        std::vector<Entry> get_entries_larger_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys);
 };
 
 #endif

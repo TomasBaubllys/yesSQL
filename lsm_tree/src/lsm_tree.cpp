@@ -67,88 +67,89 @@ bool LSM_Tree::set(std::string key, std::string value){
 };
 
 std::pair<std::set<Bits>, uint16_t> LSM_Tree::get_keys(uint16_t n, uint16_t skip_n){
-    n += skip_n;
+    // n += skip_n;
 
-    std::vector<Entry> entries = mem_table.dump_entries();
-    std::set<Bits> keys;
+    // std::vector<Entry> entries = mem_table.dump_entries();
+    // std::set<Bits> keys;
 
-    for(const Entry& entry : entries){
-        if(keys.size() >= n){break;}
-        keys.emplace(entry.get_key());
-    }
+    // for(const Entry& entry : entries){
+    //     if(keys.size() >= n){break;}
+    //     keys.emplace(entry.get_key());
+    // }
 
-    for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
-        if(keys.size() >= n){break;}
-        uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
+    // for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
+    //     if(keys.size() >= n){break;}
+    //     uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
 
-        for(uint16_t i = sstable_count-1; i != UINT16_MAX; --i){
-            if(keys.size() >= n){break;}
-            std::vector<Bits> sstable_keys = ss_table_controller.at(i)->get_all_keys_alive();
-            for(const Bits& key : sstable_keys){
-                keys.emplace(key);
-            }
-        }
-    }
+    //     for(uint16_t i = sstable_count-1; i != UINT16_MAX; --i){
+    //         if(keys.size() >= n){break;}
+    //         std::vector<Bits> sstable_keys = ss_table_controller.at(i)->get_all_keys_alive();
+    //         for(const Bits& key : sstable_keys){
+    //             keys.emplace(key);
+    //         }
+    //     }
+    // }
 
-    if(skip_n > 0 && keys.size() > skip_n){
-        std::set<Bits>::iterator it = keys.begin();
-        for(size_t i = 0; i < skip_n; ++i){
-            ++it;
-        }
-        keys.erase(keys.begin(), it);
-    }
-    uint16_t next_skip = skip_n + keys.size();
-    return std::make_pair(keys, next_skip);
+    // if(skip_n > 0 && keys.size() > skip_n){
+    //     std::set<Bits>::iterator it = keys.begin();
+    //     for(size_t i = 0; i < skip_n; ++i){
+    //         ++it;
+    //     }
+    //     keys.erase(keys.begin(), it);
+    // }
+    // uint16_t next_skip = skip_n + keys.size();
+    // return std::make_pair(keys, next_skip);
 };
 
 std::pair<std::set<Bits>, uint16_t> LSM_Tree::get_keys(std::string prefix, uint16_t n, uint16_t skip_n){
-    n += skip_n;
-    const uint32_t string_start_position = 0;
+    // n += skip_n;
+    // const uint32_t string_start_position = 0;
 
-    std::vector<Entry> entries = mem_table.dump_entries();
-    std::set<Bits> keys;
+    // std::vector<Entry> entries = mem_table.dump_entries();
+    // std::set<Bits> keys;
 
-    for(const Entry& entry : entries){
-        if(keys.size() >= n){break;}
-        Bits key = entry.get_key();
+    // for(const Entry& entry : entries){
+    //     if(keys.size() >= n){break;}
+    //     Bits key = entry.get_key();
 
-        if(key.get_string().rfind(prefix, string_start_position) == 0){
-            keys.emplace(key);
-        }
-    }
+    //     if(key.get_string().rfind(prefix, string_start_position) == 0){
+    //         keys.emplace(key);
+    //     }
+    // }
 
-    for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
-        if(keys.size() >= n){break;}
-        uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
+    // for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
+    //     if(keys.size() >= n){break;}
+    //     uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
 
-        for(uint16_t i = sstable_count-1; i != UINT16_MAX; --i){
-            if(keys.size() >= n){break;}
-            std::vector<Bits> sstable_keys = ss_table_controller.at(i)->get_all_keys_alive();
-            for(const Bits& key : sstable_keys){
-                if(key.get_string().rfind(prefix, string_start_position) == 0){
-                    keys.emplace(key);
-                }
-            }
-        }
-    }
+    //     for(uint16_t i = sstable_count-1; i != UINT16_MAX; --i){
+    //         if(keys.size() >= n){break;}
+    //         std::vector<Bits> sstable_keys = ss_table_controller.at(i)->get_all_keys_alive();
+    //         for(const Bits& key : sstable_keys){
+    //             if(key.get_string().rfind(prefix, string_start_position) == 0){
+    //                 keys.emplace(key);
+    //             }
+    //         }
+    //     }
+    // }
 
-    if(skip_n > 0 && keys.size() > skip_n){
-        std::set<Bits>::iterator it = keys.begin();
-        for(size_t i = 0; i < skip_n; ++i){
-            ++it;
-        }
-        keys.erase(keys.begin(), it);
-    }
-    uint16_t next_skip = skip_n + keys.size();
-    return std::make_pair(keys, next_skip);
+    // if(skip_n > 0 && keys.size() > skip_n){
+    //     std::set<Bits>::iterator it = keys.begin();
+    //     for(size_t i = 0; i < skip_n; ++i){
+    //         ++it;
+    //     }
+    //     keys.erase(keys.begin(), it);
+    // }
+    // uint16_t next_skip = skip_n + keys.size();
+    // return std::make_pair(keys, next_skip);
 };
 
 std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor(std::string cursor, uint16_t n){
     Bits key_bits(cursor);
     std::set<Bits> keys;
+    std::set<Bits> dead_keys;
     Bits next_key(ENTRY_PLACEHOLDER_KEY);
 
-    std::vector<Bits> mem_table_keys = mem_table.get_keys_larger_than_alive(key_bits, n);
+    std::vector<Bits> mem_table_keys = mem_table.get_keys_larger_than_alive(key_bits, n, dead_keys);
 
     if(!mem_table_keys.empty()){
         keys.insert(mem_table_keys.begin(), mem_table_keys.end());
@@ -161,9 +162,9 @@ std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor(std::string cur
         for(uint16_t i = sstable_count-1; i != UINT16_MAX; --i){
             const SS_Table* ss_table = ss_table_controller.at(i);
 
-            std::pair<std::vector<Bits>, Bits> temp_pair = ss_table -> get_n_next_keys_alive(key_bits, n + 1);
+            std::vector<Bits> ss_table_keys = ss_table -> get_n_next_keys_alive(key_bits, n + 1, dead_keys);
 
-            keys.insert(temp_pair.first.begin(), temp_pair.first.end());
+            keys.insert(ss_table_keys.begin(), ss_table_keys.end());
             
             Bits temp_next_key = clean_forward_set_keys(keys, n);
             if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
@@ -178,57 +179,58 @@ std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor(std::string cur
 
 std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor_prefix(std::string prefix,std::string cursor, uint16_t n){
 
-    Bits key_bits(cursor);
-    const uint32_t string_start_position = 0;
-    std::set<Bits> keys;
-    Bits next_key(ENTRY_PLACEHOLDER_KEY);
-    //PREEEEEEEEEEEEEEEEEEEEEEEFIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIX
-    std::vector<Entry> mem_table_entries = mem_table.dump_entries();
+    // Bits key_bits(cursor);
+    // const uint32_t string_start_position = 0;
+    // std::set<Bits> keys;
+    // Bits next_key(ENTRY_PLACEHOLDER_KEY);
+    // //PREEEEEEEEEEEEEEEEEEEEEEEFIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIX
+    // std::vector<Entry> mem_table_entries = mem_table.dump_entries();
 
-    if(!mem_table_entries.empty() && !(mem_table_entries.back().get_key() < key_bits)){
-        for(const Entry& mem_table_entry : mem_table_entries){
-            const Bits& entry_key = mem_table_entry.get_key();
-            if(entry_key >= key_bits && entry_key.get_string().rfind(prefix, string_start_position) == 0){
-                keys.emplace(entry_key);
-            }
-        }
-        if(!keys.empty()){
-            next_key = clean_forward_set_keys(keys, n);
-        }
-    }
-    mem_table_entries.clear();
+    // if(!mem_table_entries.empty() && !(mem_table_entries.back().get_key() < key_bits)){
+    //     for(const Entry& mem_table_entry : mem_table_entries){
+    //         const Bits& entry_key = mem_table_entry.get_key();
+    //         if(entry_key >= key_bits && entry_key.get_string().rfind(prefix, string_start_position) == 0){
+    //             keys.emplace(entry_key);
+    //         }
+    //     }
+    //     if(!keys.empty()){
+    //         next_key = clean_forward_set_keys(keys, n);
+    //     }
+    // }
+    // mem_table_entries.clear();
     
-    for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
-        uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
+    // for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
+    //     uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
 
-        for(uint16_t i = sstable_count-1; i != UINT16_MAX; --i){
-            const SS_Table* ss_table = ss_table_controller.at(i);
+    //     for(uint16_t i = sstable_count-1; i != UINT16_MAX; --i){
+    //         const SS_Table* ss_table = ss_table_controller.at(i);
 
-            std::vector<Bits> no_prefix_keys = ss_table -> get_all_keys_alive();
+    //         std::vector<Bits> no_prefix_keys = ss_table -> get_all_keys_alive();
 
-            for(const Bits& key : no_prefix_keys){
-                if(key >= key_bits && key.get_string().rfind(prefix, string_start_position) == 0){
-                    keys.emplace(key);
-                }
-            }
+    //         for(const Bits& key : no_prefix_keys){
+    //             if(key >= key_bits && key.get_string().rfind(prefix, string_start_position) == 0){
+    //                 keys.emplace(key);
+    //             }
+    //         }
 
-            Bits temp_next_key = clean_forward_set_keys(keys, n);
-            if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
-                if(next_key.get_string() == ENTRY_PLACEHOLDER_KEY || next_key > temp_next_key){
-                    next_key = temp_next_key;
-                }
-            }
-        }
-    }
-    return std::make_pair(keys, next_key.get_string());
+    //         Bits temp_next_key = clean_forward_set_keys(keys, n);
+    //         if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
+    //             if(next_key.get_string() == ENTRY_PLACEHOLDER_KEY || next_key > temp_next_key){
+    //                 next_key = temp_next_key;
+    //             }
+    //         }
+    //     }
+    // }
+    // return std::make_pair(keys, next_key.get_string());
 };
 
 std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint16_t n){
     std::set<Entry> ff_entries;
     Bits key_bits(_key);
+    std::set<Bits> dead_keys;
     Bits next_key(ENTRY_PLACEHOLDER_KEY);
 
-    std::vector<Entry> mem_table_entries = mem_table.get_entries_larger_than_alive(key_bits, n);
+    std::vector<Entry> mem_table_entries = mem_table.get_entries_larger_than_alive(key_bits, n, dead_keys);
 
     if(!mem_table_entries.empty()){
         ff_entries.insert(mem_table_entries.begin(), mem_table_entries.end());
@@ -241,9 +243,9 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
 
         for(uint16_t i = sstable_count-1; i != UINT16_MAX; --i){
             const SS_Table* ss_table = ss_table_controller.at(i);
-            std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_larger_or_equal_alive(key_bits, n + 1);
+            std::vector<Entry> ss_table_entries = ss_table -> get_entries_key_larger_or_equal_alive(key_bits, n + 1, dead_keys);
 
-            ff_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
+            ff_entries.insert(ss_table_entries.begin(), ss_table_entries.end());
             
             Bits temp_next_key = clean_forward_set(ff_entries, true, n);
             if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
@@ -256,9 +258,9 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
 };
 
 std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint16_t n){
-    
     std::set<Entry> fb_entries;
     Bits key_bits = Bits(_key);
+    std::set<Bits> dead_keys;
     Bits next_key(ENTRY_PLACEHOLDER_KEY);
 
     std::vector<Entry> mem_table_entries = mem_table.dump_entries();
@@ -278,9 +280,9 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_fb(std::string _key, uint1
         for(uint16_t i = sstable_count-1; i != UINT16_MAX; --i){
             const SS_Table* ss_table = ss_table_controller.at(i);
 
-            std::pair<std::vector<Entry>, Bits> temp_pair = ss_table -> get_entries_key_smaller_or_equal_alive(key_bits, n + 1);
+            std::vector<Entry> ss_table_entries = ss_table -> get_entries_key_smaller_or_equal_alive(key_bits, n + 1, dead_keys);
 
-            fb_entries.insert(temp_pair.first.begin(), temp_pair.first.end());
+            fb_entries.insert(ss_table_entries.begin(), ss_table_entries.end());
 
             Bits temp_next_key = clean_forward_set(fb_entries, false, n);
             if(temp_next_key.get_string() != ENTRY_PLACEHOLDER_KEY){
