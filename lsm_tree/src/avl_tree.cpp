@@ -400,35 +400,69 @@ Entry AVL_Tree::pop_last(AVL_Tree::Node*& node) {
 	return result;
 }
 
-std::vector<Entry> AVL_Tree::get_entries_larger_than_alive(const Entry& entry, uint32_t count) const {
+std::vector<Entry> AVL_Tree::get_entries_larger_than_alive(const Bits& key, uint32_t count) const {
 	std::vector<Entry> entries;
-	this -> get_entries_larger_than_alive(this -> root, entry, count, entries);
+	this -> get_entries_larger_than_alive(this -> root, key, count, entries);
 	return entries;
 }
 
-void AVL_Tree::get_entries_larger_than_alive(Node* node, const Entry& entry, uint32_t count, std::vector<Entry>& entries) const {
+void AVL_Tree::get_entries_larger_than_alive(Node* node, const Bits& key, uint32_t count, std::vector<Entry>& entries) const {
 	if(!node || entries.size() >= count) {
 		return;
 	}	
 
-	if(node -> data > entry) {
-		this -> get_entries_larger_than_alive(node -> left, entry, count, entries);
+	if(node -> data.get_key() > key) {
+		this -> get_entries_larger_than_alive(node -> left, key, count, entries);
 		
 		if(entries.size() >= count) {
 			return;
 		}
 
 		if(!node -> data.is_deleted()) {
-			entries.push_back(entry);
+			entries.push_back(node -> data);
 		}
 
 		if(entries.size() >= count) {
 			return;
 		}
 
-		this -> get_entries_larger_than_alive(node -> right, entry, count, entries);
+		this -> get_entries_larger_than_alive(node -> right, key, count, entries);
 	}
 	else {
-		this -> get_entries_larger_than_alive(node -> right, entry, count, entries);
+		this -> get_entries_larger_than_alive(node -> right, key, count, entries);
 	}
 }
+
+std::vector<Bits> AVL_Tree::get_keys_larger_than_alive(const Bits& key, uint32_t count) const {
+	std::vector<Bits> keys;
+	this -> get_keys_larger_than_alive(this -> root, key, count, keys);
+	return keys;
+}
+
+void AVL_Tree::get_keys_larger_than_alive(Node* node, const Bits& key, uint32_t count, std::vector<Bits>& keys) const {
+	if(!node || keys.size() >= count) {
+		return;
+	}	
+
+	if(node -> data.get_key() > key) {
+		this -> get_keys_larger_than_alive(node -> left, key, count, keys);
+		
+		if(keys.size() >= count) {
+			return;
+		}
+
+		if(!node -> data.is_deleted()) {
+			keys.push_back(node -> data.get_key());
+		}
+
+		if(keys.size() >= count) {
+			return;
+		}
+
+		this -> get_keys_larger_than_alive(node -> right, key, count, keys);
+	}
+	else {
+		this -> get_keys_larger_than_alive(node -> right, key, count, keys);
+	}
+}
+
