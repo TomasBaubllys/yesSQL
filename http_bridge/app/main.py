@@ -1,10 +1,10 @@
-from .tcp_instance_pool import pool
+from tcp_instance_pool import pool
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from .routes import router
+from routes import router
 
-HOST = "127.0.0.1"
-PORT = 8080
+HOST = "host.docker.internal"
+PORT = 9000
 POOL_SIZE = 5
 
 app = FastAPI()
