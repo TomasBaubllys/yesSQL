@@ -43,9 +43,35 @@ class AVL_Tree
 
     Entry pop_last(Node*& node);
 
-    void get_entries_larger_than_alive(Node* node, const Bits& key, uint32_t count, std::vector<Entry>& entries) const;
+    template <typename T, typename Extractor>
+    void AVL_Tree::collect_larger(Node* node, const Bits& threshold_key, uint32_t count, std::vector<T>& results, Extractor extractor) const {
+        if (!node || results.size() >= count) {
+            return;
+        }
 
-    void get_keys_larger_than_alive(Node* node, const Bits& key, uint32_t count, std::vector<Bits>& entries) const;
+        const Bits& current_key = node -> data.get_key();
+
+        if (current_key >= threshold_key) {
+            if(current_key > threshold_key) {
+                collect_larger(node->left, threshold_key, count, results, extractor);
+            }
+
+            if (results.size() >= count) {
+                return;
+            }
+
+            if (!node -> data.is_deleted()) {
+                results.push_back(extractor(node -> data));
+            }
+
+            if (results.size() >= count) return;
+
+            collect_larger(node -> right, threshold_key, count, results, extractor);
+        } 
+        else {
+            collect_larger(node -> right, threshold_key, count, results, extractor);
+        }
+    }
 
     public:
         AVL_Tree(Entry& entry);
