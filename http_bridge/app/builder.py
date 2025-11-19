@@ -1,6 +1,6 @@
 import struct
-from . import constants as cnt
-from . import command_codes
+import constants as cnt
+import command_codes
 
 def build_get_request(key: str) -> bytes:
     

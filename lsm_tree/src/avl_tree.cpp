@@ -399,3 +399,19 @@ Entry AVL_Tree::pop_last(AVL_Tree::Node*& node) {
 
 	return result;
 }
+
+std::vector<Entry> AVL_Tree::get_entries_larger_than_alive(const Bits& key, uint32_t count) const {
+	std::vector<Entry> entries;
+	this -> collect_larger(this -> root, key, count, entries, [](const Entry& e) {
+		return e;
+	});
+	return entries;
+}
+
+std::vector<Bits> AVL_Tree::get_keys_larger_than_alive(const Bits& key, uint32_t count) const {
+	std::vector<Bits> keys;
+	this -> collect_larger(this -> root, key, count, keys, [](const Entry& e){
+		return e.get_key();
+	});
+	return keys;
+}

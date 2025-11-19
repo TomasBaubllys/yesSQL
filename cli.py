@@ -13,7 +13,7 @@ from typing import Tuple, Dict, Optional
 # Configuration
 # ==================================================
 HOST = "127.0.0.1"
-PORT = 8080
+PORT = 9000
 
 # ==================================================
 # Command Identifiers (aligned with your Go client)
