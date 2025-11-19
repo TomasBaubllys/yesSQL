@@ -54,7 +54,7 @@ class AVL_Tree
 
         if (current_key >= threshold_key) {
             if(current_key > threshold_key) {
-                collect_larger(node->left, threshold_key, count, results, extractor);
+                collect_larger(node->left, threshold_key, count, results, dead_keys, extractor);
             }
 
             if (results.size() >= count) {
@@ -70,10 +70,10 @@ class AVL_Tree
 
             if (results.size() >= count) return;
 
-            collect_larger(node -> right, threshold_key, count, results, extractor);
+            collect_larger(node -> right, threshold_key, count, results, dead_keys, extractor);
         } 
         else {
-            collect_larger(node -> right, threshold_key, count, results, extractor);
+            collect_larger(node -> right, threshold_key, count, results, dead_keys, extractor);
         }
     }
 
