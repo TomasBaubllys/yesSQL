@@ -592,7 +592,7 @@ std::vector<Bits> SS_Table::get_all_keys(SS_Table_Entry_Filter key_filter, std::
             if(current_entry.is_deleted()) {
                 dead_keys.emplace(curr_key);
             }
-            else if(dead_keys.find(curr_key) != dead_keys.end()) {
+            else if(dead_keys.find(curr_key) == dead_keys.end()) {
                 keys.emplace_back(curr_key);
             }
         }
@@ -758,7 +758,7 @@ std::vector<Entry> SS_Table::get_n_entries(SS_Table_Entry_Filter key_filter, uin
             if(current_entry.is_deleted()) {
                 dead_keys.emplace(curr_key);
             }
-            else if(dead_keys.find(curr_key) != dead_keys.end()) {
+            else if(dead_keys.find(curr_key) == dead_keys.end()) {
                 entries.emplace_back(current_entry);
             }
         }
@@ -884,7 +884,7 @@ std::vector<Entry> SS_Table::get_entries_key_smaller_or_equal(const Bits& target
             if(current_entry.is_deleted()) {
                 dead_keys.emplace(curr_key);
             }
-            else if(dead_keys.find(curr_key) != dead_keys.end()) {
+            else if(dead_keys.find(curr_key) == dead_keys.end()) {
                 entries.emplace_back(current_entry);
             }
         }
@@ -992,7 +992,7 @@ std::vector<Entry> SS_Table::get_entries_key_larger_or_equal(const Bits& target_
             if(current_entry.is_deleted()) {
                 dead_keys.emplace(curr_key);
             }
-            else if(dead_keys.find(curr_key) != dead_keys.end()) {
+            else if(dead_keys.find(curr_key) == dead_keys.end()) {
                 entries.push_back(current_entry);
             }
         }
@@ -1232,7 +1232,7 @@ std::vector<Bits> SS_Table::get_n_next_keys(const Bits& target_key, SS_Table_Ent
             if(current_entry.is_deleted()) {
                 dead_keys.emplace(curr_key);
             }
-            else if(dead_keys.find(curr_key) != dead_keys.end()) {
+            else if(dead_keys.find(curr_key) == dead_keys.end()) {
                 keys.push_back(curr_key);
             }
         }
