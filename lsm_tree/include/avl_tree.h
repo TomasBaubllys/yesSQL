@@ -44,7 +44,7 @@ class AVL_Tree
     Entry pop_last(Node*& node);
 
     template <typename T, typename Extractor>
-    void AVL_Tree::collect_larger(Node* node, const Bits& threshold_key, uint32_t count, std::vector<T>& results, Extractor extractor) const {
+    void collect_larger(Node* node, const Bits& threshold_key, uint32_t count, std::vector<T>& results, Extractor extractor) const {
         if (!node || results.size() >= count) {
             return;
         }
