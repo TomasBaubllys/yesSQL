@@ -62,6 +62,7 @@ class AVL_Tree
             }
 
             if (!node -> data.is_deleted()) {
+                std::cout<<current_key.get_string()<<std::endl;
                 results.push_back(extractor(node -> data));
             }
             else {

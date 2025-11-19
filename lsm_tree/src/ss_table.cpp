@@ -767,7 +767,6 @@ std::vector<Entry> SS_Table::get_n_entries(SS_Table_Entry_Filter key_filter, uin
             return entries;
         }
 
-        entries.emplace_back(current_entry);
     }
 
     if(!offset_ifstream.eof()) {
