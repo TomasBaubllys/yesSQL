@@ -43,6 +43,8 @@ class AVL_Tree
 
     Entry pop_last(Node*& node);
 
+    void get_entries_larger_than_alive(Node* node, const Entry& entry, uint32_t count, std::vector<Entry>& entries) const;
+
     public:
         AVL_Tree(Entry& entry);
         AVL_Tree();
@@ -61,6 +63,8 @@ class AVL_Tree
         Entry pop_last();
 
     	std::vector<Entry> inorder();
+
+        std::vector<Entry> get_entries_larger_than_alive(const Entry& entry, uint32_t count) const;
 };
 
 #endif // YSQL_AVL_TREE_INCLUDED
