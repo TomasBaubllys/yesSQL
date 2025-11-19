@@ -236,7 +236,8 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
         ff_entries.insert(mem_table_entries.begin(), mem_table_entries.end());
         next_key = clean_forward_set(ff_entries, true ,n);
     }
-    
+    //COMMMMMEEEEENT
+    std::cout<<dead_keys.size()<<std::endl;
     
     for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
         uint16_t sstable_count = ss_table_controller.get_ss_tables_count();

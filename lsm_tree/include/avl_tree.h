@@ -65,6 +65,8 @@ class AVL_Tree
                 results.push_back(extractor(node -> data));
             }
             else {
+                std::cout<<"I am at the deleted node and am pushing into dead_keys"<<std::endl;
+                std::cout<<"key: "<<current_key.get_string()<<std::endl;
                 dead_keys.emplace(node -> data.get_key());
             }
 
