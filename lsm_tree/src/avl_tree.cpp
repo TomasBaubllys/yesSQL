@@ -415,3 +415,19 @@ std::vector<Bits> AVL_Tree::get_keys_larger_than_alive(const Bits& key, uint32_t
 	});
 	return keys;
 }
+
+std::vector<Entry> AVL_Tree::get_entries_smaller_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys) const {
+	std::vector<Entry> entries;
+	this -> collect_smaller(this -> root, key, count, entries, dead_keys, [](const Entry& e) {
+		return e;
+	});
+	return entries;
+}
+
+std::vector<Bits> AVL_Tree::get_keys_smaller_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys) const {
+	std::vector<Bits> keys;
+	this -> collect_smaller(this -> root, key, count, keys, dead_keys, [](const Entry& e){
+		return e.get_key();
+	});
+	return keys;
+}
