@@ -156,3 +156,8 @@ std::string Cursor::get_prefix() const {
     return this -> prefix;
 }
 
+void Cursor::append_entries_front(std::vector<Entry>&& entries) {
+    this -> fetched_entries.insert(this -> fetched_entries.begin(), std::make_move_iterator(entries.begin()), std::make_move_iterator(entries.end()));
+
+    this -> size = fetched_entries.size();
+}

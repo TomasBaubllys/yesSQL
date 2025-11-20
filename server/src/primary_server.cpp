@@ -563,8 +563,12 @@ int8_t Primary_Server::process_partition_response(Server_Message&& msg) {
 
             // might be a little unsafe cast but who cares
             cursor.set_next_key(next_key_str, next_key_str.size());
-            cursor.add_new_entries(std::move(entries));
-
+            if(com_code == Command_Code::COMMAND_CODE_GET_FB) {
+                cursor.append_entries_front(std::move(entries));
+            }
+            else {
+                cursor.add_new_entries(std::move(entries));
+            }
             uint16_t partition_count = 0;
             {
                 std::shared_lock<std::shared_mutex> lock(this -> partitions_mutex);
