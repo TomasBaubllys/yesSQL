@@ -5,11 +5,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"math/rand"
 	"net"
 	"os"
 	"strings"
-	"time"
 )
 
 const (
@@ -36,9 +34,6 @@ func preloadKeys(conn net.Conn) {
 	fmt.Println("Preload complete.")
 }
 
-// ===============================================
-// Command Codes
-// ===============================================
 const (
 	CMD_OK              = 0
 	CMD_ERR             = 1
@@ -54,6 +49,20 @@ const (
 	CMD_DATA_NOT_FOUND  = 11
 	CMD_INVALID_COMMAND = 12
 )
+
+const (
+	UNKNOWN          = 0
+	PARTITION_DIED   = 1
+	CURSOR_NOT_FOUND = 2
+	MSG_TOO_SHORT    = 3
+)
+
+var ERROR_NAMES = map[uint16]string{
+	UNKNOWN:          "UNKNOWN",
+	PARTITION_DIED:   "PARTITION CANNOT BE REACHED",
+	CURSOR_NOT_FOUND: "CURSOR NOT FOUND",
+	MSG_TOO_SHORT:    "MESSAGE WAS TOO SHORT",
+}
 
 var COMMAND_NAMES = map[uint16]string{
 	CMD_OK:              "OK",
@@ -257,6 +266,11 @@ func parseResponse(data []byte, keysOnly bool) (string, []KV) {
 	cmdName := COMMAND_NAMES[cmdCode]
 	pos := 18
 
+	if cmdCode == CMD_ERR {
+		errCode := binary.BigEndian.Uint16(data[18:20])
+		return cmdName, []KV{{Key: "ERROR", Val: fmt.Sprint(ERROR_NAMES[errCode])}}
+	}
+
 	results := make([]KV, 0, numElems)
 
 	for i := uint64(0); i < numElems; i++ {
@@ -287,9 +301,7 @@ func parseResponse(data []byte, keysOnly bool) (string, []KV) {
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
-
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", HOST, PORT))
+	conn, err := net.Dial("tcp4", fmt.Sprintf("%s:%d", HOST, PORT))
 	if err != nil {
 		fmt.Println("Failed to connect:", err)
 		return
@@ -335,8 +347,8 @@ func main() {
 			value := strings.Join(parts[2:], " ")
 			conn.Write(buildSetCommand(key, value))
 			data, _ := recvExact(conn)
-			resp, _ := parseResponse(data, false)
-			fmt.Println("Response:", resp)
+			resp, respCode := parseResponse(data, false)
+			fmt.Println("Response:", resp, "Code: ", respCode)
 
 		case "GET":
 			key := parts[1]
@@ -350,8 +362,8 @@ func main() {
 			key := parts[1]
 			conn.Write(buildRemoveCommand(key))
 			data, _ := recvExact(conn)
-			resp, _ := parseResponse(data, false)
-			fmt.Println("Response:", resp)
+			resp, respCode := parseResponse(data, false)
+			fmt.Println("Response:", resp, "Code: ", respCode)
 
 		case "CREATE_CURSOR":
 			name := parts[1]
@@ -361,15 +373,15 @@ func main() {
 			}
 			conn.Write(buildCreateCursorCommand(name, key))
 			data, _ := recvExact(conn)
-			resp, _ := parseResponse(data, false)
-			fmt.Println("Response:", resp)
+			resp, respCode := parseResponse(data, false)
+			fmt.Println("Response:", resp, "Code: ", respCode)
 
 		case "DELETE_CURSOR":
 			name := parts[1]
 			conn.Write(buildDeleteCursorCommand(name))
 			data, _ := recvExact(conn)
-			resp, _ := parseResponse(data, false)
-			fmt.Println("Response:", resp)
+			resp, respCode := parseResponse(data, false)
+			fmt.Println("Response:", resp, "Code: ", respCode)
 
 		case "GET_FF":
 			cursor := parts[1]

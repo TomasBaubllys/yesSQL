@@ -394,7 +394,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                 if(this -> verbose) {
                     std::cerr << e.what() << std::endl;
                 }
-                this -> queue_client_for_error_response(client_fd, msg.get_cid());
+                this -> queue_client_for_error_response(client_fd, msg.get_cid(), Server_Error_Codes::MSG_TOO_SHORT);
                 return 0;
             }
 
@@ -405,7 +405,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
             msg.reset_processed();
 
             if(!ensure_partition_connection(partition_entry)) {
-                this -> queue_client_for_error_response(client_fd, msg.get_cid());
+                this -> queue_client_for_error_response(client_fd, msg.get_cid(), Server_Error_Codes::PARTITION_DIED);
                 return 0;
             }
 
@@ -417,7 +417,7 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                     std::cerr << e.what() << std::endl;
                 }
                 this -> partitions[partition_entry.id].status = Partition_Status::PARTITION_DEAD;
-                this -> queue_client_for_error_response(client_fd, msg.get_cid());
+                this -> queue_client_for_error_response(client_fd, msg.get_cid(), Server_Error_Codes::PARTITION_DIED);
             }
 
             break;
@@ -454,18 +454,18 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                     std::cerr << e.what() << std::endl;
                 }
 
-                this -> queue_client_for_error_response(client_fd, msg.get_cid());
+                this -> queue_client_for_error_response(client_fd, msg.get_cid(), Server_Error_Codes::CURSOR_NOT_FOUND);
             }
 
             {
                 std::shared_lock<std::shared_mutex> lock(this -> client_cursor_map_mutex);
                 std::unordered_map<socket_t, std::unordered_map<std::string, Cursor>>::iterator c_c_it = this -> client_cursor_map.find(client_fd);
-                if(c_c_it -> second.erase(cursor_name) > 0) {
+                if(c_c_it != this -> client_cursor_map.end() && c_c_it -> second.erase(cursor_name) > 0) {
                     this -> queue_client_for_ok_response(client_fd, msg.get_cid());
                     
                 }
                 else {
-                    this -> queue_client_for_error_response(client_fd, msg.get_cid());
+                    this -> queue_client_for_error_response(client_fd, msg.get_cid(), Server_Error_Codes::CURSOR_NOT_FOUND);
                 }
             }
 
@@ -822,9 +822,9 @@ void Primary_Server::add_partitions_to_epoll() {
     }
 }
 
-void Primary_Server::queue_client_for_error_response(socket_t client_fd, protocol_id_t client_id) {
+void Primary_Server::queue_client_for_error_response(socket_t client_fd, protocol_id_t client_id, Server_Error_Codes error_code) {
     // later a check if its still the same client
-    Server_Message err_response = this -> create_error_response(false, client_id);
+    Server_Message err_response = this -> create_error_response(false, client_id, error_code);
     {
         std::unique_lock<std::shared_mutex> lock(this -> write_buffers_mutex);
         this -> write_buffers[client_fd] = err_response;

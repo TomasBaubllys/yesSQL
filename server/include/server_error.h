@@ -9,12 +9,7 @@ enum class Server_Error_Codes : uint16_t {
     UNKNOWN,
     PARTITION_DIED,
     CURSOR_NOT_FOUND,
-    SET_FAILED,
-    GET_FAILED,
-    GET_FF_FAILED,
-    GET_FB_FAILED,
-    GET_KEYS_FAILED,
-    GET_KEYS_PREFIX_FAILED
+    MSG_TOO_SHORT
 };
 
 class Server_Error : public std::exception {

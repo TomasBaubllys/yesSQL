@@ -22,6 +22,7 @@
 #include "server_message.h"
 #include "fd_context.h"
 #include <shared_mutex>
+#include "server_error.h"
 
 #define SERVER_LISTENING_ON_PORT_MSG "Listening on port: "
 
@@ -100,7 +101,7 @@ class Server {
         std::shared_mutex epoll_mod_mutex;
         std::unordered_map<socket_t, uint32_t> epoll_mod_map;
 
-        Server_Message create_status_response(Command_Code status, bool contain_cid, protocol_id_t client_id) const;
+        Server_Message create_status_response(Command_Code status, bool contain_cid, protocol_id_t client_id, Server_Error_Codes error_code = Server_Error_Codes::UNKNOWN) const;
 
         std::vector<epoll_event> epoll_events;
 
@@ -158,7 +159,7 @@ class Server {
         std::string extract_key_str_from_msg(const std::string& message, bool contains_cid) const;
 
         // @brief sends an ERR response to the provided socket
-        Server_Message create_error_response(bool contain_cid, protocol_id_t client_id)const;
+        Server_Message create_error_response(bool contain_cid, protocol_id_t client_id, Server_Error_Codes error_code = Server_Error_Codes::UNKNOWN) const;
 
         // @brief sens an OK response to a given socket
         Server_Message create_ok_response(bool contain_cid, protocol_id_t client_id) const;

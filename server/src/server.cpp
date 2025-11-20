@@ -249,11 +249,11 @@ Server_Message Server::create_ok_response(bool contain_cid, protocol_id_t client
     return this -> create_status_response(COMMAND_CODE_OK, contain_cid, client_id);
 }
 
-Server_Message Server::create_error_response(bool contain_cid, protocol_id_t client_id) const {
-    return this -> create_status_response(COMMAND_CODE_ERR, contain_cid, client_id);
+Server_Message Server::create_error_response(bool contain_cid, protocol_id_t client_id, Server_Error_Codes error_code) const {
+    return this -> create_status_response(COMMAND_CODE_ERR, contain_cid, client_id, error_code);
 }
 
-Server_Message Server::create_status_response(Command_Code status, bool contain_cid, protocol_id_t client_id) const {
+Server_Message Server::create_status_response(Command_Code status, bool contain_cid, protocol_id_t client_id, Server_Error_Codes error_code) const {
     if(status != COMMAND_CODE_ERR && status != COMMAND_CODE_OK && status != COMMAND_CODE_DATA_NOT_FOUND) {
         return Server_Message();
     }
@@ -265,6 +265,10 @@ Server_Message Server::create_status_response(Command_Code status, bool contain_
     if(contain_cid) {
         message_length += sizeof(protocol_id_t);
     }
+    if(status == Command_Code::COMMAND_CODE_ERR) {
+        message_length += sizeof(uint16_t);
+    }
+
     std::string message(message_length, '\0');
 
     protocol_msg_len_t network_msg_len = protocol_msg_len_hton(message_length);
@@ -280,6 +284,12 @@ Server_Message Server::create_status_response(Command_Code status, bool contain_
     memcpy(&message[curr_pos], &arr_len, sizeof(arr_len));
     curr_pos += sizeof(arr_len);
     memcpy(&message[curr_pos], &com_code, sizeof(com_code));
+    curr_pos += sizeof(com_code);
+
+    if(status == Command_Code::COMMAND_CODE_ERR) {
+        uint16_t net_err = htons(static_cast<uint16_t>(error_code));
+        memcpy(&message[curr_pos], &net_err, sizeof(uint16_t));
+    }
 
     return Server_Message(message, client_id);
 }
