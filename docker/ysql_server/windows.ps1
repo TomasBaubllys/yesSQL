@@ -1,7 +1,7 @@
 # --------------------------------------------
 # Load environment variables
 # --------------------------------------------
-if (Test-Path "./docker/database_setup.env.ps1") {
+if (Test-Path "./docker/ysql_server/database_setup.env.ps1") {
     . ./docker/ysql_server/database_setup.env.ps1
 } else {
     Write-Host "Environment file docker/database_setup.env.ps1 not found."
@@ -13,18 +13,6 @@ if (Test-Path "./docker/database_setup.env.ps1") {
 # --------------------------------------------
 $BUILD_FRESH_OPTION = "--fresh"
 $REMOVE_IMAGES_OPTION = "--rimages"
-
-# --------------------------------------------
-# Set the expected directory (YOUR ACTUAL PATH)
-# --------------------------------------------
-$expected_dir = "C:\Users\Ugne\Desktop\NoSQL\yesSQL"
-$current_dir = (Get-Location).Path.TrimEnd('\')
-
-if ($current_dir -ne $expected_dir) {
-    Write-Host "Script must be run from yesSQL as the root folder"
-    Write-Host "Go to yesSQL folder and run: powershell -File docker/windows.ps1"
-    exit
-}
 
 # --------------------------------------------
 # Handle --fresh option

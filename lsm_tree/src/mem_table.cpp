@@ -163,4 +163,20 @@ void Mem_Table::make_empty() {
     this -> avl_tree.make_empty();
     this -> entry_array_length = 0;
     this -> total_mem_table_size = 0;
-}
+};
+
+std::vector<Bits> Mem_Table::get_keys_larger_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys){
+    return this -> avl_tree.get_keys_larger_than_alive(key, count, dead_keys);
+};
+
+std::vector<Entry> Mem_Table::get_entries_larger_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys){
+    return this -> avl_tree.get_entries_larger_than_alive(key, count, dead_keys);
+};
+
+std::vector<Bits> Mem_Table::get_keys_smaller_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys){
+    return this -> avl_tree.get_keys_smaller_than_alive(key, count, dead_keys);
+};
+
+std::vector<Entry> Mem_Table::get_entries_smaller_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys){
+    return this -> avl_tree.get_entries_smaller_than_alive(key, count, dead_keys);
+};
