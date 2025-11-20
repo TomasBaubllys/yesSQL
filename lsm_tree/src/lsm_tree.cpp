@@ -149,7 +149,7 @@ std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor(std::string cur
     std::set<Bits> dead_keys;
     Bits next_key(ENTRY_PLACEHOLDER_KEY);
 
-    std::vector<Bits> mem_table_keys = mem_table.get_keys_larger_than_alive(key_bits, n, dead_keys);
+    std::vector<Bits> mem_table_keys = mem_table.get_keys_larger_than_alive(key_bits, n+1, dead_keys);
 
     if(!mem_table_keys.empty()){
         keys.insert(mem_table_keys.begin(), mem_table_keys.end());
@@ -230,14 +230,12 @@ std::pair<std::set<Entry>, std::string> LSM_Tree::get_ff(std::string _key, uint1
     std::set<Bits> dead_keys;
     Bits next_key(ENTRY_PLACEHOLDER_KEY);
 
-    std::vector<Entry> mem_table_entries = mem_table.get_entries_larger_than_alive(key_bits, n, dead_keys);
+    std::vector<Entry> mem_table_entries = mem_table.get_entries_larger_than_alive(key_bits, n+1, dead_keys);
 
     if(!mem_table_entries.empty()){
         ff_entries.insert(mem_table_entries.begin(), mem_table_entries.end());
         next_key = clean_forward_set(ff_entries, true ,n);
     }
-    //COMMMMMEEEEENT
-    std::cout<<dead_keys.size()<<std::endl;
     
     for(SS_Table_Controller& ss_table_controller : ss_table_controllers) {
         uint16_t sstable_count = ss_table_controller.get_ss_tables_count();
