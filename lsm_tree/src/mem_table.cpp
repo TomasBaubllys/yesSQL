@@ -172,3 +172,11 @@ std::vector<Bits> Mem_Table::get_keys_larger_than_alive(const Bits& key, uint32_
 std::vector<Entry> Mem_Table::get_entries_larger_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys){
     return this -> avl_tree.get_entries_larger_than_alive(key, count, dead_keys);
 };
+
+std::vector<Bits> Mem_Table::get_keys_smaller_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys){
+    return this -> avl_tree.get_keys_smaller_than_alive(key, count, dead_keys);
+};
+
+std::vector<Entry> Mem_Table::get_entries_smaller_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys){
+    return this -> avl_tree.get_entries_smaller_than_alive(key, count, dead_keys);
+};
