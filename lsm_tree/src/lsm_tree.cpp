@@ -99,6 +99,7 @@ std::pair<std::set<Bits>, uint16_t> LSM_Tree::get_keys(uint16_t n, uint16_t skip
     // }
     // uint16_t next_skip = skip_n + keys.size();
     // return std::make_pair(keys, next_skip);
+    return std::make_pair(std::set<Bits>{}, 0);
 };
 
 std::pair<std::set<Bits>, uint16_t> LSM_Tree::get_keys(std::string prefix, uint16_t n, uint16_t skip_n){
@@ -141,6 +142,7 @@ std::pair<std::set<Bits>, uint16_t> LSM_Tree::get_keys(std::string prefix, uint1
     // }
     // uint16_t next_skip = skip_n + keys.size();
     // return std::make_pair(keys, next_skip);
+    return std::make_pair(std::set<Bits>{}, 0);
 };
 
 std::pair<std::set<Bits>, std::string> LSM_Tree::get_keys_cursor(std::string cursor, uint16_t n){

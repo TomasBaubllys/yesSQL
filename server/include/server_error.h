@@ -9,7 +9,8 @@ enum class Server_Error_Codes : uint16_t {
     UNKNOWN,
     PARTITION_DIED,
     CURSOR_NOT_FOUND,
-    MSG_TOO_SHORT
+    MSG_TOO_SHORT,
+    TOO_MANY_ELEMENTS
 };
 
 class Server_Error : public std::exception {
@@ -17,11 +18,11 @@ class Server_Error : public std::exception {
         uint16_t error_code;
         std::string error_str;
     public:
-        Server_Error(uint16_t error_code, const char* str);
+        Server_Error(Server_Error_Codes error_code, const char* str);
         ~Server_Error();
         
         const char* what() const noexcept;
-		const uint16_t code() const noexcept; 
+		const Server_Error_Codes code() const noexcept; 
 };
 
 #endif // YSQL_SERVER_ERROR_H_INCLUDED

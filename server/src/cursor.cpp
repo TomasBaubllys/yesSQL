@@ -1,6 +1,7 @@
 #include "../include/cursor.h"
 #include <cstring>
 #include <stdexcept>
+#include "../include/server_error.h"
 
 Cursor::Cursor() : cid(0), name(""), size(0), capacity(0), next_key_str(""), max_key(false) {
 
@@ -81,7 +82,7 @@ std::string Cursor::get_next_key() const {
 
 void Cursor::set_capacity(cursor_cap_t new_cap) {
     if(new_cap > CURSOR_MAX_SIZE) {
-        throw std::length_error(CURSOR_CAPACITY_TOO_BIG_ERR_MSG);
+        throw Server_Error(Server_Error_Codes::TOO_MANY_ELEMENTS, CURSOR_CAPACITY_TOO_BIG_ERR_MSG);
     }
 
     this -> capacity = new_cap;

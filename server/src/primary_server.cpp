@@ -428,7 +428,14 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                 cursor = this -> extract_cursor_creation(msg);
                 Partition_Entry p_id = this -> get_partition_for_key(cursor.get_next_key());
                 cursor.set_last_called_part_id(p_id.id);
-            } catch (const std::exception& e) {
+            } 
+            catch(const Server_Error& se) {
+                if(this -> verbose > 0) {
+                    std::cerr << se.what() << std::endl;
+                }
+                this -> queue_client_for_error_response(client_fd, msg.get_cid(), se.code());
+            }
+            catch (const std::exception& e) {
                 if(this -> verbose > 0) {
                     std::cerr << e.what() << std::endl;
                 }
@@ -498,6 +505,13 @@ int8_t Primary_Server::process_client_in(socket_t client_fd, Server_Message msg)
                 }
 
                 this -> return_cursor(client_fd, std::move(cursor));
+            }
+            catch(const Server_Error& se) {
+                if(this -> verbose > 0) {
+                    std::cerr << se.what() << std::endl;
+                }
+
+                this -> queue_client_for_error_response(client_fd, msg.get_cid(), se.code());
             }
             catch(const std::exception& e) {
                 if(this -> verbose > 0) {
@@ -994,7 +1008,7 @@ Cursor Primary_Server::extract_cursor_creation(const Server_Message& message) {
     protocol_msg_len_t pos = PROTOCOL_CURSOR_LEN_POS;
     
     if(pos + sizeof(cursor_name_len_t) > message.size()) {
-        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+        throw Server_Error(Server_Error_Codes::MSG_TOO_SHORT, SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
     }
 
     memcpy(&cursor_len, &message.c_str()[pos], sizeof(cursor_name_len_t));
@@ -1002,7 +1016,7 @@ Cursor Primary_Server::extract_cursor_creation(const Server_Message& message) {
     cursor_len = cursor_name_len_ntoh(cursor_len);
 
     if(pos + cursor_len > message.size()) {
-        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+        throw Server_Error(Server_Error_Codes::MSG_TOO_SHORT, SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
     }
 
     std::string cursor_name(cursor_len, '\0');
@@ -1011,7 +1025,7 @@ Cursor Primary_Server::extract_cursor_creation(const Server_Message& message) {
 
     protocol_key_len_t key_len = 0;
     if(pos + sizeof(protocol_key_len_t) > message.size()) {
-        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+        throw Server_Error(Server_Error_Codes::MSG_TOO_SHORT, SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
     }
 
     memcpy(&key_len, &message.c_str()[pos], sizeof(protocol_key_len_t));
@@ -1019,7 +1033,7 @@ Cursor Primary_Server::extract_cursor_creation(const Server_Message& message) {
     key_len = protocol_key_len_ntoh(key_len);
 
     if(pos + key_len > message.size()) {
-        throw std::length_error(SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
+        throw Server_Error(Server_Error_Codes::MSG_TOO_SHORT, SERVER_MESSAGE_TOO_SHORT_ERR_MSG);
     }
 
     std::string key_str(key_len, '\0');
