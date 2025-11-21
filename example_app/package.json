@@ -4,10 +4,12 @@
   "description": "",
   "license": "ISC",
   "author": "",
-  "type": "commonjs",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
   },
   "dependencies": {
     "accepts": "^2.0.0",
@@ -76,5 +78,8 @@
     "vary": "^1.1.2",
     "wrappy": "^1.0.2"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  },
+  "keywords": []
 }
