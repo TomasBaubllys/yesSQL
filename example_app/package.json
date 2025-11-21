@@ -13,10 +13,12 @@
   },
   "dependencies": {
     "accepts": "^2.0.0",
+    "axios": "^1.13.2",
     "body-parser": "^2.2.0",
     "bytes": "^3.1.2",
     "call-bind-apply-helpers": "^1.0.2",
     "call-bound": "^1.0.4",
+    "cheerio": "^1.1.2",
     "content-disposition": "^1.0.1",
     "content-type": "^1.0.5",
     "cookie": "^0.7.2",
