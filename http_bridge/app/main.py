@@ -12,11 +12,11 @@ app = FastAPI()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await pool.initialize()
+    await pool.start_cleanup_task()
     print("TCP pool ready!")
 
     yield
-    await pool.close()
+    await pool.stop_cleanup_task()
     print("TCP pool cleaned")
 
 app = FastAPI(lifespan=lifespan) 
