@@ -19,6 +19,7 @@
 #include "fd_context.h"
 #include "cursor.h"
 #include "server_message.h"
+#include "server_error.h"
 
 #define PRIMARY_SERVER_THREAD_POOL_SIZE_ENV_VAR "PRIMARY_SERVER_THREAD_POOL_SIZE"
 
@@ -100,7 +101,7 @@ class Primary_Server : public Server {
         void add_partitions_to_epoll();
 
         // sets client_fd to epollout and adds a message to its write_buffer
-        void queue_client_for_error_response(socket_t client_fd, protocol_id_t client_id);
+        void queue_client_for_error_response(socket_t client_fd, protocol_id_t client_id, Server_Error_Codes error_code = Server_Error_Codes::UNKNOWN);
 
         void queue_client_for_ok_response(socket_t client_fd, protocol_id_t client_id);
 

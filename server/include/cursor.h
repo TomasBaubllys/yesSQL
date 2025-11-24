@@ -121,6 +121,8 @@ class Cursor {
 
         void set_prefix(std::string&& prefix);
 
+        void append_entries_front(std::vector<Entry>&& entries);
+
         std::string get_prefix() const;
 };
 

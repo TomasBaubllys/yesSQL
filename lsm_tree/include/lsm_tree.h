@@ -71,6 +71,12 @@ class LSM_Tree{
         // performs cleaning operation on the given set to keep only the n number of entries
         Bits clean_forward_set_keys(std::set<Bits>& set_to_clean, uint16_t n);
 
+        // calculate the next possible string
+        std::string next_prefix(const std::string& prefix);
+
+        // returns a filtered set with correct prefix
+        std::set<Bits> clear_larger_prefix(const std::set<Bits>& keys,const std::string& prefix);
+
     public:
         // default constructor initializes mem_table 
         LSM_Tree();

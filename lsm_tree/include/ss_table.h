@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
+#include <set>
 
 #define SS_TABLE_FAILED_TO_OPEN_DATA_FILE_MSG "SS_Table failed to open data file\n"
 #define SS_TABLE_FAILED_TO_OPEN_INDEX_FILE_MSG "SS_Table failed to open index file\n"
@@ -90,17 +91,18 @@ class SS_Table{
 
         //THROWS
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
-        std::pair<std::vector<Entry>, Bits> get_entries_key_smaller_or_equal(const Bits& target_key, SS_Table_Entry_Filter entry_filter, uint32_t count) const;
+        std::vector<Entry> get_entries_key_smaller_or_equal(const Bits& target_key, SS_Table_Entry_Filter entry_filter, uint32_t count, std::set<Bits>& dead_keys) const;
 
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
-        std::pair<std::vector<Entry>, Bits> get_entries_key_larger_or_equal(const Bits& target_key, SS_Table_Entry_Filter entry_filter, uint32_t count) const;
+        std::vector<Entry> get_entries_key_larger_or_equal(const Bits& target_key, SS_Table_Entry_Filter entry_filter, uint32_t count, std::set<Bits>& dead_keys) const;
         
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
-        std::pair<std::vector<Entry>, Bits> get_n_entries(SS_Table_Entry_Filter entry_filter, uint32_t count) const;
+        // if you want deleted keys, simply pass an empty container, it will be ignored
+        std::vector<Entry> get_n_entries(SS_Table_Entry_Filter entry_filter, uint32_t count, std::set<Bits>& dead_keys) const;
 
-        std::vector<Bits> get_all_keys(SS_Table_Entry_Filter key_filter) const;
+        std::vector<Bits> get_all_keys(SS_Table_Entry_Filter key_filter, std::set<Bits>& dead_keys) const;
 
-        std::pair<std::vector<Bits>, Bits> get_n_next_keys(const Bits& target_key, SS_Table_Entry_Filter entry_filter, uint32_t count) const;
+        std::vector<Bits> get_n_next_keys(const Bits& target_key, SS_Table_Entry_Filter entry_filter, uint32_t count, std::set<Bits>& dead_keys) const;
 
     public:
         std::filesystem::path data_path() const;
@@ -205,36 +207,36 @@ class SS_Table{
         std::vector<Bits> get_all_keys() const;
 
         // THROWS
-        std::vector<Bits> get_all_keys_alive() const;
+        std::vector<Bits> get_all_keys_alive(std::set<Bits>& dead_keys) const;
  
-        std::pair<std::vector<Bits>, Bits>get_n_next_keys_alive(const Bits& target_key, uint32_t count) const;
+        std::vector<Bits> get_n_next_keys_alive(const Bits& target_key, uint32_t count, std::set<Bits>& dead_keys) const;
 
         // used for testing
-        std::pair<std::vector<Bits>, Bits> get_n_next_keys(const Bits& target_key, uint32_t count) const;
+        std::vector<Bits> get_n_next_keys(const Bits& target_key, uint32_t count) const;
 
         // THROWS
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
-        std::pair<std::vector<Entry>, Bits> get_entries_key_smaller_or_equal(const Bits& target_key, uint32_t count) const;
+        std::vector<Entry> get_entries_key_smaller_or_equal(const Bits& target_key, uint32_t count) const;
 
         // THROWS
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
-        std::pair<std::vector<Entry>, Bits> get_entries_key_larger_or_equal(const Bits& target_key, uint32_t count) const;
+        std::vector<Entry> get_entries_key_larger_or_equal(const Bits& target_key, uint32_t count) const;
 
         // THROWS
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
-        std::pair<std::vector<Entry>, Bits> get_entries_key_smaller_or_equal_alive(const Bits& target_key, uint32_t count) const;
+        std::vector<Entry> get_entries_key_smaller_or_equal_alive(const Bits& target_key, uint32_t count, std::set<Bits>& dead_keys) const;
 
         // THROWS
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
-        std::pair<std::vector<Entry>, Bits> get_entries_key_larger_or_equal_alive(const Bits& target_key, uint32_t count) const;
+        std::vector<Entry> get_entries_key_larger_or_equal_alive(const Bits& target_key, uint32_t count, std::set<Bits>& dead_keys) const;
 
         // THROWS
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
-        std::pair<std::vector<Entry>, Bits> get_n_entries_alive(uint32_t count) const;
+        std::vector<Entry> get_n_entries_alive(uint32_t count, std::set<Bits>& dead_keys) const;
 
         // THROWS
         // returns UP TO count entries, if less entries are returned (because n entries dont exist in this table, the next key is a placeholder)
-        std::pair<std::vector<Entry>, Bits> get_n_entries(uint32_t count) const;
+        std::vector<Entry> get_n_entries(uint32_t count) const;
 };
 
 #endif // SS_TABLE_H_INCLUDED

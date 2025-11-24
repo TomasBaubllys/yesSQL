@@ -5,6 +5,7 @@
 #include "entry.h"
 #include <algorithm>
 #include <vector>
+#include <set>
 
 #define AVL_TREE_INSERTION_FAILED_ERR "Failed to insert given entry to the tree\n"
 #define AVL_TREE_DELETION_FAILED_ERR "Failed to delete given entry from the tree\n"
@@ -44,7 +45,7 @@ class AVL_Tree
     Entry pop_last(Node*& node);
 
     template <typename T, typename Extractor>
-    void collect_larger(Node* node, const Bits& threshold_key, uint32_t count, std::vector<T>& results, Extractor extractor) const {
+    void collect_larger(Node* node, const Bits& threshold_key, uint32_t count, std::vector<T>& results, std::set<Bits>& dead_keys, Extractor extractor) const {
         if (!node || results.size() >= count) {
             return;
         }
@@ -53,7 +54,7 @@ class AVL_Tree
 
         if (current_key >= threshold_key) {
             if(current_key > threshold_key) {
-                collect_larger(node->left, threshold_key, count, results, extractor);
+                collect_larger(node -> left, threshold_key, count, results, dead_keys, extractor);
             }
 
             if (results.size() >= count) {
@@ -63,13 +64,49 @@ class AVL_Tree
             if (!node -> data.is_deleted()) {
                 results.push_back(extractor(node -> data));
             }
+            else {
+                dead_keys.emplace(node -> data.get_key());
+            }
 
             if (results.size() >= count) return;
 
-            collect_larger(node -> right, threshold_key, count, results, extractor);
+            collect_larger(node -> right, threshold_key, count, results, dead_keys, extractor);
         } 
         else {
-            collect_larger(node -> right, threshold_key, count, results, extractor);
+            collect_larger(node -> right, threshold_key, count, results, dead_keys, extractor);
+        }
+    }
+
+    template <typename T, typename Extractor>
+    void collect_smaller(Node* node, const Bits& threshold_key, uint32_t count, std::vector<T>& results, std::set<Bits>& dead_keys, Extractor extractor) const {
+        if (!node || results.size() >= count) {
+            return;
+        }
+
+        const Bits& current_key = node -> data.get_key();
+
+        if (current_key <= threshold_key) {
+            if(current_key < threshold_key) {
+                collect_smaller(node -> right, threshold_key, count, results, dead_keys, extractor);
+            }
+
+            if (results.size() >= count) {
+                return;
+            }
+
+            if (!node -> data.is_deleted()) {
+                results.push_back(extractor(node -> data));
+            }
+            else {
+                dead_keys.emplace(node -> data.get_key());
+            }
+
+            if (results.size() >= count) return;
+
+            collect_smaller(node -> left, threshold_key, count, results, dead_keys, extractor);
+        } 
+        else {
+            collect_smaller(node -> left, threshold_key, count, results, dead_keys, extractor);
         }
     }
 
@@ -92,10 +129,13 @@ class AVL_Tree
 
     	std::vector<Entry> inorder();
 
-        std::vector<Entry> get_entries_larger_than_alive(const Bits& key, uint32_t count) const;
+        std::vector<Entry> get_entries_larger_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys) const;
 
-        std::vector<Bits> get_keys_larger_than_alive(const Bits& key, uint32_t count) const;
+        std::vector<Bits> get_keys_larger_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys) const;
 
+        std::vector<Entry> get_entries_smaller_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys) const;
+
+        std::vector<Bits> get_keys_smaller_than_alive(const Bits& key, uint32_t count, std::set<Bits>& dead_keys) const;
 };
 
 #endif // YSQL_AVL_TREE_INCLUDED
