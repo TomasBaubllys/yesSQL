@@ -36,13 +36,19 @@ async def remove_value(key: str, x_session_id: str = Header(None, alias="X-Sessi
     parsed = parser.dispatch(resp)
     return parsed
     
+@router.post("/create_cursor/{name}")
 @router.post("/create_cursor/{name}/{key}")
-async def create_cursor(name: str, key: str, x_session_id: str = Header(None, alias="X-Session-Id")):
+async def create_cursor(
+    name: str,
+    key: str = "0",
+    x_session_id: str = Header(None, alias="X-Session-Id")
+):
     session_id = require_session(x_session_id)
     msg = builder.create_cursor(name, key)
     resp = await pool.send_for_session(session_id, msg)
     parsed = parser.dispatch(resp)
     return parsed
+
     
 
 @router.delete("/delete_cursor/{name}")
@@ -56,7 +62,7 @@ async def delete_cursor(name: str, x_session_id: str = Header(None, alias="X-Ses
 @router.get("/get_ff/{name}/{amount}")
 async def get_ff(name: str, amount: str, x_session_id: str = Header(None, alias="X-Session-Id")):
     session_id = require_session(x_session_id)
-    msg = builder.get_ff(name, amount)
+    msg = builder.build_get_ff(name, amount)
     resp = await pool.send_for_session(session_id, msg)
     parsed = parser.dispatch(resp)
     return parsed
@@ -65,7 +71,15 @@ async def get_ff(name: str, amount: str, x_session_id: str = Header(None, alias=
 @router.get("/get_fb/{name}/{amount}")
 async def get_ff(name: str, amount: str, x_session_id: str = Header(None, alias="X-Session-Id")):
     session_id = require_session(x_session_id)
-    msg = builder.get_fb(name, amount)
+    msg = builder.build_get_fb(name, amount)
+    resp = await pool.send_for_session(session_id, msg)
+    parsed = parser.dispatch(resp)
+    return parsed
+
+@router.get("/get_keys/{name}/{amount}")
+async def get_ff(name: str, amount: str, x_session_id: str = Header(None, alias="X-Session-Id")):
+    session_id = require_session(x_session_id)
+    msg = builder.build_get_keys(name, amount)
     resp = await pool.send_for_session(session_id, msg)
     parsed = parser.dispatch(resp)
     return parsed

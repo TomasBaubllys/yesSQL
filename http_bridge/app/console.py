@@ -3,7 +3,7 @@ import httpx
 
 BASE_URL = "http://127.0.0.1:8000"
 
-# --- HTTP functions with headers ---
+# --- Helper functions (your API wrappers) ---
 async def set_key(client, key, value, headers):
     try:
         resp = await client.post(f"{BASE_URL}/set/{key}/{value}", headers=headers)
@@ -24,7 +24,6 @@ async def remove_key(client, key, headers):
         print(f"REMOVE {key} -> {resp.json()}")
     except httpx.RequestError as e:
         print(f"REMOVE {key} failed: {e!r} ")
-
 
 async def create_cursor(client, name, headers, key=None):
     try:
@@ -55,54 +54,66 @@ async def get_fb(client, cursor, amount, headers):
     except httpx.RequestError as e:
         print(f"GET_FB {cursor} failed: {e!r}")
 
-# ------------ concurrency limiter ------------
-semaphore = asyncio.Semaphore(200)  # realistic max concurrent operations
 
-
-async def safe_set_key(client, key, value, headers):
-    async with semaphore:
-        return await set_key(client, key, value, headers)
-
-
-# ------------ one simulated session (user/app instance) ------------
-async def session_worker(session_id, num_keys=1000, batch_size=100):
+# --- Console Program ---
+async def console_client():
+    session_id = input("Enter session id: ")
     headers = {"X-Session-Id": session_id}
 
-    limits = httpx.Limits(
-        max_connections=20,            # realistic pool
-        max_keepalive_connections=10,
-    )
+    print("\nCommands:")
+    print("  set <key> <value>")
+    print("  get <key>")
+    print("  del <key>")
+    print("  cursor.create <name> <key>")
+    print("  cursor.delete <name>")
+    print("  ff <cursor> <amount>")
+    print("  fb <cursor> <amount>")
+    print("  exit\n")
+
+    limits = httpx.Limits(max_connections=10, max_keepalive_connections=5)
 
     async with httpx.AsyncClient(http2=False, limits=limits) as client:
-        for start in range(0, num_keys, batch_size):
-            end = min(start + batch_size, num_keys)
+        while True:
+            cmd = input("> ").strip().split()
 
-            tasks = []
-            for i in range(start, end):
-                key = f"{session_id}_key_{i}"
-                value = f"value_{i}"
+            if not cmd:
+                continue
 
-                tasks.append(
-                    safe_set_key(client, key, value, headers)  # <<–– uses YOUR set()
-                )
+            if cmd[0] == "exit":
+                print("Goodbye.")
+                break
 
-            await asyncio.gather(*tasks)
-            print(f"{session_id}: Inserted {end}/{num_keys}")
+            if cmd[0] == "set" and len(cmd) == 3:
+                await set_key(client, cmd[1], cmd[2], headers)
+
+            elif cmd[0] == "get" and len(cmd) == 2:
+                await get_key(client, cmd[1], headers)
+
+            elif cmd[0] == "del" and len(cmd) == 2:
+                await remove_key(client, cmd[1], headers)
 
 
-# ------------ run many sessions concurrently ------------
-async def simulate_realistic(num_sessions=50, num_keys=2000, batch_size=100):
-    tasks = []
-    for i in range(num_sessions):
-        session_id = f"session_{i}"
-        tasks.append(session_worker(session_id, num_keys, batch_size))
 
-    await asyncio.gather(*tasks)
+            elif cmd[0] == "cursor.create":
+                if len(cmd) == 2:
+                    await create_cursor(client, cmd[1], headers)
+                elif len(cmd) == 3:
+                    await create_cursor(client, cmd[1], headers, cmd[2])
+                else:
+                    print("Usage: cursor.create <name> [key]")
+
+            elif cmd[0] == "cursor.delete" and len(cmd) == 2:
+                await delete_cursor(client, cmd[1], headers)
+
+            elif cmd[0] == "ff" and len(cmd) == 3:
+                await get_ff(client, cmd[1], cmd[2], headers)
+
+            elif cmd[0] == "fb" and len(cmd) == 3:
+                await get_fb(client, cmd[1], cmd[2], headers)
+
+            else:
+                print("Invalid command or wrong arguments.")
 
 
 if __name__ == "__main__":
-    asyncio.run(simulate_realistic(
-        num_sessions=1,
-        num_keys=10000,
-        batch_size=1
-    ))
+    asyncio.run(console_client())
