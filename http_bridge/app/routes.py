@@ -60,7 +60,7 @@ async def delete_cursor(name: str, x_session_id: str = Header(None, alias="X-Ses
     return parsed
     
 @router.get("/get_ff/{name}/{amount}")
-async def get_ff(name: str, amount: str, x_session_id: str = Header(None, alias="X-Session-Id")):
+async def get_ff(name: str, amount: int, x_session_id: str = Header(None, alias="X-Session-Id")):
     session_id = require_session(x_session_id)
     msg = builder.build_get_ff(name, amount)
     resp = await pool.send_for_session(session_id, msg)
@@ -69,7 +69,7 @@ async def get_ff(name: str, amount: str, x_session_id: str = Header(None, alias=
 
     
 @router.get("/get_fb/{name}/{amount}")
-async def get_fb(name: str, amount: str, x_session_id: str = Header(None, alias="X-Session-Id")):
+async def get_fb(name: str, amount: int, x_session_id: str = Header(None, alias="X-Session-Id")):
     session_id = require_session(x_session_id)
     msg = builder.build_get_fb(name, amount)
     resp = await pool.send_for_session(session_id, msg)
@@ -77,7 +77,7 @@ async def get_fb(name: str, amount: str, x_session_id: str = Header(None, alias=
     return parsed
 
 @router.get("/get_keys/{name}/{amount}")
-async def get_keys(name: str, amount: str, x_session_id: str = Header(None, alias="X-Session-Id")):
+async def get_keys(name: str, amount: int, x_session_id: str = Header(None, alias="X-Session-Id")):
     session_id = require_session(x_session_id)
     msg = builder.build_get_keys(name, amount)
     resp = await pool.send_for_session(session_id, msg)
@@ -85,7 +85,7 @@ async def get_keys(name: str, amount: str, x_session_id: str = Header(None, alia
     return parsed
 
 @router.get("/get_keys_prefix/{name}/{prefix}/{amount}")
-async def get_keys_prefix(name: str, prefix: str, amount: str, x_session_id: str = Header(None, alias="X-Session-Id")):
+async def get_keys_prefix(name: str, prefix: str, amount: int, x_session_id: str = Header(None, alias="X-Session-Id")):
     session_id = require_session(x_session_id)
     msg = builder.build_get_keys_prefix(name, prefix, amount)
     resp = await pool.send_for_session(session_id, msg)
