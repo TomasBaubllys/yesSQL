@@ -87,42 +87,70 @@ def delete_cursor(name: str):
 
     return header + body
 
+
+#! -> big-endian
+# H = uint16 // 2
+# Q = uint64 // 8
+# I = uint32 // 4
 def build_get_ff(cursor: str, amount: str):
     cursor_bytes = cursor.encode("utf-8")
-    amount_bytes = amount.encode("utf-8")
-    
+    reserved = b"\x00" * 6
+    amount_bytes = struct.pack("!H", int(amount));
+
+
     body = struct.pack("!H", command_codes.COMMAND_CODE_GET_FF)
-    body += struct.pack("!B", len(cursor)) + cursor_bytes
+    body += struct.pack("!B", len(cursor_bytes)) + cursor_bytes
 
 
     total_length = len(body) + cnt.COMMAND_LENGTH_TOTAL_MESSAGE + cnt.COMMAND_LENGTH_NUM_ELEMENTS
-    header = struct.pack("!Q", total_length) + amount_bytes
+    header = struct.pack("!Q", total_length) + reserved + amount_bytes
 
     return header + body
 
 
 def build_get_fb(cursor: str, amount: str):
     cursor_bytes = cursor.encode("utf-8")
-    amount_bytes = amount.encode("utf-8")
+    amount_bytes = struct.pack("!H", int(amount));
+    reserved = b"\x00" * 6
+
     
     body = struct.pack("!H", command_codes.COMMAND_CODE_GET_FB)
-    body += struct.pack("!B", len(cursor)) + cursor_bytes
+    body += struct.pack("!B", len(cursor_bytes)) + cursor_bytes
 
 
     total_length = len(body) + cnt.COMMAND_LENGTH_TOTAL_MESSAGE + cnt.COMMAND_LENGTH_NUM_ELEMENTS
-    header = struct.pack("!Q", total_length) + amount_bytes
+    header = struct.pack("!Q", total_length) + reserved + amount_bytes
 
     return header + body
 
 def build_get_keys(cursor: str, amount: str):
     cursor_bytes = cursor.encode("utf-8")
-    amount_bytes = amount.encode("utf-8")
+    amount_bytes = struct.pack("!H", int(amount));
+    reserved = b"\x00" * 6
+
     
     body = struct.pack("!H", command_codes.COMMAND_CODE_GET_KEYS)
-    body += struct.pack("!B", len(cursor)) + cursor_bytes
+    body += struct.pack("!B", len(cursor_bytes)) + cursor_bytes
 
     total_length = len(body) + cnt.COMMAND_LENGTH_TOTAL_MESSAGE + cnt.COMMAND_LENGTH_NUM_ELEMENTS
-    header = struct.pack("!Q", total_length) + amount_bytes
+    header = struct.pack("!Q", total_length) + reserved + amount_bytes
+
+    return header + body
+
+
+def build_get_keys_prefix(cursor: str, prefix: str, amount: str):
+    cursor_bytes = cursor.encode("utf-8")
+    amount_bytes = struct.pack("!H", int(amount))
+    prefix_bytes = prefix.encode("utf-8")
+    reserved = b"\x00" * 6
+
+    
+    body = struct.pack("!H", command_codes.COMMAND_CODE_GET_KEYS_PREFIX)
+    body += struct.pack("!B", len(cursor_bytes)) + cursor_bytes
+    body += struct.pack("!H", len(prefix_bytes)) + prefix_bytes
+
+    total_length = len(body) + cnt.COMMAND_LENGTH_TOTAL_MESSAGE + cnt.COMMAND_LENGTH_NUM_ELEMENTS
+    header = struct.pack("!Q", total_length) + reserved + amount_bytes
 
     return header + body
 

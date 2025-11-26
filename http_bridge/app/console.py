@@ -54,6 +54,21 @@ async def get_fb(client, cursor, amount, headers):
     except httpx.RequestError as e:
         print(f"GET_FB {cursor} failed: {e!r}")
 
+async def get_keys(client, cursor, amount, headers):
+    try:
+        resp = await client.get(f"{BASE_URL}/get_keys/{cursor}/{amount}", headers=headers)
+        print(f"GET_KEYS {cursor} {amount} ->s {resp.json()}")
+    except httpx.RequestError as e:
+        print(f"GET_KEYS {cursor} failed: {e!r}")
+
+async def get_keys_prefix(client, cursor, prefix, amount, headers):
+    try:
+        resp = await client.get(f"{BASE_URL}/get_keys_prefix/{cursor}/{prefix}/{amount}", headers=headers)
+        print(f"GET_KEYS_PREFIX {cursor} {prefix} {amount} ->s {resp.json()}")
+    except httpx.RequestError as e:
+        print(f"GET_KEYS_PREFIX {cursor} failed: {e!r}")
+
+
 
 # --- Console Program ---
 async def console_client():
@@ -68,6 +83,9 @@ async def console_client():
     print("  cursor.delete <name>")
     print("  ff <cursor> <amount>")
     print("  fb <cursor> <amount>")
+    print("  get.keys <cursor> <amount>")
+    print("  get.keys.prefix <cursor> <prefix> <amount>")
+
     print("  exit\n")
 
     limits = httpx.Limits(max_connections=10, max_keepalive_connections=5)
@@ -110,6 +128,12 @@ async def console_client():
 
             elif cmd[0] == "fb" and len(cmd) == 3:
                 await get_fb(client, cmd[1], cmd[2], headers)
+
+            elif cmd[0] == "get.keys" and len(cmd) == 3:
+                await get_keys(client, cmd[1], cmd[2], headers)
+
+            elif cmd[0] == "get.keys.prefix" and len(cmd) == 4:
+                await get_keys_prefix(client, cmd[1], cmd[2], cmd[3], headers)
 
             else:
                 print("Invalid command or wrong arguments.")
