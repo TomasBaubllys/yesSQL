@@ -57,14 +57,14 @@ async def get_fb(client, cursor, amount, headers):
 async def get_keys(client, cursor, amount, headers):
     try:
         resp = await client.get(f"{BASE_URL}/get_keys/{cursor}/{amount}", headers=headers)
-        print(f"GET_KEYS {cursor} {amount} ->s {resp.json()}")
+        print(f"GET_KEYS {cursor} {amount} -> {resp.json()}")
     except httpx.RequestError as e:
         print(f"GET_KEYS {cursor} failed: {e!r}")
 
 async def get_keys_prefix(client, cursor, prefix, amount, headers):
     try:
         resp = await client.get(f"{BASE_URL}/get_keys_prefix/{cursor}/{prefix}/{amount}", headers=headers)
-        print(f"GET_KEYS_PREFIX {cursor} {prefix} {amount} ->s {resp.json()}")
+        print(f"GET_KEYS_PREFIX {cursor} {prefix} {amount} -> {resp.json()}")
     except httpx.RequestError as e:
         print(f"GET_KEYS_PREFIX {cursor} failed: {e!r}")
 

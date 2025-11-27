@@ -23,9 +23,3 @@ app = FastAPI(lifespan=lifespan)
 
 app.include_router(router)
     
-
-# TODO:
-# COMMAND_CODE_GET_KEYS = 4
-#COMMAND_CODE_GET_KEYS_PREFIX = 5
-#COMMAND_CODE_GET_FF = 6
-#COMMAND_CODE_GET_FB = 7
