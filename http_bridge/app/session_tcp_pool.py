@@ -1,7 +1,9 @@
 import asyncio
 import struct
 import time
-from . import constants
+#from . import constants
+import constants
+
 
 SESSION_IDLE_TIMEOUT = 300
 CLEANUP_INTERVAL = 60

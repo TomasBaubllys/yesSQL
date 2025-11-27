@@ -1,10 +1,14 @@
-from .tcp_instance_pool import pool
+#from .tcp_instance_pool import pool
+from tcp_instance_pool import pool
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from .routes import router
+#from .routes import router
+from routes import router
 
-#HOST = "host.docker.internal"
-HOST = "127.0.0.1"
+
+HOST = "host.docker.internal"
+#HOST = "127.0.0.1"
 PORT = 9000
 POOL_SIZE = 5
 

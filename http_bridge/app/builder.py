@@ -1,6 +1,9 @@
 import struct
-from . import constants as cnt
-from . import command_codes
+#from . import constants as cnt
+#from . import command_codes
+
+import constants as cnt
+import command_codes
 
 #! -> big-endian
 # H = uint16 // 2
