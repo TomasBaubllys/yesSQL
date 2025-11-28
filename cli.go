@@ -15,7 +15,7 @@ const (
 	PORT = 9000
 )
 
-const TOTAL_KEYS = 0
+const TOTAL_KEYS = 10000
 
 func preloadKeys(conn net.Conn) {
 	fmt.Printf("Preloading %d keys...\n", TOTAL_KEYS)
