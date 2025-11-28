@@ -41,19 +41,19 @@ Deletes the cursor for this client
 ```
 DELETE_CURSOR <cursor_name>
 ```
-Returns amount (amount <= 255) of key - value pairs forward from the current cursor.
+Returns amount (amount <= 1024) of key - value pairs forward from the current cursor.
 ```
 GET_FF <cursor_name> <amount>
 ```
-Returns amount (amount <= 255) of key - value pairs backwards from the current cursor.
+Returns amount (amount <= 1024) of key - value pairs backwards from the current cursor.
 ```
 GET_FB <cursor_name> <amount>
 ```
-Returns amount (amount <= 255) of keys  forward from the current cursor.
+Returns amount (amount <= 1024) of keys  forward from the current cursor.
 ```
 GET_KEYS <cursor_name> <amount>
 ```
-Returns amount (amount <= 255) of keys  forward from the current cursor that have the provided prefix.
+Returns amount (amount <= 1024) of keys  forward from the current cursor that have the provided prefix.
 ```
 GET_KEYS_PREFIX <cursor_name> <amount> <prefix>
 ```
