@@ -6,7 +6,8 @@
 #include <cstring>
 
 #define CURSOR_MAX_NAME_LEN 64
-#define CURSOR_MAX_SIZE 0xff
+// #define CURSOR_MAX_SIZE 0xff
+#define CURSOR_MAX_SIZE 1024
 
 #define CURSOR_CAPACITY_TOO_BIG_ERR_MSG "Cursor size exceeds maximum allowed size\n"
 #define CURSOR_NAME_TOO_BIG_ERR_MSG "Cursor name exceeds maximum allowed size\n"
