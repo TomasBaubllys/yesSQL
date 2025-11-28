@@ -26,11 +26,11 @@ class Protocol {
   // NEW: For commands that return multiple key-value pairs
   parseMultiple(response) {
     if (response.status === 'OK') {
-      return response.data; // Returns the full object
+      return Object.values(response.data); // <-- CRITICAL FIX
     }
 
     if (response.status === 'DATA NOT FOUND') {
-      return {};
+      return [];
     }
 
     if (response.status === 'ERROR') {
@@ -39,6 +39,7 @@ class Protocol {
 
     throw new Error(`Unknown status: ${response.status}`);
   }
+
 
   // NEW: For GET_KEYS commands that return only keys
   parseKeys(response) {
