@@ -1,6 +1,3 @@
-// Import all other modules
-// Create instances of them
-// Expose a simple API to users
 // index.js
 
 const Connection = require('./client/connection');
@@ -16,6 +13,7 @@ class DatabaseClient {
     this.logger = logger;
   }
 
+  // Existing methods
   async get(key) {
     this.logger.debug('GET request for key:', key);
     const response = await this.commands.get(key);
@@ -38,6 +36,64 @@ class DatabaseClient {
     const result = this.protocol.parse(response);
     this.logger.debug('REMOVE response:', result);
     return result;
+  }
+
+  // NEW: Cursor methods
+  async createCursor(name, key = '0') {
+    this.logger.debug('CREATE_CURSOR request:', name, key);
+    const response = await this.commands.createCursor(name, key);
+    const result = this.protocol.parse(response);
+    this.logger.debug('CREATE_CURSOR response:', result);
+    return result;
+  }
+
+  async deleteCursor(name) {
+    this.logger.debug('DELETE_CURSOR request:', name);
+    const response = await this.commands.deleteCursor(name);
+    const result = this.protocol.parse(response);
+    this.logger.debug('DELETE_CURSOR response:', result);
+    return result;
+  }
+
+  async getFF(name, amount) {
+    this.logger.debug('GET_FF request:', name, amount);
+    const response = await this.commands.getFF(name, amount);
+    const result = this.protocol.parseMultiple(response);
+    this.logger.debug('GET_FF response:', result);
+    return result;
+  }
+
+  async getFB(name, amount) {
+    this.logger.debug('GET_FB request:', name, amount);
+    const response = await this.commands.getFB(name, amount);
+    const result = this.protocol.parseMultiple(response);
+    this.logger.debug('GET_FB response:', result);
+    return result;
+  }
+
+  async getKeys(name, amount) {
+    this.logger.debug('GET_KEYS request:', name, amount);
+    const response = await this.commands.getKeys(name, amount);
+    const result = this.protocol.parseKeys(response);
+    this.logger.debug('GET_KEYS response:', result);
+    return result;
+  }
+
+  async getKeysPrefix(name, prefix, amount) {
+    this.logger.debug('GET_KEYS_PREFIX request:', name, prefix, amount);
+    const response = await this.commands.getKeysPrefix(name, prefix, amount);
+    const result = this.protocol.parseKeys(response);
+    this.logger.debug('GET_KEYS_PREFIX response:', result);
+    return result;
+  }
+
+  // Session management
+  getSessionId() {
+    return this.connection.getSessionId();
+  }
+
+  setSessionId(sessionId) {
+    this.connection.setSessionId(sessionId);
   }
 }
 

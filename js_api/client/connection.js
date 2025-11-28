@@ -1,14 +1,14 @@
-// Make HTTP requests to: http://127.0.0.1:8000
-// GET /get/{key}
-// POST /set/{key}/{value}  
-// DELETE /delete/{key}
-
 // client/connection.js
 
 class Connection {
   constructor(config) {
     this.baseUrl = config.url || 'http://127.0.0.1:8000';
     this.timeout = config.timeout || 30000;
+    this.sessionId = config.sessionId || this.generateSessionId();
+  }
+
+  generateSessionId() {
+    return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(7);
   }
 
   async request(method, path) {
@@ -17,7 +17,8 @@ class Connection {
     const options = {
       method: method,
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-Session-Id': this.sessionId  // NEW: Required session header
       }
     };
 
@@ -34,6 +35,14 @@ class Connection {
     } catch (error) {
       throw error;
     }
+  }
+
+  getSessionId() {
+    return this.sessionId;
+  }
+
+  setSessionId(sessionId) {
+    this.sessionId = sessionId;
   }
 }
 
