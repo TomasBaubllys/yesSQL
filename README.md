@@ -87,7 +87,7 @@ bash docker/example_app/compose.sh
 ```
 and (maybe) enjoy:). You can access it on your browser http://localhost:8080
 ## Note by developers
-This project was made out of curiosity on database internally work, if you wish to contribute feel free to make a pull request.
+This project was made out of curiosity on how database internally work, if you wish to contribute feel free to make a pull request.
 
 
 
