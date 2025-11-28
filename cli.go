@@ -325,7 +325,7 @@ func main() {
 	fmt.Println("  GET_KEYS_PREFIX <cursor> <count> <prefix>")
 	fmt.Println("  exit")
 
-	// preloadKeys(conn)
+	preloadKeys(conn)
 
 	for {
 		fmt.Print("yessql> ")
