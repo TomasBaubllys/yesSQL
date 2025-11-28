@@ -1275,14 +1275,31 @@ int8_t Primary_Server::query_partition_by_cursor(Cursor& cursor, Command_Code co
     serv_msg.set_cid(client_id);
     serv_msg.set_message_eat(std::move(msg_str));
 
-    socket_t partition_sock = 0;
+    Partition_Entry partition = {};
     {
         std::shared_lock<std::shared_mutex> lock(this -> partitions_mutex);
-        partition_sock = this -> partitions[cursor.get_last_called_part_id()].socket_fd;
+        partition = this -> partitions[cursor.get_last_called_part_id()];
     }
 
+    if(!ensure_partition_connection(partition)) {
+        socket_t client_fd = this -> find_client_fd(client_id);
+        cursor.clear_msg();
+        this -> return_cursor(client_fd, std::move(cursor));
+        this -> queue_client_for_error_response(client_fd, client_id);
+    }
 
-    this -> queue_partition_for_response(partition_sock, std::move(serv_msg));
-
+    try {
+        this -> queue_partition_for_response(partition.socket_fd, std::move(serv_msg));
+    }
+    catch(const std::exception& e) {
+        if(this -> verbose > 0) {
+            std::cerr << e.what() << std::endl;
+        }
+        socket_t client_fd = this -> find_client_fd(client_id);
+        cursor.clear_msg();
+        this -> return_cursor(client_fd, std::move(cursor));
+        this -> queue_client_for_error_response(client_fd, client_id);
+        return -1;
+    }
     return 0;
 }
