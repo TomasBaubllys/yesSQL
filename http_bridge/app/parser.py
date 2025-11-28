@@ -13,7 +13,6 @@ from constants import COMMAND_LENGTH_COMMAND_MESSAGE, COMMAND_LENGTH_KEY_LENGTH,
 
 KEYS_ONLY_COMMANDS = {COMMAND_CODE_GET_KEYS, COMMAND_CODE_GET_KEYS_PREFIX}
 def handle_ok(raw_data: bytes, keys_only: bool) -> dict:
-    print(raw_data)
     offset = 0
     total_length, num_elements = struct.unpack_from("!QQ", raw_data, offset)
     offset += COMMAND_LENGTH_TOTAL_MESSAGE + COMMAND_LENGTH_NUM_ELEMENTS
