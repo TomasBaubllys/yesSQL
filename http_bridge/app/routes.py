@@ -77,7 +77,7 @@ async def get_fb(name: str, amount: int, x_session_id: str = Header(None, alias=
     session_id = require_session(x_session_id)
     msg = builder.build_get_fb(name, amount)
     resp = await pool.send_for_session(session_id, msg)
-    parsed = parser.dispatch(resp, True)
+    parsed = parser.dispatch(resp, False)
     return parsed
 
 @router.get("/get_keys/{name}/{amount}")
