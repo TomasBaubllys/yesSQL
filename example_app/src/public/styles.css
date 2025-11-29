@@ -181,3 +181,21 @@ footer {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* Add this to your existing CSS */
+.button-group {
+    display: flex;
+    gap: 10px;
+}
+
+.secondary-btn {
+    background-color: #4b5563; /* Grey */
+}
+.secondary-btn:hover {
+    background-color: #374151;
+}
+
+/* Ensure buttons don't shrink */
+button {
+    white-space: nowrap;
+}

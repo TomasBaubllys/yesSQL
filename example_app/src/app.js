@@ -4,8 +4,8 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import DatabaseClient from '../js_api/index.js';
-// const DatabaseClient = require('../js_api/index');
-const DB_URL = process.env.DB_URL || 'http://host.docker.internal:8000' 
+
+const DB_URL = process.env.DB_URL || 'http://host.docker.internal:8000';
 const db = new DatabaseClient({ url: DB_URL });
 
 const app = express();
@@ -21,11 +21,10 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// --- REGEX CONFIG ---
 const REGEX = {
     email: /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi,
-    
     phone: /(?:\+?\d{1,3}[ -]?)?\(?\d{3}\)?[ -]?\d{3}[ -]?\d{4}/g,
-    
     apiKeys: {
         google: /AIza[0-9A-Za-z-_]{35}/g,
         stripe: /sk_live_[0-9a-zA-Z]{24}/g,
@@ -34,13 +33,14 @@ const REGEX = {
     }
 };
 
+// --- SCRAPE ENDPOINT ---
 app.post('/scrape', async (req, res) => {
     let { url } = req.body;
 
     if (!url) return res.status(400).json({ error: "Missing URL" });
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
 
-    console.log(`Scraping full details: ${url}`);
+    console.log(`Scraping: ${url}`);
 
     try {
         const response = await axios.get(url, {
@@ -62,7 +62,8 @@ app.post('/scrape', async (req, res) => {
 
         const emailsFound = (bodyText.match(REGEX.email) || []);
         $('a[href^="mailto:"]').each((_, el) => {
-            emailsFound.push($(el).attr('href').replace('mailto:', ''));
+            const href = $(el).attr('href');
+            if(href) emailsFound.push(href.replace('mailto:', ''));
         });
         const uniqueEmails = [...new Set(emailsFound)];
 
@@ -85,28 +86,19 @@ app.post('/scrape', async (req, res) => {
         });
 
         const result = {
-            metadata: {
-                url,
-                title,
-                description,
-                image
-            },
-            contact: {
-                emails: uniqueEmails,
-                phones: uniquePhones,
-                socials: [...new Set(socialLinks)]
-            },
-            security: {
-                possible_api_keys: foundKeys
-            },
+            metadata: { url, title, description, image },
+            contact: { emails: uniqueEmails, phones: uniquePhones, socials: [...new Set(socialLinks)] },
+            security: { possible_api_keys: foundKeys },
             content_summary: {
                 headings_count: $("h1, h2, h3").length,
                 links_count: $("a").length
-            }
+            },
+            timestamp: new Date().toLocaleString()
         };
-        const db_resp = await db.set(`${url}`, JSON.stringify(result));
-        console.log(result);
 
+        // Save to Database
+        await db.set(url, JSON.stringify(result));
+        
         res.json(result);
 
     } catch (err) {
@@ -116,6 +108,45 @@ app.post('/scrape', async (req, res) => {
     }
 });
 
+// --- NEW ENDPOINT: GET SINGLE ITEM FROM DB ---
+app.post('/get', async (req, res) => {
+    try {
+        // 1. Extract the key (url) from the request body
+        const { url } = req.body;
+
+        console.log(req)
+
+
+        if (!url) {
+            return res.status(400).json({ error: "Missing URL key" });
+        }
+
+        console.log(`Fetching specific URL from DB: ${url}`);
+
+        // 2. Fetch specific key from YSQL Database
+        // db.get(key) returns the value directly (usually a JSON string based on your set logic)
+        const dbData = await db.get(url);
+
+        console.log(dbData)
+
+        if (!dbData) {
+            return res.status(404).json({ error: "Record not found" });
+        }
+
+        // 3. Parse and return
+        // Since we saved it as JSON.stringify(result), we parse it back to an object
+        let result = dbData;
+        if (typeof dbData === 'string') {
+            result = JSON.parse(dbData);
+        }
+
+        res.json(result);
+
+    } catch (err) {
+        console.error("DB Fetch Error:", err);
+        res.status(500).json({ error: "Failed to fetch from database" });
+    }
+});
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });

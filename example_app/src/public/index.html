@@ -16,19 +16,25 @@
     <main>
         <!-- Search Section -->
         <div class="search-container">
-            <input id="url-input" type="text" placeholder="Enter a URL (e.g. example.com)...">
-            <button id="scrape-btn">Scrape Now</button>
+            <input id="url-input" type="text" placeholder="Enter URL to scrape OR prefix to search DB...">
+            <div class="button-group">
+                <button id="scrape-btn">Scrape New</button>
+                <button id="db-btn" class="secondary-btn">Search DB</button>
+            </div>
         </div>
-
+        
         <!-- Status Message -->
         <div id="status"></div>
 
         <!-- Main Results Display -->
         <div id="results"></div>
 
-        <!-- History Section -->
+        <!-- History Section (Now Loaded from DB) -->
         <div class="history-section">
-            <h3 style="color: var(--text-muted);">Last 10 Scrapes</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="color: var(--text-muted);">Database History</h3>
+                <button id="refresh-btn" style="padding:5px 10px; font-size:0.8rem;">Refresh</button>
+            </div>
             <div id="history-list" class="history-list">
                 <!-- History items will appear here -->
             </div>
