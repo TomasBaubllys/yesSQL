@@ -1,190 +1,186 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const input = document.querySelector("#url-input");
-    const scrapeBtn = document.querySelector("#scrape-btn");
-    const dbBtn = document.querySelector("#db-btn"); // New Button
-    const refreshBtn = document.querySelector("#refresh-btn"); // Refresh Button
+    // UI Refs
+    const urlList = document.querySelector("#url-list");
+    const resultDisplay = document.querySelector("#result-display");
     const statusDiv = document.querySelector("#status");
-    const resultsContainer = document.querySelector("#results");
-    const historyContainer = document.querySelector("#history-list");
+    const amountSelect = document.querySelector("#amount-select");
     
-    fetchHistoryFromDB();
+    // Buttons
+    const btnNext = document.querySelector("#btn-next");
+    const btnPrev = document.querySelector("#btn-prev");
+    const btnScrape = document.querySelector("#scrape-btn");
+    const btnDb = document.querySelector("#db-btn"); // <--- restored
+    const input = document.querySelector("#url-input");
 
-    scrapeBtn.addEventListener("click", async () => {
+    // State
+    let currentAmount = 10;
+    
+    // Initial Load
+    fetchBatch('get_next');
+
+    // --- Event Listeners ---
+
+    // 1. Sidebar Navigation
+    btnNext.addEventListener("click", () => fetchBatch('get_next'));
+    btnPrev.addEventListener("click", () => fetchBatch('get_prev'));
+
+    amountSelect.addEventListener("change", (e) => {
+        currentAmount = parseInt(e.target.value);
+        fetchBatch('get_next');
+    });
+
+    // 2. Scrape New
+    btnScrape.addEventListener("click", async () => {
         const url = input.value.trim();
         if (!url) return alert("Please enter a URL");
-
-        setLoading(true, "Scraping deep data...");
-
+        
+        updateStatus("Scraping target...", "blue");
+        
         try {
-            const response = await fetch("/scrape", {
+            const res = await fetch("/scrape", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url: url })
+                body: JSON.stringify({ url })
             });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
 
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "Server error");
+            updateStatus("Scraped successfully.", "green");
+            renderDetail(data); 
+            fetchBatch('get_next'); // Refresh list
 
-            statusDiv.textContent = "Success! Scraped and saved to DB.";
-            statusDiv.className = "success";
-            
-            renderResultHTML(data);
-            fetchHistoryFromDB(); // Refresh list to show new item
-
-        } catch (error) {
-            handleError(error);
-        } finally {
-            setLoading(false);
-        }
-    });
-
-    dbBtn.addEventListener("click", async () => {
-        const url = input.value.trim();         
-        setLoading(true, "Searching Database...");
-
-        try {
-            const response = await fetch("/get", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url: url, protocol: 'https://' })
-            });
-
-            const data = await response.json();
-            console.log(data);
-            if (!response.ok) throw new Error(data.error || "DB Error");
-
-            renderResultHTML(data);
-        } catch (error) {
-            handleError(error);
-        } finally {
-            setLoading(false);
-        }
-    });
-
-    // --- BUTTON 3: REFRESH LIST ---
-    refreshBtn.addEventListener("click", fetchHistoryFromDB);
-
-    // --- FUNCTIONS ---
-
-    async function fetchHistoryFromDB() {
-        try {
-            const response = await fetch("/get-data", {
-                method: "POST", 
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prefix: "" }) // Empty prefix = get all
-            });
-            const data = await response.json();
-            renderHistoryList(data);
         } catch (e) {
-            console.error("Failed to load history", e);
+            updateStatus("Error: " + e.message, "red");
+        }
+    });
+
+    // 3. Search DB (Restored)
+    btnDb.addEventListener("click", async () => {
+        const url = input.value.trim();
+        if (!url) return alert("Please enter a URL key to search");
+
+        updateStatus("Searching database...", "blue");
+
+        try {
+            const res = await fetch("/get", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url })
+            });
+            const data = await res.json();
+            
+            if (!res.ok) throw new Error(data.error || "Not found");
+
+            updateStatus("Record found in DB.", "green");
+            renderDetail(data);
+
+        } catch (e) {
+            updateStatus("Not found in database.", "red");
+        }
+    });
+
+    // --- Core Logic ---
+
+    async function fetchBatch(command) {
+        urlList.style.opacity = "0.5";
+        
+        try {
+            const res = await fetch("/get_nextprev", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    amount: currentAmount, 
+                    command: command 
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "DB Error");
+
+            renderList(data);
+
+        } catch (e) {
+            console.error(e);
+            updateStatus("List fetch error: " + e.message, "red");
+        } finally {
+            urlList.style.opacity = "1";
         }
     }
 
-    function renderHistoryList(items) {
-        historyContainer.innerHTML = "";
+    function renderList(items) {
+        urlList.innerHTML = "";
+
         if (!items || items.length === 0) {
-            historyContainer.innerHTML = '<div style="color:#999; font-style:italic;">Database is empty.</div>';
+            urlList.innerHTML = '<div style="padding:15px; color:#999; text-align:center;">No records found.</div>';
             return;
         }
 
         items.forEach(item => {
             const div = document.createElement("div");
-            div.className = "history-item";
+            div.className = "list-item";
             
-            const emailCount = item.contact?.emails?.length || 0;
-            const linkCount = item.content_summary?.links_count || 0;
-            const time = item.timestamp || "N/A";
+            const finalItem = typeof item === 'string' ? JSON.parse(item) : item;
+            
+            div.textContent = finalItem.metadata.url;
+            div.title = finalItem.metadata.url;
 
-            div.innerHTML = `
-                <div>
-                    <div class="history-url">${item.metadata.url}</div>
-                    <div class="history-time">${time}</div>
-                </div>
-                <div style="font-size:0.8rem; color:#666;">
-                    ${emailCount} emails • ${linkCount} links
-                </div>
-            `;
-            
             div.addEventListener("click", () => {
-                renderResultHTML(item);
-                statusDiv.textContent = "Loaded from Database";
-                statusDiv.className = "";
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                document.querySelectorAll(".list-item").forEach(el => el.classList.remove("active"));
+                div.classList.add("active");
+                renderDetail(finalItem);
             });
 
-            historyContainer.appendChild(div);
+            urlList.appendChild(div);
         });
     }
 
-    function renderResultHTML(data) {
+    function renderDetail(data) {
         const { metadata, contact, security, content_summary } = data;
+        
+        const makeTags = (arr, danger) => arr && arr.length 
+            ? arr.map(x => `<span class="tag ${danger?'danger':''}">${x}</span>`).join('') 
+            : '<span style="color:#999;font-style:italic">None</span>';
 
-        const makeTags = (items, isDanger = false) => {
-            if (!items || items.length === 0) return '<span class="tag empty">None found</span>';
-            return items.map(i => `<span class="tag ${isDanger ? 'danger' : ''}">${i}</span>`).join('');
-        };
-
-        let apiKeysList = [];
-        for (const [provider, keys] of Object.entries(security.possible_api_keys || {})) {
-            keys.forEach(k => apiKeysList.push(`<b>${provider}:</b> ${k}`));
+        let keys = [];
+        for (let [k, v] of Object.entries(security.possible_api_keys || {})) {
+            v.forEach(val => keys.push(`<b>${k}:</b> ${val}`));
         }
 
-        const headings = content_summary?.headings_count || 0;
-        const links = content_summary?.links_count || 0;
+        const imageHtml = metadata.image 
+            ? `<img src="${metadata.image}" class="meta-img" alt="Site Preview">` 
+            : '';
 
-        const html = `
+        resultDisplay.innerHTML = `
             <div class="result-card">
-                <div class="meta-header">
-                    ${metadata.image ? `<img src="${metadata.image}" style="max-width:100%; height:auto; border-radius:8px; margin-bottom:15px; border:1px solid #eee;" alt="Site Preview">` : ''}
-                    <h2>${metadata.title || 'No Title'}</h2>
-                    <a href="${metadata.url}" target="_blank">${metadata.url}</a>
-                    <p>${metadata.description || ''}</p>
+                
+                ${imageHtml}
+
+                <div style="margin-bottom: 20px; border-bottom:1px solid #eee; padding-bottom:15px;">
+                    <h2 style="margin:0 0 5px 0; font-size:1.8rem;">${metadata.title || 'No Title'}</h2>
+                    <a href="${metadata.url}" target="_blank" style="color:var(--primary); font-size:1.1rem;">${metadata.url}</a>
+                    <p style="color:#666; margin-top:10px;">${metadata.description || 'No description available.'}</p>
                 </div>
-                <div class="data-section">
-                    <div class="section-label">Content Overview</div>
-                    <div class="tags">
-                        <span class="tag">Headings: <b>${headings}</b></span>
-                        <span class="tag">Links: <b>${links}</b></span>
-                    </div>
+
+                <div class="section-label">Content Overview</div>
+                <div class="tags">
+                    <span class="tag">Headings: ${content_summary?.headings_count || 0}</span>
+                    <span class="tag">Links: ${content_summary?.links_count || 0}</span>
                 </div>
-                <div class="data-section">
-                    <div class="section-label">Contact Emails</div>
-                    <div class="tags">${makeTags(contact.emails)}</div>
-                </div>
-                <div class="data-section">
-                    <div class="section-label">Phone Numbers</div>
-                    <div class="tags">${makeTags(contact.phones)}</div>
-                </div>
-                <div class="data-section">
-                    <div class="section-label">Social Media</div>
-                    <div class="tags">${makeTags(contact.socials)}</div>
-                </div>
-                <div class="data-section">
-                    <div class="section-label" style="color:${apiKeysList.length ? 'red' : '#6b7280'}">Security / API Keys</div>
-                    <div class="tags">${makeTags(apiKeysList, true)}</div>
-                </div>
+
+                <div class="section-label">Contact Emails</div>
+                <div class="tags">${makeTags(contact.emails)}</div>
+
+                <div class="section-label">Phone Numbers</div>
+                <div class="tags">${makeTags(contact.phones)}</div>
+
+                <div class="section-label" style="color:${keys.length?'red':'inherit'}">Security Keys</div>
+                <div class="tags">${makeTags(keys, true)}</div>
             </div>
         `;
-        resultsContainer.innerHTML = html;
     }
 
-    function setLoading(isLoading, text) {
-        if (isLoading) {
-            statusDiv.textContent = text;
-            statusDiv.className = "";
-            resultsContainer.innerHTML = '<div style="text-align:center; color:#666;">Processing...</div>';
-            scrapeBtn.disabled = true;
-            dbBtn.disabled = true;
-        } else {
-            scrapeBtn.disabled = false;
-            dbBtn.disabled = false;
-        }
-    }
-
-    function handleError(error) {
-        console.error("App Error:", error);
-        statusDiv.textContent = "Error: " + error.message;
-        statusDiv.className = "error";
-        resultsContainer.innerHTML = "";
+    function updateStatus(msg, color) {
+        statusDiv.textContent = msg;
+        statusDiv.style.color = color === "red" ? "#ef4444" : (color === "green" ? "#10b981" : "#4f46e5");
     }
 });

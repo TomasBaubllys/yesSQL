@@ -3,46 +3,62 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>YSQL Web Scraper</title>
+    <title>YSQL Scraper App</title>
     <link rel="stylesheet" href="styles.css" />
     <script src="script.js" defer></script>
 </head>
 <body>
 
-    <header>
+    <header class="main-header">
         <h1>YSQL Scraper App</h1>
     </header>
 
-    <main>
-        <!-- Search Section -->
-        <div class="search-container">
-            <input id="url-input" type="text" placeholder="Enter URL to scrape OR prefix to search DB...">
-            <div class="button-group">
-                <button id="scrape-btn">Scrape New</button>
-                <button id="db-btn" class="secondary-btn">Search DB</button>
-            </div>
-        </div>
+    <div class="app-layout">
         
-        <!-- Status Message -->
-        <div id="status"></div>
-
-        <!-- Main Results Display -->
-        <div id="results"></div>
-
-        <!-- History Section (Now Loaded from DB) -->
-        <div class="history-section">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="color: var(--text-muted);">Database History</h3>
-                <button id="refresh-btn" style="padding:5px 10px; font-size:0.8rem;">Refresh</button>
+        <!-- LEFT PANEL: Main Display -->
+        <main class="main-view">
+            
+            <!-- Controls -->
+            <div class="scraper-box">
+                <input id="url-input" type="text" placeholder="Enter a URL (e.g. https://example.com)...">
+                <div class="button-group">
+                    <button id="scrape-btn">Scrape New</button>
+                    <button id="db-btn" class="secondary-btn">Search DB</button>
+                </div>
             </div>
-            <div id="history-list" class="history-list">
-                <!-- History items will appear here -->
+            
+            <div id="status">Ready</div>
+            
+            <!-- Main Result Card -->
+            <div id="result-display">
+                <div class="placeholder">
+                    <p>Select a URL from the sidebar or Search/Scrape above.</p>
+                </div>
             </div>
-        </div>
-    </main>
+        </main>
 
-    <footer>
-        <p>&copy; 2025 YSQL App. All rights reserved.</p>
-    </footer>
+        <!-- RIGHT PANEL: Sidebar List -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>Database Browser</h3>
+                <select id="amount-select">
+                    <option value="10">10 items</option>
+                    <option value="25">25 items</option>
+                    <option value="50">50 items</option>
+                </select>
+            </div>
+
+            <div id="url-list" class="url-list">
+                <!-- Javascript will populate this -->
+            </div>
+
+            <div class="sidebar-controls">
+                <button id="btn-prev">Previous</button>
+                <button id="btn-next">Next</button>
+            </div>
+        </aside>
+
+    </div>
+
 </body>
 </html>
