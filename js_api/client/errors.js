@@ -28,9 +28,16 @@ class NotFoundError extends DatabaseError {
   }
 }
 
-module.exports = {
+export default {
   DatabaseError,
   ConnectionError,
   QueryError,
   NotFoundError
-};
+}
+
+/*module.exports = {
+  DatabaseError,
+  ConnectionError,
+  QueryError,
+  NotFoundError
+};*/

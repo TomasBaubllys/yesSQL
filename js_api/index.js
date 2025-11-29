@@ -1,9 +1,14 @@
 // index.js
 
-const Connection = require('./client/connection');
+/*const Connection = require('./client/connection');
 const Commands = require('./client/commands');
 const Protocol = require('./client/protocol');
-const logger = require('./utils/logger');
+const logger = require('./utils/logger');*/
+
+import Connection from './client/connection.js';
+import Commands from './client/commands.js';
+import Protocol from './client/protocol.js';
+import logger from './utils/logger.js';
 
 class DatabaseClient {
   constructor(config = {}) {
@@ -97,4 +102,7 @@ class DatabaseClient {
   }
 }
 
-module.exports = DatabaseClient;
+export default DatabaseClient;
+// module.exports = DatabaseClient;
+
+

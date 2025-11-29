@@ -6,7 +6,7 @@ expected_dir="${HOME}/Documents/yesSQL"
 
 if [[ "$current_dir" != "$expected_dir" ]]; then
 	echo "Script must be ran from yesSQL as the root folder"
-   echo	"Go to yesSQL folder and run \"bash docker/compose.sh\""
+   echo	"Go to yesSQL folder and run \"bash docker/example/compose.sh\""
 	exit
 fi
 

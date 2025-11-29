@@ -38,4 +38,5 @@ class Logger {
   }
 }
 
-module.exports = new Logger(process.env.LOG_LEVEL || 'INFO');
+export default new Logger(process.env.LOG_LEVEL || 'INFO');
+// module.exports = new Logger(process.env.LOG_LEVEL || 'INFO');

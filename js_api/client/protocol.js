@@ -66,4 +66,5 @@ class Protocol {
   }
 }
 
-module.exports = Protocol;
+export default Protocol;
+// module.exports = Protocol;

@@ -3,6 +3,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import DatabaseClient from '../js_api/index.js';
+// const DatabaseClient = require('../js_api/index');
+const DB_URL = process.env.DB_URL || 'http://host.docker.internal:8000' 
+const db = new DatabaseClient({ url: DB_URL });
 
 const app = express();
 const PORT = 8080;
@@ -80,7 +84,7 @@ app.post('/scrape', async (req, res) => {
             }
         });
 
-        res.json({
+        const result = {
             metadata: {
                 url,
                 title,
@@ -99,7 +103,11 @@ app.post('/scrape', async (req, res) => {
                 headings_count: $("h1, h2, h3").length,
                 links_count: $("a").length
             }
-        });
+        };
+        const db_resp = await db.set(`${url}`, JSON.stringify(result));
+        console.log(result);
+
+        res.json(result);
 
     } catch (err) {
         console.error("Scraping Error:", err.message);
