@@ -43,7 +43,7 @@ def handle_ok(raw_data: bytes, keys_only: bool):
 
         if keys_only:
             # 2. Append an object to the list instead of setting a dict key
-            data_list.append({"key": key, "value": ""})
+            data_list.append({"key": key})
         else:
             value_len = struct.unpack_from("!I", raw_data, offset)[0]
             offset += COMMAND_LENGTH_VALUE_LENGTH
