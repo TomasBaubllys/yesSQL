@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import DatabaseClient from '../js_api/index.js';
+import { timeStamp } from 'console';
 
 const DB_URL = process.env.DB_URL || 'http://host.docker.internal:8000';
 const DEF_CURSOR = "_client_cursor"
@@ -110,11 +111,11 @@ app.post('/scrape', async (req, res) => {
 
 app.post('/get_nextprev', async(req, res) => {
     try {
-        const { amount, command } = req.json();
+        const { amount, command } = req.body;
         if(!cursor_exist) {
             cursor_exist = await db.createCursor(DEF_CURSOR);
             if(!cursor_exist) {
-                res.status(500).json({error: "Cursor error"});
+                return res.status(500).json({error: "Cursor error"});
             }
         }
 
@@ -145,27 +146,26 @@ app.post('/get_nextprev', async(req, res) => {
 
 app.post('/get_prefix', async(req, res) => {
     try {
-        const { amount, prefix } = req.json();
+        const { amount, prefix } = req.body;
         
-        const tempCursor = '_temp_curs';
+        const tempCursor = 'cursor_' + Math.random().toString(36);
         const is_success = await db.createCursor(tempCursor);
+        if(!is_success) {
+            return res.status(500).json({error: "Cursor error"});
+        }
 
         if(!amount || !prefix) {
             return res.status(400).json({ error: "Missing amount or prefix" });
         }
 
-        let dbData;
-        if(command === 'get_next') {
-            dbData = await db.getFF(DEF_CURSOR, amount);
-        }
-        else {
-            dbData = await db.getFB(DEF_CURSOR, amount);
-        }
+        const dbData = await db.getKeysPrefix(tempCursor, prefix, amount);
 
         let result = dbData;
         if(typeof dbData === 'string') {
             result = JSON.parse(dbData);
         }
+
+        db.deleteCursor(tempCursor).catch(err => {console.log("Cleanup failed: ", err)});
 
         res.json(result);
 
