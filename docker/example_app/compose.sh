@@ -15,5 +15,5 @@ docker build -t example_app -f docker/example_app/Dockerfile .
 echo "done"
 
 echo "Building docker containers"
-docker run -d --name example_app --rm -it -p 8080:8080 example_app
+docker run --add-host=host.docker.internal:host-gateway --dns 8.8.8.8 --dns 1.1.1.1 -d --name example_app --rm -it -p 8080:8080 example_app
 echo "Done"

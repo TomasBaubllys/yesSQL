@@ -108,26 +108,21 @@ app.post('/scrape', async (req, res) => {
     }
 });
 
-// --- NEW ENDPOINT: GET SINGLE ITEM FROM DB ---
 app.post('/get', async (req, res) => {
     try {
-        // 1. Extract the key (url) from the request body
-        const { url } = req.body;
-
-        console.log(req)
-
+        const { url, protocol } = req.body;
+        const prefix = protocol || "https://";
 
         if (!url) {
             return res.status(400).json({ error: "Missing URL key" });
         }
 
-        console.log(`Fetching specific URL from DB: ${url}`);
+        const full_url = prefix + url;
+        console.log(`Fetching specific URL from DB: ${full_url}`);
 
         // 2. Fetch specific key from YSQL Database
         // db.get(key) returns the value directly (usually a JSON string based on your set logic)
-        const dbData = await db.get(url);
-
-        console.log(dbData)
+        const dbData = await db.get(full_url);
 
         if (!dbData) {
             return res.status(404).json({ error: "Record not found" });

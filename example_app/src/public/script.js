@@ -6,11 +6,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const statusDiv = document.querySelector("#status");
     const resultsContainer = document.querySelector("#results");
     const historyContainer = document.querySelector("#history-list");
-
-    // 1. Load DB History on Page Start
+    
     fetchHistoryFromDB();
 
-    // --- BUTTON 1: SCRAPE NEW ---
     scrapeBtn.addEventListener("click", async () => {
         const url = input.value.trim();
         if (!url) return alert("Please enter a URL");
@@ -40,29 +38,27 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // --- BUTTON 2: GET FROM DB (PREFIX SEARCH) ---
     dbBtn.addEventListener("click", async () => {
-        const prefix = input.value.trim(); 
-        // If input is empty, it will fetch everything (defaults to 'http' in backend)
-        
+        const url = input.value.trim();         
         setLoading(true, "Searching Database...");
 
         try {
             const response = await fetch("/get", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prefix: prefix })
+                body: JSON.stringify({ url: url, protocol: 'https://' })
             });
 
             const data = await response.json();
+            console.log(data);
             if (!response.ok) throw new Error(data.error || "DB Error");
 
-            if (data.length === 0) {
+            renderResultHTML(data);
+            /*if (data.length === 0) {
                 statusDiv.textContent = "No records found in database.";
                 statusDiv.className = "error";
                 resultsContainer.innerHTML = "";
             } else if (data.length === 1) {
-                // If only 1 result, show it fully
                 statusDiv.textContent = "Found 1 record.";
                 statusDiv.className = "success";
                 renderResultHTML(data[0]);
@@ -71,10 +67,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 statusDiv.textContent = `Found ${data.length} records. Check history list below.`;
                 statusDiv.className = "success";
                 resultsContainer.innerHTML = '<div style="text-align:center; color:#666;">Select a result from the list below</div>';
-            }
-
+            }*/
             // Update the history sidebar with exactly what we found
-            renderHistoryList(data);
+            // renderHistoryList(data);
 
         } catch (error) {
             handleError(error);
