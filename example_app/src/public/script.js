@@ -54,23 +54,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!response.ok) throw new Error(data.error || "DB Error");
 
             renderResultHTML(data);
-            /*if (data.length === 0) {
-                statusDiv.textContent = "No records found in database.";
-                statusDiv.className = "error";
-                resultsContainer.innerHTML = "";
-            } else if (data.length === 1) {
-                statusDiv.textContent = "Found 1 record.";
-                statusDiv.className = "success";
-                renderResultHTML(data[0]);
-            } else {
-                // If multiple, show distinct message
-                statusDiv.textContent = `Found ${data.length} records. Check history list below.`;
-                statusDiv.className = "success";
-                resultsContainer.innerHTML = '<div style="text-align:center; color:#666;">Select a result from the list below</div>';
-            }*/
-            // Update the history sidebar with exactly what we found
-            // renderHistoryList(data);
-
         } catch (error) {
             handleError(error);
         } finally {

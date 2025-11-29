@@ -6,7 +6,9 @@ import * as cheerio from 'cheerio';
 import DatabaseClient from '../js_api/index.js';
 
 const DB_URL = process.env.DB_URL || 'http://host.docker.internal:8000';
+const DEF_CURSOR = "_client_cursor"
 const db = new DatabaseClient({ url: DB_URL });
+let cursor_exist = await db.createCursor(DEF_CURSOR);
 
 const app = express();
 const PORT = 8080;
@@ -21,7 +23,6 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// --- REGEX CONFIG ---
 const REGEX = {
     email: /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi,
     phone: /(?:\+?\d{1,3}[ -]?)?\(?\d{3}\)?[ -]?\d{3}[ -]?\d{4}/g,
@@ -33,7 +34,6 @@ const REGEX = {
     }
 };
 
-// --- SCRAPE ENDPOINT ---
 app.post('/scrape', async (req, res) => {
     let { url } = req.body;
 
@@ -108,6 +108,73 @@ app.post('/scrape', async (req, res) => {
     }
 });
 
+app.post('/get_nextprev', async(req, res) => {
+    try {
+        const { amount, command } = req.json();
+        if(!cursor_exist) {
+            cursor_exist = await db.createCursor(DEF_CURSOR);
+            if(!cursor_exist) {
+                res.status(500).json({error: "Cursor error"});
+            }
+        }
+
+        if(!amount || !command) {
+            return res.status(400).json({ error: "Missing amount or command" });
+        }
+
+        let dbData;
+        if(command === 'get_next') {
+            dbData = await db.getFF(DEF_CURSOR, amount);
+        }
+        else {
+            dbData = await db.getFB(DEF_CURSOR, amount);
+        }
+
+        let result = dbData;
+        if(typeof dbData === 'string') {
+            result = JSON.parse(dbData);
+        }
+
+        res.json(result);
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({error: "Failed from the database"});
+    }
+});
+
+app.post('/get_prefix', async(req, res) => {
+    try {
+        const { amount, prefix } = req.json();
+        
+        const tempCursor = '_temp_curs';
+        const is_success = await db.createCursor(tempCursor);
+
+        if(!amount || !prefix) {
+            return res.status(400).json({ error: "Missing amount or prefix" });
+        }
+
+        let dbData;
+        if(command === 'get_next') {
+            dbData = await db.getFF(DEF_CURSOR, amount);
+        }
+        else {
+            dbData = await db.getFB(DEF_CURSOR, amount);
+        }
+
+        let result = dbData;
+        if(typeof dbData === 'string') {
+            result = JSON.parse(dbData);
+        }
+
+        res.json(result);
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({error: "Failed from the database"});
+    }
+});
+
 app.post('/get', async (req, res) => {
     try {
         const { url, protocol } = req.body;
@@ -120,16 +187,12 @@ app.post('/get', async (req, res) => {
         const full_url = prefix + url;
         console.log(`Fetching specific URL from DB: ${full_url}`);
 
-        // 2. Fetch specific key from YSQL Database
-        // db.get(key) returns the value directly (usually a JSON string based on your set logic)
         const dbData = await db.get(full_url);
 
         if (!dbData) {
             return res.status(404).json({ error: "Record not found" });
         }
 
-        // 3. Parse and return
-        // Since we saved it as JSON.stringify(result), we parse it back to an object
         let result = dbData;
         if (typeof dbData === 'string') {
             result = JSON.parse(dbData);

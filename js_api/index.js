@@ -44,7 +44,7 @@ class DatabaseClient {
   }
 
   // NEW: Cursor methods
-  async createCursor(name, key = '0') {
+  async createCursor(name, key = '') {
     this.logger.debug('CREATE_CURSOR request:', name, key);
     const response = await this.commands.createCursor(name, key);
     const result = this.protocol.parse(response);
