@@ -11,16 +11,21 @@ class Connection {
     return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(7);
   }
 
-  async request(method, path) {
+  async request(method, path, body = null) {
     const url = `${this.baseUrl}${path}`;
     
     const options = {
       method: method,
       headers: {
         'Content-Type': 'application/json',
-        'X-Session-Id': this.sessionId  // NEW: Required session header
+        'X-Session-Id': this.sessionId
       }
     };
+
+    // Add body if provided
+    if (body) {
+      options.body = JSON.stringify(body);
+    }
 
     try {
       const response = await fetch(url, options);

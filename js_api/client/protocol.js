@@ -4,9 +4,12 @@ class Protocol {
   parse(response) {
     // Handle successful response
     if (response.status === 'OK') {
-      // Extract the value from the data object
-      const values = Object.values(response.data);
-      return values.length > 0 ? values[0] : null;
+      // Data is now an array: [{"key": "mykey", "value": "myvalue"}]
+      if (response.data && response.data.length > 0) {
+        // Return the first item's value
+        return response.data[0].value || null;
+      }
+      return null;
     }
 
     // Handle data not found
@@ -23,10 +26,10 @@ class Protocol {
     throw new Error(`Unknown status: ${response.status}`);
   }
 
-  // NEW: For commands that return multiple key-value pairs
+  // For commands that return multiple key-value pairs
   parseMultiple(response) {
     if (response.status === 'OK') {
-      return Object.values(response.data); // <-- CRITICAL FIX
+      return response.data; // Return the array directly
     }
 
     if (response.status === 'DATA NOT FOUND') {
@@ -40,11 +43,15 @@ class Protocol {
     throw new Error(`Unknown status: ${response.status}`);
   }
 
-
-  // NEW: For GET_KEYS commands that return only keys
+  // For GET_KEYS commands that return only keys
   parseKeys(response) {
     if (response.status === 'OK') {
-      return Object.keys(response.data); // Returns array of keys
+      // Data is array: [{"key": "k1"}, {"key": "k2"}]
+      // Return just the keys: ["k1", "k2"]
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map(item => item.key);
+      }
+      return [];
     }
 
     if (response.status === 'DATA NOT FOUND') {
