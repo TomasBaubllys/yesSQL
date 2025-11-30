@@ -205,6 +205,38 @@ app.post('/get', async (req, res) => {
         res.status(500).json({ error: "Failed to fetch from database" });
     }
 });
+
+app.post('/remove', async (req, res) => {
+    try {
+        const { url, protocol } = req.body;
+        const prefix = protocol || "https://";
+
+        if (!url) {
+            return res.status(400).json({ error: "Missing URL key" });
+        }
+
+        const full_url = prefix + url;
+        console.log(`Fetching specific URL from DB: ${full_url}`);
+
+        const dbData = await db.remove(full_url);
+
+        if (!dbData) {
+            return res.status(404).json({ error: "Record not found" });
+        }
+
+        let result = dbData;
+        if (typeof dbData === 'string') {
+            result = JSON.parse(dbData);
+        }
+
+        res.json(result);
+
+    } catch (err) {
+        console.error("DB Fetch Error:", err);
+        res.status(500).json({ error: "Failed to fetch from database" });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
