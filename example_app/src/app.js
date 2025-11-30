@@ -148,7 +148,8 @@ app.post('/get_nextprev', async(req, res) => {
 
 app.post('/get_prefix', async(req, res) => {
     try {
-        const { amount, prefix } = req.body;
+        let { amount, prfx } = req.body;
+        const prefix = 'https://' + prfx;
 
         console.log(cursor_exist)
 
