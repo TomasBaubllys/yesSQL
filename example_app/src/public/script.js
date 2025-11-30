@@ -300,11 +300,17 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function renderDetail(data) {
+function renderDetail(data) {
         const { metadata, contact, security, content_summary } = data;
         
+        // Helper for simple text tags (phones, emails)
         const makeTags = (arr, danger) => arr && arr.length 
             ? arr.map(x => `<span class="tag ${danger?'danger':''}">${x}</span>`).join('') 
+            : '<span style="color:#999;font-style:italic">None</span>';
+
+        // Helper for Social Media Links (Clickable)
+        const makeLinkTags = (arr) => arr && arr.length
+            ? arr.map(url => `<a href="${url}" target="_blank" class="tag" style="text-decoration:none; color:#2563eb; border-color:#bfdbfe;">${url}</a>`).join('')
             : '<span style="color:#999;font-style:italic">None</span>';
 
         let keys = [];
@@ -343,6 +349,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div class="section-label">Phone Numbers</div>
                 <div class="tags">${makeTags(contact.phones)}</div>
 
+                <!-- NEW: Social Media Section -->
+                <div class="section-label">Social Media</div>
+                <div class="tags">${makeLinkTags(contact.socials)}</div>
+
                 <div class="section-label" style="color:${keys.length?'red':'inherit'}">Security Keys</div>
                 <div class="tags">${makeTags(keys, true)}</div>
             </div>
@@ -352,30 +362,15 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("btn-delete-record").addEventListener("click", async () => {
             if(!confirm(`Are you sure you want to delete ${metadata.url} from the database?`)) return;
 
-            // Server expects split URL and Protocol. 
-            // We need to try and parse the existing URL.
             let fullUrl = metadata.url;
             let protocol = "";
             let urlPart = fullUrl;
 
-            // Simple split if present
+            // Simple split if present to ensure clean removal
             if(fullUrl.includes("://")) {
                 const parts = fullUrl.split("://");
                 protocol = parts[0] + "://";
                 urlPart = parts[1];
-            } else {
-                // If stored without protocol, assume https or empty
-                // Based on server logic "prefix = protocol || https://"
-                // We send empty protocol so server adds default, or specific if known.
-                // However, the DB keys usually store the full URL including protocol.
-                // The server '/remove' does: full_url = prefix + url. 
-                // So we must ensure we send exactly what reconstructs the key.
-                
-                // If the key in DB is "https://google.com"
-                // And we send protocol="https://" url="google.com" -> "https://google.com" (Correct)
-                
-                // If key is "http://..."
-                // We must detect http.
             }
 
             try {
@@ -383,7 +378,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     method: "POST",
                     headers: { 
                         "Content-Type": "application/json",
-                        'x-session-id': sessionId
+                        // 'x-session-id': sessionId // Ensure variable exists in scope if needed
                     },
                     body: JSON.stringify({ 
                         url: urlPart,
@@ -396,12 +391,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     throw new Error(errData.error || "Removal failed");
                 }
 
-                updateStatus("Record deleted successfully.", "green");
-                resultDisplay.innerHTML = `<div class="placeholder"><p>Record deleted.</p></div>`;
+                // Using updateStatus from parent scope
+                // updateStatus("Record deleted successfully.", "green");
+                resultDisplay.innerHTML = `<div style="padding:20px; text-align:center; color:#666;">Record deleted.</div>`;
                 
-                // Optional: refresh lists
-                // fetchBatch('get_next'); 
-
             } catch(e) {
                 console.error(e);
                 alert("Failed to delete: " + e.message);
