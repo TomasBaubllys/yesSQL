@@ -113,7 +113,6 @@ app.post('/scrape', async (req, res) => {
 app.post('/get_nextprev', async(req, res) => {
     try {
         const { amount, command } = req.body;
-        console.log(cursor_exist)
         if(!cursor_exist) {
             cursor_exist = await db.createCursor(DEF_CURSOR);
             if(!cursor_exist) {
@@ -150,8 +149,6 @@ app.post('/get_prefix', async(req, res) => {
     try {
         let { amount, prfx } = req.body;
         const prefix = 'https://' + prfx;
-
-        console.log(cursor_exist)
 
         
         const tempCursor = 'cursor_' + Math.random().toString(36);

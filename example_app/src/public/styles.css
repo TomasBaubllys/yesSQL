@@ -129,6 +129,28 @@ button:hover { background: var(--primary-hover); }
     border-radius: 12px;
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
     animation: fadeIn 0.3s ease-in;
+    position: relative; /* For Delete button positioning */
+}
+
+/* DELETE BUTTON STYLE */
+.delete-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.delete-btn:hover {
+    background: #fecaca;
+    color: #991b1b;
 }
 
 .meta-img {
@@ -152,13 +174,19 @@ button:hover { background: var(--primary-hover); }
     border-radius: 12px;
 }
 
-/* RIGHT PANEL (SIDEBAR) */
+/* SIDEBARS */
 .sidebar {
-    width: 320px;
+    width: 300px; /* Reduced slightly to fit 3 cols comfortably */
     background: var(--white);
     border-left: 1px solid var(--border);
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
+}
+
+/* Specific style for new prefix sidebar if needed */
+.prefix-sidebar {
+    background: #fdfdfd; 
 }
 
 .sidebar-header {

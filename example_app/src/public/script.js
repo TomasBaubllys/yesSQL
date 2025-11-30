@@ -5,11 +5,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const statusDiv = document.querySelector("#status");
     const amountSelect = document.querySelector("#amount-select");
     
+    // New Refs for Prefix Sidebar
+    const btnPrefixSearch = document.querySelector("#btn-prefix-search");
+    const prefixInput = document.querySelector("#prefix-input");
+    const prefixList = document.querySelector("#prefix-list");
+
     // Buttons
     const btnNext = document.querySelector("#btn-next");
     const btnPrev = document.querySelector("#btn-prev");
     const btnScrape = document.querySelector("#scrape-btn");
-    const btnDb = document.querySelector("#db-btn"); // <--- restored
+    const btnDb = document.querySelector("#db-btn");
     const input = document.querySelector("#url-input");
 
     // State
@@ -54,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // 3. Search DB (Restored)
+    // 3. Search DB
     btnDb.addEventListener("click", async () => {
         const url = input.value.trim();
         if (!url) return alert("Please enter a URL key to search");
@@ -79,10 +84,45 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // 4. Prefix Search (New Functionality)
+    btnPrefixSearch.addEventListener("click", async () => {
+        const prefix = prefixInput.value.trim();
+        if(!prefix) return alert("Please enter a prefix");
+
+        updateStatus("Searching prefix...", "blue");
+        prefixList.style.opacity = "0.5";
+
+        try {
+            const res = await fetch("/get_prefix", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    amount: currentAmount,
+                    prefix: prefix
+                })
+            });
+
+            console.log(res)
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Error fetching prefix");
+
+            // Reuse logic but render to prefixList
+            renderList(data, prefixList);
+            updateStatus(`Found records for prefix '${prefix}'`, "green");
+
+        } catch (e) {
+            console.error(e);
+            updateStatus("Prefix Error: " + e.message, "red");
+            prefixList.innerHTML = `<div style="padding:15px; color:red;">Error: ${e.message}</div>`;
+        } finally {
+            prefixList.style.opacity = "1";
+        }
+    });
+
     // --- Core Logic ---
 
    async function fetchBatch(command) {
-        console.log(`Fetching batch: ${command} with amount: ${currentAmount}`); // Debug 1
+        console.log(`Fetching batch: ${command} with amount: ${currentAmount}`);
         urlList.style.opacity = "0.5";
         
         try {
@@ -101,11 +141,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 throw new Error(data.error || `Server Error (${res.status})`);
             }
 
-            console.log("Data received:", data); // Debug 3
+            console.log("Data received:", data);
 
-            // Ensure data is an array before rendering
             if (Array.isArray(data)) {
-                renderList(data);
+                renderList(data, urlList); // Pass target container
             } else {
                 updateStatus("Received invalid data format", "red");
             }
@@ -118,11 +157,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-function renderList(items) {
-        urlList.innerHTML = "";
+    // Modified to accept a container argument
+    function renderList(items, container) {
+        container.innerHTML = "";
 
         if (!items || items.length === 0) {
-            urlList.innerHTML = '<div style="padding:15px; color:#999; text-align:center;">No records found.</div>';
+            container.innerHTML = '<div style="padding:15px; color:#999; text-align:center;">No records found.</div>';
             return;
         }
 
@@ -130,13 +170,9 @@ function renderList(items) {
             const div = document.createElement("div");
             div.className = "list-item";
             
-            // 1. Parse if the item itself is a string
             let finalItem = typeof item === 'string' ? JSON.parse(item) : item;
 
-            // 2. UNWRAP: Check if the data is hidden inside a "value" property
-            // (Common with database iterators returning { key: "...", value: "..." })
             if (finalItem && !finalItem.metadata && finalItem.value) {
-                // If value is a JSON string, parse it
                 if (typeof finalItem.value === 'string') {
                     try {
                         finalItem = JSON.parse(finalItem.value);
@@ -148,7 +184,6 @@ function renderList(items) {
                 }
             }
 
-            // 3. Safety Check: If metadata is STILL missing, skip this item or show error
             if (!finalItem || !finalItem.metadata) {
                 console.warn("Skipping item with missing metadata:", item);
                 return; 
@@ -158,12 +193,13 @@ function renderList(items) {
             div.title = finalItem.metadata.url;
 
             div.addEventListener("click", () => {
+                // Remove active class from ALL list items in document
                 document.querySelectorAll(".list-item").forEach(el => el.classList.remove("active"));
                 div.classList.add("active");
                 renderDetail(finalItem);
             });
 
-            urlList.appendChild(div);
+            container.appendChild(div);
         });
     }
 
@@ -183,10 +219,13 @@ function renderList(items) {
             ? `<img src="${metadata.image}" class="meta-img" alt="Site Preview">` 
             : '';
 
-        // ADD SOCIAL MEDIA
         resultDisplay.innerHTML = `
             <div class="result-card">
-                
+                <!-- Delete Button -->
+                <button id="btn-delete-record" class="delete-btn" title="Remove from Database">
+                     &#128465; Delete
+                </button>
+
                 ${imageHtml}
 
                 <div style="margin-bottom: 20px; border-bottom:1px solid #eee; padding-bottom:15px;">
@@ -207,12 +246,67 @@ function renderList(items) {
                 <div class="section-label">Phone Numbers</div>
                 <div class="tags">${makeTags(contact.phones)}</div>
 
-
-
                 <div class="section-label" style="color:${keys.length?'red':'inherit'}">Security Keys</div>
                 <div class="tags">${makeTags(keys, true)}</div>
             </div>
         `;
+
+        // Attach Delete Logic
+        document.getElementById("btn-delete-record").addEventListener("click", async () => {
+            if(!confirm(`Are you sure you want to delete ${metadata.url} from the database?`)) return;
+
+            // Server expects split URL and Protocol. 
+            // We need to try and parse the existing URL.
+            let fullUrl = metadata.url;
+            let protocol = "";
+            let urlPart = fullUrl;
+
+            // Simple split if present
+            if(fullUrl.includes("://")) {
+                const parts = fullUrl.split("://");
+                protocol = parts[0] + "://";
+                urlPart = parts[1];
+            } else {
+                // If stored without protocol, assume https or empty
+                // Based on server logic "prefix = protocol || https://"
+                // We send empty protocol so server adds default, or specific if known.
+                // However, the DB keys usually store the full URL including protocol.
+                // The server '/remove' does: full_url = prefix + url. 
+                // So we must ensure we send exactly what reconstructs the key.
+                
+                // If the key in DB is "https://google.com"
+                // And we send protocol="https://" url="google.com" -> "https://google.com" (Correct)
+                
+                // If key is "http://..."
+                // We must detect http.
+            }
+
+            try {
+                const res = await fetch("/remove", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        url: urlPart,
+                        protocol: protocol 
+                    })
+                });
+
+                if(!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.error || "Removal failed");
+                }
+
+                updateStatus("Record deleted successfully.", "green");
+                resultDisplay.innerHTML = `<div class="placeholder"><p>Record deleted.</p></div>`;
+                
+                // Optional: refresh lists
+                // fetchBatch('get_next'); 
+
+            } catch(e) {
+                console.error(e);
+                alert("Failed to delete: " + e.message);
+            }
+        });
     }
 
     function updateStatus(msg, color) {

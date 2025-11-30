@@ -61,6 +61,24 @@
             </div>
         </aside>
 
+        <!-- RIGHT PANEL: Prefix Search (New) -->
+        <aside class="sidebar prefix-sidebar">
+            <div class="sidebar-header">
+                <h3>Prefix Search</h3>
+            </div>
+            
+            <div class="sidebar-controls" style="border-top: none; border-bottom: 1px solid var(--border); display:flex; flex-direction:column; gap:8px;">
+                <input id="prefix-input" type="text" placeholder="Prefix (e.g. https://go)..." style="width:100%; box-sizing:border-box;">
+                <button id="btn-prefix-search" style="width:100%;">Get by Prefix</button>
+            </div>
+
+            <div id="prefix-list" class="url-list">
+                <div style="padding:15px; color:#999; font-size:0.85rem; text-align:center;">
+                    Enter a prefix to search keys.
+                </div>
+            </div>
+        </aside>
+
     </div>
 
 </body>
