@@ -6,10 +6,8 @@ import * as cheerio from 'cheerio';
 import DatabaseClient from '../js_api/index.js';
 
 const DB_URL = process.env.DB_URL || 'http://host.docker.internal:8000';
-const DEF_CURSOR = "_client_cursor"
 const db = new DatabaseClient({ url: DB_URL });
 const activeCursors = new Set();
-
 
 const app = express();
 const PORT = 8080;
@@ -182,7 +180,7 @@ app.post('/get_prefix', async(req, res) => {
         const prfx = 'https://' + prefix;
 
         
-        const tempCursor = 'cursor_' + Math.random().toString(36);
+        const tempCursor = '_C_' + Math.random().toString(36);
         const is_success = await db.createCursor(tempCursor);
         if(!is_success) {
             return res.status(500).json({error: "Cursor error"});
