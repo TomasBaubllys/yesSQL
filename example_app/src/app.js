@@ -4,12 +4,11 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import DatabaseClient from '../js_api/index.js';
-import { timeStamp } from 'console';
 
 const DB_URL = process.env.DB_URL || 'http://host.docker.internal:8000';
 const DEF_CURSOR = "_client_cursor"
 const db = new DatabaseClient({ url: DB_URL });
-let cursor_exist = false;
+const activeCursors = new Set();
 
 
 const app = express();
@@ -113,11 +112,22 @@ app.post('/scrape', async (req, res) => {
 app.post('/get_nextprev', async(req, res) => {
     try {
         const { amount, command } = req.body;
-        if(!cursor_exist) {
-            cursor_exist = await db.createCursor(DEF_CURSOR);
-            if(!cursor_exist) {
-                return res.status(500).json({error: "Cursor error"});
+        const sessionId = req.headers['x-session-id'];
+        if(!sessionId) {
+            return res.status(400).json({ error: "Missing x-session-id header"});
+        }
+
+        const userCursorName = `cursor${sessionId}`
+        if(!activeCursors.has(userCursorName)) {
+            console.log(`Creating new cursor for session: ${sessionId}`);
+            
+            const is_success = await db.createCursor(userCursorName);
+        
+            if(!is_success) {
+                return res.status(500).json({ error: `Failed to create to create cursor for ${sessionId}` });
             }
+
+            activeCursors.add(sessionId);
         }
 
         if(!amount || !command) {
@@ -126,10 +136,10 @@ app.post('/get_nextprev', async(req, res) => {
 
         let dbData;
         if(command === 'get_next') {
-            dbData = await db.getFF(DEF_CURSOR, amount);
+            dbData = await db.getFF(userCursorName, amount);
         }
         else {
-            dbData = await db.getFB(DEF_CURSOR, amount);
+            dbData = await db.getFB(userCursorName, amount);
         }
 
         let result = dbData;
@@ -145,10 +155,31 @@ app.post('/get_nextprev', async(req, res) => {
     }
 });
 
+app.post('/cleanup_cursor', async(req, res) => {
+    const sessionId = req.headers['x-session-id'];
+    if(!sessionId) {
+        return res.status(400).end();
+    }
+
+    const userCursorName = `cursor${sessionId}`;
+
+    try {
+        if(activeCursors.has(sessionId)) {
+            await db.deleteCursor(userCursorName);
+            activeCursors.delete(sessionId);
+            console.log(`Cleaned up cursor for: ${sessionId}`);
+        }
+    } 
+    catch(err) {
+        console.log("Cleanup failed", err);
+        res.status(500).json({ error: "Cleanup failed" })
+    }
+});
+
 app.post('/get_prefix', async(req, res) => {
     try {
-        let { amount, prfx } = req.body;
-        const prefix = 'https://' + prfx;
+        let { amount, prefix } = req.body;
+        const prfx = 'https://' + prefix;
 
         
         const tempCursor = 'cursor_' + Math.random().toString(36);
@@ -161,7 +192,7 @@ app.post('/get_prefix', async(req, res) => {
             return res.status(400).json({ error: "Missing amount or prefix" });
         }
 
-        const dbData = await db.getKeysPrefix(tempCursor, prefix, amount);
+        const dbData = await db.getKeysPrefix(tempCursor, prfx, amount);
 
         let result = dbData;
         if(typeof dbData === 'string') {
