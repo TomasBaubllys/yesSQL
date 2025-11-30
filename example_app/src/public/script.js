@@ -121,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 },
                 body: JSON.stringify({
                     amount: currentAmount,
-                    prfx: prefix
+                    prefix: prefix
                 })
             });
 
