@@ -17,6 +17,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnDb = document.querySelector("#db-btn");
     const input = document.querySelector("#url-input");
 
+        // 1. Generate a UUID (or random string) when the page loads
+    const sessionId = localStorage.getItem('site_session_id') || crypto.randomUUID();
+    localStorage.setItem('site_session_id', sessionId);
+
+    // 3. Optional: Cleanup when window closes
+    window.addEventListener('beforeunload', () => {
+        navigator.sendBeacon('/cleanup_cursor', JSON.stringify({})); 
+        // Note: sendBeacon doesn't easily support custom headers, 
+        // so for cleanup you might want to pass ID in body or use keepalive fetch.
+    });
+
+
+
+
     // State
     let currentAmount = 10;
     
@@ -44,7 +58,10 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const res = await fetch("/scrape", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    'x-session-id': sessionId
+                 },
                 body: JSON.stringify({ url })
             });
             const data = await res.json();
@@ -69,7 +86,10 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const res = await fetch("/get", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    'x-session-id': sessionId
+                },
                 body: JSON.stringify({ url })
             });
             const data = await res.json();
@@ -95,19 +115,26 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const res = await fetch("/get_prefix", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    'x-session-id': sessionId
+                },
                 body: JSON.stringify({
                     amount: currentAmount,
-                    prefix: prefix
+                    prfx: prefix
                 })
             });
 
-            console.log(res)
+            console.log("RES::")
+            console.log(res);
+
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Error fetching prefix");
 
+            console.log("DATA::")
+            console.log(data);
             // Reuse logic but render to prefixList
-            renderList(data, prefixList);
+            renderPrefixList(data, prefixList);
             updateStatus(`Found records for prefix '${prefix}'`, "green");
 
         } catch (e) {
@@ -128,7 +155,10 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const res = await fetch("/get_nextprev", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    'x-session-id': sessionId 
+                },
                 body: JSON.stringify({ 
                     amount: currentAmount, 
                     command: command 
@@ -140,8 +170,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!res.ok) {
                 throw new Error(data.error || `Server Error (${res.status})`);
             }
-
-            console.log("Data received:", data);
 
             if (Array.isArray(data)) {
                 renderList(data, urlList); // Pass target container
@@ -156,6 +184,75 @@ document.addEventListener("DOMContentLoaded", () => {
             urlList.style.opacity = "1";
         }
     }
+
+    function renderPrefixList(keys, target) {
+        target.innerHTML = "";
+
+        if (!keys || keys.length === 0) {
+            target.innerHTML = `<div style="padding:15px; text-align:center; color:#999;">No records found for prefix</div>`;
+            return;
+        }
+
+        keys.forEach(key => {
+            // Use 'list-item' class to match the style of the main list
+            const div = document.createElement("div");
+            div.className = "list-item"; 
+            div.textContent = key; // Display the URL key
+            div.title = key;
+
+            div.addEventListener("click", () => {
+                // 1. Visual: Remove 'active' class from all other items (in both lists)
+                document.querySelectorAll(".list-item").forEach(el => el.classList.remove("active"));
+                
+                // 2. Visual: Highlight this specific item
+                div.classList.add("active");
+
+                // 3. Data: Fetch the full details for this key
+                loadRecordByKey(key);
+            });
+
+            target.appendChild(div);
+        });
+    }
+
+    async function loadRecordByKey(key) {
+        updateStatus("Loading record details...", "blue");
+
+        try {
+            // IMPORTANT: The backend /get endpoint automatically adds "https://" 
+            // via: const prefix = protocol || "https://";
+            // Since 'key' from get_prefix already has "https://", we must strip it 
+            // here, otherwise the backend looks for "https://https://..."
+            
+            const cleanUrl = key.replace(/^https?:\/\//, '');
+
+            const res = await fetch("/get", {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    'x-session-id': sessionId
+                },
+                body: JSON.stringify({ 
+                    url: cleanUrl, 
+                    protocol: "https://" // Explicitly match backend logic
+                })
+            });
+
+            const data = await res.json();
+            
+            if (!res.ok) throw new Error(data.error || "Record not found in DB");
+
+            updateStatus("Record loaded.", "green");
+            
+            // Render the fetched details into the view
+            renderDetail(data);
+
+        } catch (e) {
+            console.error(e);
+            updateStatus("Error: " + e.message, "red");
+        }
+    }
+
 
     // Modified to accept a container argument
     function renderList(items, container) {
@@ -284,7 +381,10 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const res = await fetch("/remove", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { 
+                        "Content-Type": "application/json",
+                        'x-session-id': sessionId
+                    },
                     body: JSON.stringify({ 
                         url: urlPart,
                         protocol: protocol 
@@ -314,3 +414,4 @@ document.addEventListener("DOMContentLoaded", () => {
         statusDiv.style.color = color === "red" ? "#ef4444" : (color === "green" ? "#10b981" : "#4f46e5");
     }
 });
+
