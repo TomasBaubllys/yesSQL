@@ -7,9 +7,9 @@ class Protocol {
       // Data is now an array: [{"key": "mykey", "value": "myvalue"}]
       if (response.data && response.data.length > 0) {
         // Return the first item's value
-        return response.data[0].value || null;
+        return response.data[0].value || {};
       }
-      return null;
+      return {};
     }
 
     // Handle data not found

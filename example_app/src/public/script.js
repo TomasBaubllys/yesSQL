@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     amountSelect.addEventListener("change", (e) => {
         currentAmount = parseInt(e.target.value);
-        fetchBatch('get_next');
+        //fetchBatch('get_next');
     });
 
     // 2. Scrape New
@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             updateStatus("Scraped successfully.", "green");
             renderDetail(data); 
-            fetchBatch('get_next'); // Refresh list
+            //fetchBatch('get_next'); // Refresh list
 
         } catch (e) {
             updateStatus("Error: " + e.message, "red");
@@ -81,7 +81,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- Core Logic ---
 
-    async function fetchBatch(command) {
+   async function fetchBatch(command) {
+        console.log(`Fetching batch: ${command} with amount: ${currentAmount}`); // Debug 1
         urlList.style.opacity = "0.5";
         
         try {
@@ -95,19 +96,29 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "DB Error");
+            
+            if (!res.ok) {
+                throw new Error(data.error || `Server Error (${res.status})`);
+            }
 
-            renderList(data);
+            console.log("Data received:", data); // Debug 3
+
+            // Ensure data is an array before rendering
+            if (Array.isArray(data)) {
+                renderList(data);
+            } else {
+                updateStatus("Received invalid data format", "red");
+            }
 
         } catch (e) {
-            console.error(e);
-            updateStatus("List fetch error: " + e.message, "red");
+            console.error("Fetch Error:", e);
+            updateStatus("Error: " + e.message, "red");
         } finally {
             urlList.style.opacity = "1";
         }
     }
 
-    function renderList(items) {
+function renderList(items) {
         urlList.innerHTML = "";
 
         if (!items || items.length === 0) {
@@ -119,7 +130,29 @@ document.addEventListener("DOMContentLoaded", () => {
             const div = document.createElement("div");
             div.className = "list-item";
             
-            const finalItem = typeof item === 'string' ? JSON.parse(item) : item;
+            // 1. Parse if the item itself is a string
+            let finalItem = typeof item === 'string' ? JSON.parse(item) : item;
+
+            // 2. UNWRAP: Check if the data is hidden inside a "value" property
+            // (Common with database iterators returning { key: "...", value: "..." })
+            if (finalItem && !finalItem.metadata && finalItem.value) {
+                // If value is a JSON string, parse it
+                if (typeof finalItem.value === 'string') {
+                    try {
+                        finalItem = JSON.parse(finalItem.value);
+                    } catch (e) {
+                        console.error("Could not parse inner value JSON:", finalItem.value);
+                    }
+                } else {
+                    finalItem = finalItem.value;
+                }
+            }
+
+            // 3. Safety Check: If metadata is STILL missing, skip this item or show error
+            if (!finalItem || !finalItem.metadata) {
+                console.warn("Skipping item with missing metadata:", item);
+                return; 
+            }
             
             div.textContent = finalItem.metadata.url;
             div.title = finalItem.metadata.url;
@@ -150,6 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ? `<img src="${metadata.image}" class="meta-img" alt="Site Preview">` 
             : '';
 
+        // ADD SOCIAL MEDIA
         resultDisplay.innerHTML = `
             <div class="result-card">
                 
@@ -172,6 +206,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 <div class="section-label">Phone Numbers</div>
                 <div class="tags">${makeTags(contact.phones)}</div>
+
+
 
                 <div class="section-label" style="color:${keys.length?'red':'inherit'}">Security Keys</div>
                 <div class="tags">${makeTags(keys, true)}</div>

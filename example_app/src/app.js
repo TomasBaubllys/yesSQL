@@ -9,7 +9,8 @@ import { timeStamp } from 'console';
 const DB_URL = process.env.DB_URL || 'http://host.docker.internal:8000';
 const DEF_CURSOR = "_client_cursor"
 const db = new DatabaseClient({ url: DB_URL });
-let cursor_exist = await db.createCursor(DEF_CURSOR);
+let cursor_exist = false;
+
 
 const app = express();
 const PORT = 8080;
@@ -112,6 +113,7 @@ app.post('/scrape', async (req, res) => {
 app.post('/get_nextprev', async(req, res) => {
     try {
         const { amount, command } = req.body;
+        console.log(cursor_exist)
         if(!cursor_exist) {
             cursor_exist = await db.createCursor(DEF_CURSOR);
             if(!cursor_exist) {
@@ -147,6 +149,9 @@ app.post('/get_nextprev', async(req, res) => {
 app.post('/get_prefix', async(req, res) => {
     try {
         const { amount, prefix } = req.body;
+
+        console.log(cursor_exist)
+
         
         const tempCursor = 'cursor_' + Math.random().toString(36);
         const is_success = await db.createCursor(tempCursor);

@@ -1,6 +1,8 @@
 :root {
     --primary: #4f46e5;
     --primary-hover: #4338ca;
+    --secondary: #6b7280;
+    --secondary-hover: #4b5563;
     --bg: #f3f4f6;
     --white: #ffffff;
     --border: #e5e7eb;
@@ -15,29 +17,49 @@ body {
     color: var(--text);
     height: 100vh;
     display: flex;
-    flex-direction: column; /* Stack Header and App Layout */
+    flex-direction: column;
 }
 
 /* --- MAIN HEADER --- */
 .main-header {
     background: var(--white);
-    padding: 1.5rem;
+    padding: 1rem 2rem; /* Added horizontal padding */
     border-bottom: 1px solid var(--border);
-    text-align: center;
     flex-shrink: 0;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .main-header h1 {
     margin: 0;
-    color: var(--primary);
-    font-size: 1.5rem;
+    color: var(--text);
+    font-size: 2rem; /* Slightly larger text */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px; /* Increased gap */
 }
 
+.powered-text {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-top: 4px; /* Slight adjustment for visual balance */
+}
+
+/* Logo Sizing */
+.header-logo {
+    height: 120px;  /* Increased from 45px to 80px */
+    width: auto;
+    display: block;
+    
+    /* Ensure no borders or background colors interfere */
+    border: none;
+    background: transparent;
+}
 /* --- APP LAYOUT --- */
 .app-layout {
     display: flex;
-    flex: 1; /* Takes remaining height */
+    flex: 1;
     overflow: hidden; 
 }
 
@@ -58,6 +80,7 @@ body {
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     margin-bottom: 10px;
+    align-items: center;
 }
 
 input {
@@ -69,6 +92,11 @@ input {
     outline: none;
 }
 
+.button-group {
+    display: flex;
+    gap: 10px;
+}
+
 button {
     padding: 10px 20px;
     background: var(--primary);
@@ -78,8 +106,13 @@ button {
     cursor: pointer;
     font-weight: 600;
     transition: 0.2s;
+    white-space: nowrap;
 }
 button:hover { background: var(--primary-hover); }
+
+/* Secondary Button (Search DB) */
+.secondary-btn { background-color: var(--secondary); }
+.secondary-btn:hover { background-color: var(--secondary-hover); }
 
 #status {
     margin-bottom: 20px;
@@ -98,15 +131,15 @@ button:hover { background: var(--primary-hover); }
     animation: fadeIn 0.3s ease-in;
 }
 
-/* Restore Big Images */
 .meta-img {
-    width: 100%;
-    max-width: 100%;
+    max-height: 300px; 
+    max-width: 100%; 
+    width: auto;
     height: auto;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    border: 1px solid var(--border);
     display: block;
+    margin: 0 auto 20px auto;
+    border-radius: 8px;
+    border: 1px solid var(--border);
 }
 
 .placeholder {
@@ -138,10 +171,7 @@ button:hover { background: var(--primary-hover); }
 }
 .sidebar-header h3 { margin: 0; font-size: 1rem; }
 
-.url-list {
-    flex: 1;
-    overflow-y: auto;
-}
+.url-list { flex: 1; overflow-y: auto; }
 
 .list-item {
     padding: 12px 15px;
@@ -153,12 +183,7 @@ button:hover { background: var(--primary-hover); }
     font-size: 0.9rem;
 }
 .list-item:hover { background: #eff6ff; }
-.list-item.active { 
-    background: #e0e7ff; 
-    border-left: 4px solid var(--primary); 
-    color: var(--primary);
-    font-weight: 600;
-}
+.list-item.active { background: #e0e7ff; border-left: 4px solid var(--primary); color: var(--primary); font-weight: 600; }
 
 .sidebar-controls {
     padding: 15px;
@@ -167,29 +192,13 @@ button:hover { background: var(--primary-hover); }
     display: flex;
     gap: 10px;
 }
-.sidebar-controls button {
-    background: #4b5563; 
-    font-size: 0.9rem;
-}
+.sidebar-controls button { background: #4b5563; font-size: 0.9rem; }
 
 /* Tags */
-.section-label { 
-    text-transform: uppercase; 
-    font-size: 0.75rem; 
-    color: var(--text-muted); 
-    font-weight: bold; 
-    margin-top: 1.5rem; 
-    margin-bottom: 0.5rem;
-}
-.tags { display: flex; flex-wrap: wrap; gap: 8px; }
-.tag {
-    background: #e0e7ff;
-    color: #3730a3;
-    padding: 4px 12px;
-    border-radius: 99px;
-    font-size: 0.85rem;
-}
-.tag.danger { background: #fee2e2; color: #991b1b; }
+.section-label { text-transform: uppercase; font-size: 0.75rem; color: var(--text-muted); font-weight: bold; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; overflow: hidden;}
+.tag { background: #e0e7ff; color: #3730a3; padding: 4px 12px; border-radius: 99px; font-size: 0.85rem; }
+.tag.danger { background: #fee2e2; color: #991b1b; overflow: hidden }
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
