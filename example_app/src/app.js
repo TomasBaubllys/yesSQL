@@ -216,12 +216,12 @@ app.post('/remove', async (req, res) => {
         }
 
         const full_url = prefix + url;
-        console.log(`Fetching specific URL from DB: ${full_url}`);
+        console.log(`Removing specific URL from DB: ${full_url}`);
 
         const dbData = await db.remove(full_url);
 
         if (!dbData) {
-            return res.status(404).json({ error: "Record not found" });
+            return res.status(404).json({ error: "Remove failed" });
         }
 
         let result = dbData;
@@ -233,7 +233,7 @@ app.post('/remove', async (req, res) => {
 
     } catch (err) {
         console.error("DB Fetch Error:", err);
-        res.status(500).json({ error: "Failed to fetch from database" });
+        res.status(500).json({ error: "Failed to remove from database" });
     }
 });
 
