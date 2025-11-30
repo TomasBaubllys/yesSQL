@@ -427,7 +427,7 @@ def main():
                 with socket.create_connection((HOST, PORT)) as s:
                     s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                     cmd, _ = safe_send_and_recv(s, build_set_command(key, value))
-                    print("✅ OK" if cmd == CMD_OK else f"❌ {cmd}")
+                    print("OK" if cmd == CMD_OK else f"{cmd}")
 
             elif op == "GET" and len(parts) == 2:
                 key = parts[1]
@@ -436,24 +436,24 @@ def main():
                     cmd, results = safe_send_and_recv(s, build_get_command(key))
                     if cmd == CMD_OK and results:
                         for k, v in results.items():
-                            print(f"✅ {k} = {v}")
+                            print(f" {k} = {v}")
                     elif cmd == CMD_DATA_NOT_FOUND:
-                        print("❌ NOT_FOUND")
+                        print("NOT_FOUND")
                     else:
-                        print(f"⚠️ Unexpected: {cmd}")
+                        print(f"Unexpected: {cmd}")
 
             elif op == "REMOVE" and len(parts) == 2:
                 key = parts[1]
                 with socket.create_connection((HOST, PORT)) as s:
                     s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                     cmd, _ = safe_send_and_recv(s, build_remove_command(key))
-                    print("✅ REMOVED" if cmd == CMD_OK else f"❌ {cmd}")
+                    print("REMOVED" if cmd == CMD_OK else f"failed {cmd}")
 
             # LOOPSET
             elif op == "LOOPSET" and len(parts) == 3:
                 count = int(parts[1])
                 threads = int(parts[2])
-                print(f"🚀 Running LOOPSET with {threads} threads × {count} iterations each...")
+                print(f"Running LOOPSET with {threads} threads × {count} iterations each...")
 
                 global_stats = {
                     "set_ok": 0,
