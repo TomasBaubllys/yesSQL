@@ -115,8 +115,9 @@ app.post('/get_nextprev', async(req, res) => {
             return res.status(400).json({ error: "Missing x-session-id header"});
         }
 
-        const userCursorName = `cursor${sessionId}`
-        if(!activeCursors.has(userCursorName)) {
+        const userCursorName = `cursor${sessionId}`;
+
+        if(!activeCursors.has(sessionId)) {
             console.log(`Creating new cursor for session: ${sessionId}`);
             
             const is_success = await db.createCursor(userCursorName);
