@@ -11,19 +11,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnNext = document.querySelector("#btn-next");
     const btnPrev = document.querySelector("#btn-prev");
     const btnScrape = document.querySelector("#scrape-btn");
+    const btnCrawl = document.querySelector("#crawl-btn");
     const btnDb = document.querySelector("#db-btn");
     const input = document.querySelector("#url-input");
+
+    // Crawl settings
+    const crawlMaxDepth = document.querySelector("#crawl-max-depth");
+    const crawlMaxPages = document.querySelector("#crawl-max-pages");
 
     const sessionId = localStorage.getItem('site_session_id') || crypto.randomUUID();
     localStorage.setItem('site_session_id', sessionId);
 
     window.addEventListener('beforeunload', () => {
         navigator.sendBeacon('/cleanup_cursor', JSON.stringify({})); 
-        // Note: sendBeacon doesn't easily support custom headers, 
-        // so for cleanup you might want to pass ID in body or use keepalive fetch.
     });
-
-
 
     let currentAmount = 10;
     
@@ -59,6 +60,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
         } catch (e) {
             updateStatus("Error: " + e.message, "red");
+        }
+    });
+
+    btnCrawl.addEventListener("click", async () => {
+        const url = input.value.trim();
+        if (!url) return alert("Please enter a URL");
+        
+        const maxDepth = parseInt(crawlMaxDepth.value) || 3;
+        const maxPages = parseInt(crawlMaxPages.value) || 50;
+
+        updateStatus(`Starting crawl (depth: ${maxDepth}, max pages: ${maxPages})...`, "blue");
+        
+        try {
+            const res = await fetch("/crawl", {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    'x-session-id': sessionId
+                },
+                body: JSON.stringify({ url, maxDepth, maxPages })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+
+            updateStatus(`Crawl complete! Scraped ${data.pagesScraped} pages.`, "green");
+            renderCrawlResults(data);
+
+        } catch (e) {
+            updateStatus("Crawl Error: " + e.message, "red");
         }
     });
 
@@ -109,11 +139,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 })
             });
 
-
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Error fetching prefix");
 
-            // Reuse logic but render to prefixList
             renderPrefixList(data, prefixList);
             updateStatus(`Found records for prefix '${prefix}'`, "green");
 
@@ -126,8 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-
-   async function fetchBatch(command) {
+    async function fetchBatch(command) {
         console.log(`Fetching batch: ${command} with amount: ${currentAmount}`);
         urlList.style.opacity = "0.5";
         
@@ -164,6 +191,51 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    function renderCrawlResults(data) {
+        const { startUrl, pagesScraped, results, errors, limitReached } = data;
+        
+        const successList = results.map(r => 
+            `<div class="crawl-item success">
+                <div class="crawl-url">${r.url}</div>
+                <div class="crawl-meta">Depth: ${r.depth} | ${r.title}</div>
+            </div>`
+        ).join('');
+
+        const errorList = errors.length > 0 ? `
+            <div class="section-label" style="color: red; margin-top: 20px;">Errors (${errors.length})</div>
+            ${errors.map(e => 
+                `<div class="crawl-item error">
+                    <div class="crawl-url">${e.url}</div>
+                    <div class="crawl-meta">Depth: ${e.depth} | ${e.error}</div>
+                </div>`
+            ).join('')}
+        ` : '';
+
+        const limitWarning = limitReached ? 
+            `<div class="warning-box">⚠️ Page limit reached. Some pages may not have been crawled.</div>` : '';
+
+        resultDisplay.innerHTML = `
+            <div class="result-card">
+                <h2>Crawl Complete</h2>
+                <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 6px;">
+                    <div><strong>Start URL:</strong> ${startUrl}</div>
+                    <div><strong>Pages Scraped:</strong> ${pagesScraped}</div>
+                    <div><strong>Successful:</strong> ${results.length}</div>
+                    <div><strong>Failed:</strong> ${errors.length}</div>
+                </div>
+                
+                ${limitWarning}
+
+                <div class="section-label">Scraped Pages (${results.length})</div>
+                <div class="crawl-results">
+                    ${successList}
+                </div>
+
+                ${errorList}
+            </div>
+        `;
+    }
+
     function renderPrefixList(keys, target) {
         target.innerHTML = "";
 
@@ -194,7 +266,6 @@ document.addEventListener("DOMContentLoaded", () => {
         updateStatus("Loading record details...", "blue");
 
         try {
-          
             const cleanUrl = key.replace(/^https?:\/\//, '');
 
             const res = await fetch("/get", {
@@ -222,7 +293,6 @@ document.addEventListener("DOMContentLoaded", () => {
             updateStatus("Error: " + e.message, "red");
         }
     }
-
 
     function renderList(items, container) {
         container.innerHTML = "";
@@ -268,8 +338,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-function renderDetail(data) {
-        const { metadata, contact, security, content_summary } = data;
+    function renderDetail(data) {
+        const { metadata, contact, security, content_summary, internal_links } = data;
         
         const makeTags = (arr, danger) => arr && arr.length 
             ? arr.map(x => `<span class="tag ${danger?'danger':''}">${x}</span>`).join('') 
@@ -288,9 +358,19 @@ function renderDetail(data) {
             ? `<img src="${metadata.image}" class="meta-img" alt="Site Preview">` 
             : '';
 
+        // Internal links section
+        const internalLinksHtml = internal_links && internal_links.length > 0 ? `
+            <div class="section-label">Internal Links Found (${internal_links.length})</div>
+            <div class="internal-links-box">
+                ${internal_links.slice(0, 20).map(link => 
+                    `<div class="internal-link-item">${link}</div>`
+                ).join('')}
+                ${internal_links.length > 20 ? `<div style="color:#999; font-style:italic; margin-top:10px;">...and ${internal_links.length - 20} more</div>` : ''}
+            </div>
+        ` : '';
+
         resultDisplay.innerHTML = `
             <div class="result-card">
-                <!-- Delete Button -->
                 <button id="btn-delete-record" class="delete-btn" title="Remove from Database">
                      &#128465; Delete
                 </button>
@@ -315,12 +395,13 @@ function renderDetail(data) {
                 <div class="section-label">Phone Numbers</div>
                 <div class="tags">${makeTags(contact.phones)}</div>
 
-                <!-- NEW: Social Media Section -->
                 <div class="section-label">Social Media</div>
                 <div class="tags">${makeLinkTags(contact.socials)}</div>
 
                 <div class="section-label" style="color:${keys.length?'red':'inherit'}">Security Keys</div>
                 <div class="tags">${makeTags(keys, true)}</div>
+
+                ${internalLinksHtml}
             </div>
         `;
 
@@ -342,7 +423,6 @@ function renderDetail(data) {
                     method: "POST",
                     headers: { 
                         "Content-Type": "application/json",
-                        // 'x-session-id': sessionId 
                     },
                     body: JSON.stringify({ 
                         url: urlPart,
@@ -369,4 +449,3 @@ function renderDetail(data) {
         statusDiv.style.color = color === "red" ? "#ef4444" : (color === "green" ? "#10b981" : "#4f46e5");
     }
 });
-

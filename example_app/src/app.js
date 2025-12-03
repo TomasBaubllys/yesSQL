@@ -33,68 +33,119 @@ const REGEX = {
     }
 };
 
+// Helper function to normalize URLs
+function normalizeUrl(url) {
+    try {
+        const urlObj = new URL(url);
+        // Remove trailing slash, fragments, and normalize
+        return urlObj.origin + urlObj.pathname.replace(/\/$/, '');
+    } catch {
+        return url;
+    }
+}
+
+// Helper function to get domain from URL
+function getDomain(url) {
+    try {
+        const urlObj = new URL(url);
+        return urlObj.hostname;
+    } catch {
+        return null;
+    }
+}
+
+// Helper function to scrape a single page
+async function scrapePage(url) {
+    console.log(`Scraping: ${url}`);
+
+    const response = await axios.get(url, {
+        headers: { 
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36" 
+        },
+        timeout: 8000
+    });
+
+    const html = response.data;
+    const $ = cheerio.load(html);
+
+    const title = $("title").text() || "No Title";
+    const description = $('meta[name="description"]').attr('content') || 
+                        $('meta[property="og:description"]').attr('content') || "";
+    const image = $('meta[property="og:image"]').attr('content') || "";
+
+    const bodyText = $('body').text(); 
+
+    const emailsFound = (bodyText.match(REGEX.email) || []);
+    $('a[href^="mailto:"]').each((_, el) => {
+        const href = $(el).attr('href');
+        if(href) emailsFound.push(href.replace('mailto:', ''));
+    });
+    const uniqueEmails = [...new Set(emailsFound)];
+
+    const phonesFound = (bodyText.match(REGEX.phone) || []);
+    const uniquePhones = [...new Set(phonesFound)].map(p => p.trim());
+
+    const foundKeys = {};
+    for (const [provider, regex] of Object.entries(REGEX.apiKeys)) {
+        const matches = html.match(regex);
+        if (matches) foundKeys[provider] = [...new Set(matches)];
+    }
+
+    const socialDomains = ['facebook.com', 'twitter.com', 'linkedin.com', 'instagram.com', 'github.com', 'youtube.com'];
+    const socialLinks = [];
+    
+    // Collect all internal links
+    const internalLinks = [];
+    const baseDomain = getDomain(url);
+    
+    $("a").each((_, el) => {
+        const href = $(el).attr("href");
+        if (!href) return;
+
+        // Check for social links
+        if (socialDomains.some(domain => href.includes(domain))) {
+            socialLinks.push(href);
+        }
+
+        // Collect internal links
+        try {
+            const absoluteUrl = new URL(href, url).href;
+            const linkDomain = getDomain(absoluteUrl);
+            
+            // Only include links from the same domain
+            if (linkDomain === baseDomain) {
+                const normalized = normalizeUrl(absoluteUrl);
+                internalLinks.push(normalized);
+            }
+        } catch (e) {
+            // Invalid URL, skip
+        }
+    });
+
+    const result = {
+        metadata: { url, title, description, image },
+        contact: { emails: uniqueEmails, phones: uniquePhones, socials: [...new Set(socialLinks)] },
+        security: { possible_api_keys: foundKeys },
+        content_summary: {
+            headings_count: $("h1, h2, h3").length,
+            links_count: $("a").length
+        },
+        internal_links: [...new Set(internalLinks)],
+        timestamp: new Date().toLocaleString()
+    };
+
+    return result;
+}
+
 app.post('/scrape', async (req, res) => {
     let { url } = req.body;
 
     if (!url) return res.status(400).json({ error: "Missing URL" });
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
 
-    console.log(`Scraping: ${url}`);
-
     try {
-        const response = await axios.get(url, {
-            headers: { 
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36" 
-            },
-            timeout: 8000
-        });
-
-        const html = response.data;
-        const $ = cheerio.load(html);
-
-        const title = $("title").text() || "No Title";
-        const description = $('meta[name="description"]').attr('content') || 
-                            $('meta[property="og:description"]').attr('content') || "";
-        const image = $('meta[property="og:image"]').attr('content') || "";
-
-        const bodyText = $('body').text(); 
-
-        const emailsFound = (bodyText.match(REGEX.email) || []);
-        $('a[href^="mailto:"]').each((_, el) => {
-            const href = $(el).attr('href');
-            if(href) emailsFound.push(href.replace('mailto:', ''));
-        });
-        const uniqueEmails = [...new Set(emailsFound)];
-
-        const phonesFound = (bodyText.match(REGEX.phone) || []);
-        const uniquePhones = [...new Set(phonesFound)].map(p => p.trim());
-
-        const foundKeys = {};
-        for (const [provider, regex] of Object.entries(REGEX.apiKeys)) {
-            const matches = html.match(regex);
-            if (matches) foundKeys[provider] = [...new Set(matches)];
-        }
-
-        const socialDomains = ['facebook.com', 'twitter.com', 'linkedin.com', 'instagram.com', 'github.com', 'youtube.com'];
-        const socialLinks = [];
-        $("a").each((_, el) => {
-            const href = $(el).attr("href");
-            if (href && socialDomains.some(domain => href.includes(domain))) {
-                socialLinks.push(href);
-            }
-        });
-
-        const result = {
-            metadata: { url, title, description, image },
-            contact: { emails: uniqueEmails, phones: uniquePhones, socials: [...new Set(socialLinks)] },
-            security: { possible_api_keys: foundKeys },
-            content_summary: {
-                headings_count: $("h1, h2, h3").length,
-                links_count: $("a").length
-            },
-            timestamp: new Date().toLocaleString()
-        };
-
+        const result = await scrapePage(url);
+        
         // Save to Database
         await db.set(url, JSON.stringify(result));
         
@@ -104,6 +155,81 @@ app.post('/scrape', async (req, res) => {
         console.error("Scraping Error:", err.message);
         const errorMessage = err.response ? `Target site returned ${err.response.status}` : err.message;
         res.status(500).json({ error: errorMessage });
+    }
+});
+
+// New endpoint: Crawl recursively
+app.post('/crawl', async (req, res) => {
+    let { url, maxDepth = 3, maxPages = 50 } = req.body;
+
+    if (!url) return res.status(400).json({ error: "Missing URL" });
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+    const startUrl = normalizeUrl(url);
+    const baseDomain = getDomain(startUrl);
+    
+    const visited = new Set();
+    const queue = [{ url: startUrl, depth: 0 }];
+    const results = [];
+    const errors = [];
+
+    console.log(`Starting crawl from: ${startUrl} (maxDepth: ${maxDepth}, maxPages: ${maxPages})`);
+
+    try {
+        while (queue.length > 0 && visited.size < maxPages) {
+            const { url: currentUrl, depth } = queue.shift();
+            
+            if (visited.has(currentUrl)) continue;
+            if (depth > maxDepth) continue;
+            
+            visited.add(currentUrl);
+
+            try {
+                const result = await scrapePage(currentUrl);
+                results.push({
+                    url: currentUrl,
+                    depth,
+                    success: true,
+                    title: result.metadata.title
+                });
+
+                // Save to database
+                await db.set(currentUrl, JSON.stringify(result));
+
+                // Add internal links to queue if we haven't reached max depth
+                if (depth < maxDepth && result.internal_links) {
+                    for (const link of result.internal_links) {
+                        if (!visited.has(link) && getDomain(link) === baseDomain) {
+                            queue.push({ url: link, depth: depth + 1 });
+                        }
+                    }
+                }
+
+                // Small delay to be polite to the server
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+            } catch (err) {
+                console.error(`Error scraping ${currentUrl}:`, err.message);
+                errors.push({
+                    url: currentUrl,
+                    depth,
+                    error: err.message
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            startUrl,
+            pagesScraped: visited.size,
+            results,
+            errors,
+            limitReached: visited.size >= maxPages
+        });
+
+    } catch (err) {
+        console.error("Crawl Error:", err.message);
+        res.status(500).json({ error: err.message, partialResults: results });
     }
 });
 
