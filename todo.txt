@@ -1,3 +1,0 @@
-- add sanity check for msg len
-- add error message codes when returning them to the client
-- rewrite python client
