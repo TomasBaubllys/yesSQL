@@ -80,13 +80,11 @@ def delete_cursor(name: str):
     total_length = 8 + 8 + 2 + 1 + len(name_bytes)
     number_of_elements = 1
 
-    # Header part (total length + number_of_elements)
     header = struct.pack("!Q", total_length)
     header += struct.pack("!Q", number_of_elements)
 
-    # Body part (command + name)
-    body = struct.pack("!H", command_codes.DELETE_CURSOR)  # 2 bytes
-    body += struct.pack("!B", len(name_bytes)) + name_bytes  # 1 + len(name_bytes)
+    body = struct.pack("!H", command_codes.DELETE_CURSOR)  
+    body += struct.pack("!B", len(name_bytes)) + name_bytes  
 
     return header + body
 

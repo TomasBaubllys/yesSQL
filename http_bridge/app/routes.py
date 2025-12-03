@@ -9,9 +9,6 @@ from tcp_instance_pool import pool
 router = APIRouter()
 
 
-# -------------------------------
-#  Models
-# -------------------------------
 class KeyRequest(BaseModel):
     key: str
 
@@ -37,18 +34,13 @@ class FFRequest(BaseModel):
     amount: int
 
 
-# -------------------------------
-#  Helpers
-# -------------------------------
+
 def require_session(session_id: str):
     if not session_id:
         raise HTTPException(400, detail="Missing X-Session-Id header")
     return session_id
 
 
-# -------------------------------
-#  Endpoints
-# -------------------------------
 
 @router.post("/get")
 async def get_value(req: KeyRequest, x_session_id: str = Header(None, alias="X-Session-Id")):

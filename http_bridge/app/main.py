@@ -7,11 +7,6 @@ from fastapi import FastAPI
 from routes import router
 
 
-HOST = "host.docker.internal"
-#HOST = "127.0.0.1"
-PORT = 9000
-POOL_SIZE = 5
-
 app = FastAPI()
 
 @asynccontextmanager

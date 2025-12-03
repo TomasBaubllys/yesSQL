@@ -1,27 +1,22 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // UI Refs
     const urlList = document.querySelector("#url-list");
     const resultDisplay = document.querySelector("#result-display");
     const statusDiv = document.querySelector("#status");
     const amountSelect = document.querySelector("#amount-select");
     
-    // New Refs for Prefix Sidebar
     const btnPrefixSearch = document.querySelector("#btn-prefix-search");
     const prefixInput = document.querySelector("#prefix-input");
     const prefixList = document.querySelector("#prefix-list");
 
-    // Buttons
     const btnNext = document.querySelector("#btn-next");
     const btnPrev = document.querySelector("#btn-prev");
     const btnScrape = document.querySelector("#scrape-btn");
     const btnDb = document.querySelector("#db-btn");
     const input = document.querySelector("#url-input");
 
-        // 1. Generate a UUID (or random string) when the page loads
     const sessionId = localStorage.getItem('site_session_id') || crypto.randomUUID();
     localStorage.setItem('site_session_id', sessionId);
 
-    // 3. Optional: Cleanup when window closes
     window.addEventListener('beforeunload', () => {
         navigator.sendBeacon('/cleanup_cursor', JSON.stringify({})); 
         // Note: sendBeacon doesn't easily support custom headers, 
@@ -30,25 +25,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-
-    // State
     let currentAmount = 10;
     
-    // Initial Load
     fetchBatch('get_next');
 
-    // --- Event Listeners ---
-
-    // 1. Sidebar Navigation
     btnNext.addEventListener("click", () => fetchBatch('get_next'));
     btnPrev.addEventListener("click", () => fetchBatch('get_prev'));
 
     amountSelect.addEventListener("change", (e) => {
         currentAmount = parseInt(e.target.value);
-        //fetchBatch('get_next');
     });
 
-    // 2. Scrape New
     btnScrape.addEventListener("click", async () => {
         const url = input.value.trim();
         if (!url) return alert("Please enter a URL");
@@ -69,14 +56,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             updateStatus("Scraped successfully.", "green");
             renderDetail(data); 
-            //fetchBatch('get_next'); // Refresh list
 
         } catch (e) {
             updateStatus("Error: " + e.message, "red");
         }
     });
 
-    // 3. Search DB
     btnDb.addEventListener("click", async () => {
         const url = input.value.trim();
         if (!url) return alert("Please enter a URL key to search");
@@ -104,7 +89,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // 4. Prefix Search (New Functionality)
     btnPrefixSearch.addEventListener("click", async () => {
         const prefix = prefixInput.value.trim();
         if(!prefix) return alert("Please enter a prefix");
@@ -125,14 +109,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 })
             });
 
-            console.log("RES::")
-            console.log(res);
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Error fetching prefix");
 
-            console.log("DATA::")
-            console.log(data);
             // Reuse logic but render to prefixList
             renderPrefixList(data, prefixList);
             updateStatus(`Found records for prefix '${prefix}'`, "green");
@@ -146,7 +126,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // --- Core Logic ---
 
    async function fetchBatch(command) {
         console.log(`Fetching batch: ${command} with amount: ${currentAmount}`);
@@ -172,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (Array.isArray(data)) {
-                renderList(data, urlList); // Pass target container
+                renderList(data, urlList); 
             } else {
                 updateStatus("Received invalid data format", "red");
             }
@@ -194,20 +173,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         keys.forEach(key => {
-            // Use 'list-item' class to match the style of the main list
             const div = document.createElement("div");
             div.className = "list-item"; 
-            div.textContent = key; // Display the URL key
+            div.textContent = key; 
             div.title = key;
 
             div.addEventListener("click", () => {
-                // 1. Visual: Remove 'active' class from all other items (in both lists)
                 document.querySelectorAll(".list-item").forEach(el => el.classList.remove("active"));
                 
-                // 2. Visual: Highlight this specific item
                 div.classList.add("active");
 
-                // 3. Data: Fetch the full details for this key
                 loadRecordByKey(key);
             });
 
@@ -219,11 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateStatus("Loading record details...", "blue");
 
         try {
-            // IMPORTANT: The backend /get endpoint automatically adds "https://" 
-            // via: const prefix = protocol || "https://";
-            // Since 'key' from get_prefix already has "https://", we must strip it 
-            // here, otherwise the backend looks for "https://https://..."
-            
+          
             const cleanUrl = key.replace(/^https?:\/\//, '');
 
             const res = await fetch("/get", {
@@ -234,7 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 },
                 body: JSON.stringify({ 
                     url: cleanUrl, 
-                    protocol: "https://" // Explicitly match backend logic
+                    protocol: "https://" 
                 })
             });
 
@@ -244,7 +215,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             updateStatus("Record loaded.", "green");
             
-            // Render the fetched details into the view
             renderDetail(data);
 
         } catch (e) {
@@ -254,7 +224,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    // Modified to accept a container argument
     function renderList(items, container) {
         container.innerHTML = "";
 
@@ -290,7 +259,6 @@ document.addEventListener("DOMContentLoaded", () => {
             div.title = finalItem.metadata.url;
 
             div.addEventListener("click", () => {
-                // Remove active class from ALL list items in document
                 document.querySelectorAll(".list-item").forEach(el => el.classList.remove("active"));
                 div.classList.add("active");
                 renderDetail(finalItem);
@@ -303,12 +271,10 @@ document.addEventListener("DOMContentLoaded", () => {
 function renderDetail(data) {
         const { metadata, contact, security, content_summary } = data;
         
-        // Helper for simple text tags (phones, emails)
         const makeTags = (arr, danger) => arr && arr.length 
             ? arr.map(x => `<span class="tag ${danger?'danger':''}">${x}</span>`).join('') 
             : '<span style="color:#999;font-style:italic">None</span>';
 
-        // Helper for Social Media Links (Clickable)
         const makeLinkTags = (arr) => arr && arr.length
             ? arr.map(url => `<a href="${url}" target="_blank" class="tag" style="text-decoration:none; color:#2563eb; border-color:#bfdbfe;">${url}</a>`).join('')
             : '<span style="color:#999;font-style:italic">None</span>';
@@ -358,7 +324,6 @@ function renderDetail(data) {
             </div>
         `;
 
-        // Attach Delete Logic
         document.getElementById("btn-delete-record").addEventListener("click", async () => {
             if(!confirm(`Are you sure you want to delete ${metadata.url} from the database?`)) return;
 
@@ -366,7 +331,6 @@ function renderDetail(data) {
             let protocol = "";
             let urlPart = fullUrl;
 
-            // Simple split if present to ensure clean removal
             if(fullUrl.includes("://")) {
                 const parts = fullUrl.split("://");
                 protocol = parts[0] + "://";
@@ -378,7 +342,7 @@ function renderDetail(data) {
                     method: "POST",
                     headers: { 
                         "Content-Type": "application/json",
-                        // 'x-session-id': sessionId // Ensure variable exists in scope if needed
+                        // 'x-session-id': sessionId 
                     },
                     body: JSON.stringify({ 
                         url: urlPart,
@@ -391,8 +355,6 @@ function renderDetail(data) {
                     throw new Error(errData.error || "Removal failed");
                 }
 
-                // Using updateStatus from parent scope
-                // updateStatus("Record deleted successfully.", "green");
                 resultDisplay.innerHTML = `<div style="padding:20px; text-align:center; color:#666;">Record deleted.</div>`;
                 
             } catch(e) {

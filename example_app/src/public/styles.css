@@ -20,10 +20,10 @@ body {
     flex-direction: column;
 }
 
-/* --- MAIN HEADER --- */
+
 .main-header {
     background: var(--white);
-    padding: 1rem 2rem; /* Added horizontal padding */
+    padding: 1rem 2rem; 
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -32,38 +32,36 @@ body {
 .main-header h1 {
     margin: 0;
     color: var(--text);
-    font-size: 2rem; /* Slightly larger text */
+    font-size: 2rem; 
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 15px; /* Increased gap */
+    gap: 15px; 
 }
 
 .powered-text {
     font-size: 1.1rem;
     color: var(--text-muted);
     font-weight: 400;
-    margin-top: 4px; /* Slight adjustment for visual balance */
+    margin-top: 4px;
 }
 
-/* Logo Sizing */
+
 .header-logo {
-    height: 120px;  /* Increased from 45px to 80px */
+    height: 120px;  
     width: auto;
     display: block;
     
-    /* Ensure no borders or background colors interfere */
     border: none;
     background: transparent;
 }
-/* --- APP LAYOUT --- */
+
 .app-layout {
     display: flex;
     flex: 1;
     overflow: hidden; 
 }
 
-/* LEFT PANEL */
 .main-view {
     flex: 1;
     display: flex;
@@ -110,7 +108,6 @@ button {
 }
 button:hover { background: var(--primary-hover); }
 
-/* Secondary Button (Search DB) */
 .secondary-btn { background-color: var(--secondary); }
 .secondary-btn:hover { background-color: var(--secondary-hover); }
 
@@ -122,17 +119,15 @@ button:hover { background: var(--primary-hover); }
     padding-left: 5px;
 }
 
-/* Result Card */
 .result-card {
     background: var(--white);
     padding: 2rem;
     border-radius: 12px;
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
     animation: fadeIn 0.3s ease-in;
-    position: relative; /* For Delete button positioning */
+    position: relative; 
 }
 
-/* DELETE BUTTON STYLE */
 .delete-btn {
     position: absolute;
     top: 20px;
@@ -174,9 +169,8 @@ button:hover { background: var(--primary-hover); }
     border-radius: 12px;
 }
 
-/* SIDEBARS */
 .sidebar {
-    width: 300px; /* Reduced slightly to fit 3 cols comfortably */
+    width: 300px; 
     background: var(--white);
     border-left: 1px solid var(--border);
     display: flex;
@@ -184,7 +178,6 @@ button:hover { background: var(--primary-hover); }
     flex-shrink: 0;
 }
 
-/* Specific style for new prefix sidebar if needed */
 .prefix-sidebar {
     background: #fdfdfd; 
 }

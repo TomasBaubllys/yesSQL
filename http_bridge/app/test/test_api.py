@@ -3,7 +3,6 @@ import httpx
 
 BASE_URL = "http://127.0.0.1:8000"
 
-# --- HTTP functions with headers ---
 async def set_key(client, key, value, headers):
     try:
         resp = await client.post(f"{BASE_URL}/set/{key}/{value}", headers=headers)
@@ -55,7 +54,6 @@ async def get_fb(client, cursor, amount, headers):
     except httpx.RequestError as e:
         print(f"GET_FB {cursor} failed: {e!r}")
 
-# ------------ concurrency limiter ------------
 semaphore = asyncio.Semaphore(200)  # realistic max concurrent operations
 
 
@@ -64,7 +62,6 @@ async def safe_set_key(client, key, value, headers):
         return await set_key(client, key, value, headers)
 
 
-# ------------ one simulated session (user/app instance) ------------
 async def session_worker(session_id, num_keys=1000, batch_size=100):
     headers = {"X-Session-Id": session_id}
 
@@ -90,7 +87,6 @@ async def session_worker(session_id, num_keys=1000, batch_size=100):
             print(f"{session_id}: Inserted {end}/{num_keys}")
 
 
-# ------------ run many sessions concurrently ------------
 async def simulate_realistic(num_sessions=50, num_keys=2000, batch_size=100):
     tasks = []
     for i in range(num_sessions):

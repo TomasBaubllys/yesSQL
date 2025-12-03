@@ -178,7 +178,17 @@ app.post('/cleanup_cursor', async(req, res) => {
 app.post('/get_prefix', async(req, res) => {
     try {
         let { amount, prefix } = req.body;
-        const prfx = 'https://' + prefix;
+
+        const hasProtocol = /^https?:\/\//i.test(prefix);
+
+        let full_prefix;
+
+        if(hasProtocol){
+            full_prefix = prefix;
+        }
+        else{
+            full_prefix = 'https://' + prefix;
+        }
 
         
         const tempCursor = '_C_' + Math.random().toString(36);
@@ -191,7 +201,7 @@ app.post('/get_prefix', async(req, res) => {
             return res.status(400).json({ error: "Missing amount or prefix" });
         }
 
-        const dbData = await db.getKeysPrefix(tempCursor, prfx, amount);
+        const dbData = await db.getKeysPrefix(tempCursor, full_prefix, amount);
 
         let result = dbData;
         if(typeof dbData === 'string') {
@@ -211,13 +221,24 @@ app.post('/get_prefix', async(req, res) => {
 app.post('/get', async (req, res) => {
     try {
         const { url, protocol } = req.body;
-        const prefix = protocol || "https://";
+
+        
+        const hasProtocol = /^https?:\/\//i.test(url);
+
+        let full_url;
+
+        if (hasProtocol) {
+            full_url = url;
+        } else {
+            const prefix = protocol || "https://";
+            full_url = prefix + url;
+        }
+
 
         if (!url) {
             return res.status(400).json({ error: "Missing URL key" });
         }
 
-        const full_url = prefix + url;
         console.log(`Fetching specific URL from DB: ${full_url}`);
 
         const dbData = await db.get(full_url);

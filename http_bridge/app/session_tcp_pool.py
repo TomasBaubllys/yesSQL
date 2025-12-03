@@ -5,7 +5,7 @@ import time
 import constants
 
 
-SESSION_IDLE_TIMEOUT = 300
+SESSION_IDLE_TIMEOUT = 300 
 CLEANUP_INTERVAL = 60
 
 class TCP_Connection:

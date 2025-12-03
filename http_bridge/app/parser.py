@@ -30,7 +30,6 @@ def handle_ok(raw_data: bytes, keys_only: bool):
     command_number = struct.unpack_from("!H", raw_data, offset)[0]
     offset += COMMAND_LENGTH_COMMAND_MESSAGE
 
-    # 1. Initialize a LIST, not a dictionary
     data_list = []
 
     for _ in range(num_elements):
@@ -42,7 +41,6 @@ def handle_ok(raw_data: bytes, keys_only: bool):
         offset += key_len
 
         if keys_only:
-            # 2. Append an object to the list instead of setting a dict key
             data_list.append({"key": key})
         else:
             value_len = struct.unpack_from("!I", raw_data, offset)[0]
@@ -52,7 +50,6 @@ def handle_ok(raw_data: bytes, keys_only: bool):
             value = value_bytes.decode("utf-8")
             offset += value_len
 
-            # 3. Append key/value pair object to the list
             data_list.append({"key": key, "value": value})
 
     return JSONResponse({"status": "OK", "data": data_list})
