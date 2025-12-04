@@ -92,7 +92,7 @@ This project was made out of curiosity on how database internally work, if you w
 ## Tested on
 This project was tested by all 3 of our developers we used these setups:
 
-Arch Linux x86\_64
+Arch Linux x86\_64<br>
 bash 5.3.8
 GCC 15.2.1
 Python 3.13.7
