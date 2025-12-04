@@ -93,17 +93,28 @@ This project was made out of curiosity on how database internally work, if you w
 This project was tested by all 3 of our developers we used these setups:
 
 Arch Linux x86\_64
+
 bash 5.3.8
+
 GCC 15.2.1
+
 Python 3.13.7
+
 go go1.25.5
+
 Docker 29.1.1
 
+
 Debian GNU/Linux 13 (trixie)
+
 bash 5.2.37
+
 GCC 14.2.0
+
 Python 3.13.5
+
 go go1.24.4
+
 Docker 29.1.0
 
 
