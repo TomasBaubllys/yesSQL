@@ -106,4 +106,11 @@ Python 3.13.5<br>
 go go1.24.4<br>
 Docker 29.1.0<br>
 
+Windows 11 Enterprise<br>
+GNU bash 5.2.21<br>
+GCC 14.2.0<br>
+Python 3.12.6<br>
+go go1.25.4 windows/amd64<br>
+Docker 28.5.2<br>
+
 
