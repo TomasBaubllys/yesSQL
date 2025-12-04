@@ -8,6 +8,8 @@
     --border: #e5e7eb;
     --text: #1f2937;
     --text-muted: #6b7280;
+    --success: #10b981;
+    --warning: #f59e0b;
 }
 
 body {
@@ -19,7 +21,6 @@ body {
     display: flex;
     flex-direction: column;
 }
-
 
 .main-header {
     background: var(--white);
@@ -46,12 +47,10 @@ body {
     margin-top: 4px;
 }
 
-
 .header-logo {
     height: 120px;  
     width: auto;
     display: block;
-    
     border: none;
     background: transparent;
 }
@@ -79,6 +78,31 @@ body {
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     margin-bottom: 10px;
     align-items: center;
+}
+
+.crawl-settings {
+    display: flex;
+    gap: 10px;
+    background: #fef3c7;
+    padding: 12px 15px;
+    border-radius: 8px;
+    border: 1px solid #fcd34d;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.crawl-settings label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #92400e;
+}
+
+.crawl-settings input[type="number"] {
+    width: 80px;
+    padding: 6px 10px;
+    border: 1px solid #fcd34d;
+    border-radius: 4px;
+    font-size: 0.9rem;
 }
 
 input {
@@ -110,6 +134,18 @@ button:hover { background: var(--primary-hover); }
 
 .secondary-btn { background-color: var(--secondary); }
 .secondary-btn:hover { background-color: var(--secondary-hover); }
+
+.crawl-btn {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    position: relative;
+}
+.crawl-btn:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+}
+.crawl-btn::before {
+    content: "🕷️";
+    margin-right: 5px;
+}
 
 #status {
     margin-bottom: 20px;
@@ -216,10 +252,104 @@ button:hover { background: var(--primary-hover); }
 .sidebar-controls button { background: #4b5563; font-size: 0.9rem; }
 
 /* Tags */
-.section-label { text-transform: uppercase; font-size: 0.75rem; color: var(--text-muted); font-weight: bold; margin-top: 1.5rem; margin-bottom: 0.5rem; }
-.tags { display: flex; flex-wrap: wrap; gap: 8px; overflow: hidden;}
-.tag { background: #e0e7ff; color: #3730a3; padding: 4px 12px; border-radius: 99px; font-size: 0.85rem; }
-.tag.danger { background: #fee2e2; color: #991b1b; overflow: hidden }
+.section-label { 
+    text-transform: uppercase; 
+    font-size: 0.75rem; 
+    color: var(--text-muted); 
+    font-weight: bold; 
+    margin-top: 1.5rem; 
+    margin-bottom: 0.5rem; 
+}
+.tags { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 8px; 
+    overflow: hidden;
+}
+.tag { 
+    background: #e0e7ff; 
+    color: #3730a3; 
+    padding: 4px 12px; 
+    border-radius: 99px; 
+    font-size: 0.85rem; 
+}
+.tag.danger { 
+    background: #fee2e2; 
+    color: #991b1b; 
+    overflow: hidden;
+}
+
+/* Crawl Results */
+.crawl-results {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    background: #fafafa;
+}
+
+.crawl-item {
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    border-left: 4px solid var(--success);
+    background: white;
+}
+
+.crawl-item.error {
+    border-left-color: #ef4444;
+    background: #fef2f2;
+}
+
+.crawl-item.success {
+    border-left-color: var(--success);
+}
+
+.crawl-url {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    word-break: break-all;
+}
+
+.crawl-meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.warning-box {
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-left: 4px solid var(--warning);
+    padding: 12px;
+    border-radius: 6px;
+    margin: 15px 0;
+    color: #92400e;
+    font-size: 0.9rem;
+}
+
+/* Internal Links */
+.internal-links-box {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    background: #fafafa;
+}
+
+.internal-link-item {
+    padding: 8px;
+    margin-bottom: 6px;
+    background: white;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: var(--text);
+    word-break: break-all;
+    border-left: 3px solid #93c5fd;
+}
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }

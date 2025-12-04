@@ -26,7 +26,21 @@
                 <input id="url-input" type="text" placeholder="Enter a URL (e.g. https://example.com)...">
                 <div class="button-group">
                     <button id="scrape-btn">Scrape New</button>
+                    <button id="crawl-btn" class="crawl-btn">Crawl Site</button>
                     <button id="db-btn" class="secondary-btn">Search DB</button>
+                </div>
+            </div>
+
+            <!-- Crawl Settings -->
+            <div class="crawl-settings">
+                <label for="crawl-max-depth">Max Depth:</label>
+                <input type="number" id="crawl-max-depth" value="3" min="1" max="10">
+                
+                <label for="crawl-max-pages" style="margin-left: 20px;">Max Pages:</label>
+                <input type="number" id="crawl-max-pages" value="50" min="1" max="500">
+                
+                <div style="flex: 1; text-align: right; font-size: 0.85rem; color: #92400e;">
+                    ℹ️ Crawl will recursively scrape internal links
                 </div>
             </div>
             
